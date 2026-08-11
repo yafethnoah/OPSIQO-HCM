@@ -1,0 +1,2 @@
+import { PageHeader } from '@/components/page-header';import { PeopleAnalyticsWorkspace } from '@/components/people-analytics-workspace';
+export default function PeopleAnalyticsPage(){return <><PageHeader title="People Analytics Studio" subtitle="Governed workforce metrics, immutable historical snapshots, privacy-protected aggregates and reviewable forecast evidence."/><PeopleAnalyticsWorkspace/></>}

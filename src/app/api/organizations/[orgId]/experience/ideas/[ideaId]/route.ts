@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server';import { actorFromRequest } from '@/lib/auth/session';import { apiErrorResponse } from '@/lib/http/errors';import { actIdea } from '@/lib/experience/service';
+export async function PATCH(request:Request,context:{params:Promise<{orgId:string;ideaId:string}>}){try{const{orgId,ideaId}=await context.params;const actor=await actorFromRequest(request,orgId);return NextResponse.json({data:await actIdea(actor,ideaId,await request.json())});}catch(e){return apiErrorResponse(e);}}

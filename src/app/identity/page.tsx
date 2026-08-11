@@ -1,0 +1,2 @@
+import { PageHeader } from '@/components/page-header';import { IdentityCommandCenter } from '@/components/identity-command-center';
+export default function IdentityPage(){return <><PageHeader title="Enterprise Identity, SSO & Provisioning Hub" subtitle="Governed federation, JIT access, role mapping, access reviews, SCIM provisioning, MFA/session assurance and identity reconciliation."/><IdentityCommandCenter/></>}

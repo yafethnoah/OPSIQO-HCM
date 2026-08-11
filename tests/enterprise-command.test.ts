@@ -1,0 +1,11 @@
+import { describe,expect,it } from 'vitest';
+import type { EnterpriseRiskNode } from '../src/domain/enterprise-command';
+import { enterpriseIndex,releaseGate,riskStatus,sloBreach } from '../src/lib/operations/enterprise-risk';
+const node=(key:any,readinessScore:number,status:any='low',overdue=0,highCritical=0,weight=1):EnterpriseRiskNode=>({key,label:key,href:'/',readinessScore,status,open:0,overdue,highCritical,weight,summary:''});
+describe('v3.0 enterprise HCM command-center governance',()=>{
+ it('degrades the enterprise index when domain risk and overdue work increase',()=>{const strong=enterpriseIndex([node('lifecycle',95),node('assurance',92),node('privacy_ai',90)]);const weak=enterpriseIndex([node('lifecycle',50,'high',4,1),node('assurance',35,'critical',5,3),node('privacy_ai',55,'high',2,1)]);expect(strong.score).toBeGreaterThan(weak.score);expect(weak.level).toBe('fragile')});
+ it('classifies material risk deterministically',()=>{expect(riskStatus(35,0,0)).toBe('critical');expect(riskStatus(85,0,0)).toBe('low');expect(riskStatus(90,1,0)).toBe('high')});
+ it('blocks release promotion until every mandatory dependency-aware gate passes',()=>{expect(releaseGate({environment:'production',readinessOkay:true,dependencyInstall:'pending',typecheck:'passed',tests:'passed',rulesTests:'passed',build:'passed',aiGovernance:'passed',lifecycleUat:'passed'})).toBe('blocked');expect(releaseGate({environment:'production',readinessOkay:true,ciEvidencePresent:true,dependencyInstall:'passed',typecheck:'passed',tests:'passed',rulesTests:'passed',build:'passed',aiGovernance:'passed',lifecycleUat:'passed'})).toBe('ready')});
+ it('requires a traceable CI evidence reference for production release readiness',()=>{expect(releaseGate({environment:'production',readinessOkay:true,dependencyInstall:'passed',typecheck:'passed',tests:'passed',rulesTests:'passed',build:'passed',aiGovernance:'passed',lifecycleUat:'passed'})).toBe('blocked');expect(releaseGate({environment:'staging',readinessOkay:true,dependencyInstall:'passed',typecheck:'passed',tests:'passed',rulesTests:'passed',build:'passed',aiGovernance:'passed',lifecycleUat:'passed'})).toBe('ready')});
+ it('evaluates SLO tolerances in both directions',()=>{expect(sloBreach('higher_better',99.8,99.9,0)).toBe(true);expect(sloBreach('lower_better',180,200,0)).toBe(false)});
+});

@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server';import { actorFromRequest,requirePermission } from '@/lib/auth/session';import { apiErrorResponse } from '@/lib/http/errors';import { createPrompt } from '@/lib/ai-intelligence/service';
+export async function POST(request:Request,context:{params:Promise<{orgId:string}>}){try{const{orgId}=await context.params;const actor=await actorFromRequest(request,orgId);requirePermission(actor,'ai.manage');return NextResponse.json({data:await createPrompt(actor,await request.json())});}catch(e){return apiErrorResponse(e);}}

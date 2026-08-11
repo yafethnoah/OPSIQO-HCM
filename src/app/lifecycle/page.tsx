@@ -1,0 +1,1 @@
+import { PageHeader } from '@/components/page-header';import { LifecycleCommandCenter } from '@/components/lifecycle-command-center';export default function LifecyclePage(){return <><PageHeader title="Lifecycle Command Center" subtitle="Cross-module workforce intelligence, lifecycle alerts, data-quality diagnostics and operational health."/><LifecycleCommandCenter/></>}

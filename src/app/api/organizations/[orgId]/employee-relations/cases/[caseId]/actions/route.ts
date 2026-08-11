@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server';import { actorFromRequest } from '@/lib/auth/session';import { apiErrorResponse } from '@/lib/http/errors';import { addCaseAction } from '@/lib/employee-relations/service';
+export async function POST(request:Request,context:{params:Promise<{orgId:string;caseId:string}>}){try{const{orgId,caseId}=await context.params;return NextResponse.json({data:await addCaseAction(await actorFromRequest(request,orgId),caseId,await request.json())},{status:201});}catch(e){return apiErrorResponse(e);}}

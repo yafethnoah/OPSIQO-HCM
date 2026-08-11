@@ -1,0 +1,104 @@
+name: OPSIQO HCM Production Promotion Gate
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: production
+    env:
+      NODE_ENV: production
+      OPSIQO_RELEASE_VERSION: '3.6.1'
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      OPSIQO_FIREBASE_ADMIN_AUTH_MODE: service_account
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+      FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+      FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+      FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+      APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+      NEXT_PUBLIC_APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+      OPSIQO_REQUIRE_APP_CHECK: 'true'
+      NEXT_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY: ${{ secrets.FIREBASE_APP_CHECK_SITE_KEY }}
+      OPSIQO_REQUIRE_ADMIN_MFA: 'true'
+      OPSIQO_REQUIRE_CLEAN_DOCUMENT_SCAN: 'true'
+      OPSIQO_JOB_SECRET: ${{ secrets.OPSIQO_JOB_SECRET }}
+      OPSIQO_SURVEY_ANONYMITY_SECRET: ${{ secrets.OPSIQO_SURVEY_ANONYMITY_SECRET }}
+      OPSIQO_REGULATORY_SOURCE_HOSTS: ${{ vars.OPSIQO_REGULATORY_SOURCE_HOSTS }}
+      OPSIQO_ENABLE_ENTERPRISE_SSO: ${{ vars.OPSIQO_ENABLE_ENTERPRISE_SSO }}
+      OPSIQO_IDENTITY_HOSTS: ${{ vars.OPSIQO_IDENTITY_HOSTS }}
+      OPSIQO_ALLOWED_ADMIN_PROVIDERS: ${{ vars.OPSIQO_ALLOWED_ADMIN_PROVIDERS }}
+      OPSIQO_ENABLE_SECURITY_OPERATIONS: ${{ vars.OPSIQO_ENABLE_SECURITY_OPERATIONS }}
+      OPSIQO_SECURITY_EVENT_INGEST_SECRET: ${{ secrets.OPSIQO_SECURITY_EVENT_INGEST_SECRET }}
+      OPSIQO_SECURITY_EVENT_INGEST_ORG_ID: ${{ vars.OPSIQO_JOB_ORG_ID }}
+      OPSIQO_SECURITY_EVENT_INGEST_SECRETS_JSON: ${{ secrets.OPSIQO_SECURITY_EVENT_INGEST_SECRETS_JSON }}
+      OPSIQO_SECURITY_SIEM_HOSTS: ${{ vars.OPSIQO_SECURITY_SIEM_HOSTS }}
+      OPSIQO_ENABLE_EXTERNAL_INTEGRATIONS: ${{ vars.OPSIQO_ENABLE_EXTERNAL_INTEGRATIONS }}
+      OPSIQO_INTEGRATION_HOSTS: ${{ vars.OPSIQO_INTEGRATION_HOSTS }}
+      OPSIQO_ENABLE_PLATFORM_RELIABILITY: 'true'
+      OPSIQO_BACKUP_EVIDENCE_MODE: ${{ vars.OPSIQO_BACKUP_EVIDENCE_MODE }}
+      OPSIQO_PLATFORM_MONITORING_SOURCE: ${{ vars.OPSIQO_PLATFORM_MONITORING_SOURCE }}
+      OPSIQO_PRODUCTION_EVIDENCE_REF: ${{ vars.OPSIQO_PRODUCTION_EVIDENCE_REF }}
+      OPSIQO_CLOUD_DR_EVIDENCE_REF: ${{ vars.OPSIQO_CLOUD_DR_EVIDENCE_REF }}
+      OPSIQO_DR_EXERCISE_EVIDENCE_REF: ${{ vars.OPSIQO_DR_EXERCISE_EVIDENCE_REF }}
+      OPSIQO_AI_PROVIDER: ${{ vars.OPSIQO_AI_PROVIDER }}
+      OPSIQO_REQUIRE_GOVERNED_AI_CONFIG: 'true'
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      OPSIQO_JOB_ORG_ID: ${{ vars.OPSIQO_JOB_ORG_ID }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Require reviewed lockfile
+        run: test -f package-lock.json
+      - name: Review committed lockfile structure
+        run: node scripts/review-lockfile.mjs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci --registry=https://registry.npmjs.org --no-audit --no-fund
+      - run: npm audit --audit-level=high
+      - run: npm run security:static-scan
+      - run: npm run supplychain:sbom
+      - run: npm run release:gate
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:rules
+      - run: npm run build
+      - run: npm run ai:evaluate
+      - run: npm run ai:governance-check
+      - run: npm run preflight:production
+      - name: Package build for provenance
+        run: tar -czf opsiqo-build.tgz .next
+      - run: npm run supplychain:provenance -- opsiqo-build.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opsiqo-v3.6.1-supply-chain-evidence
+          path: |
+            artifacts/opsiqo-hcm.cdx.json
+            artifacts/opsiqo-hcm.provenance.json
+            opsiqo-build.tgz
+  integrated-uat:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      OPSIQO_UAT_BASE_URL: ${{ vars.OPSIQO_UAT_BASE_URL }}
+      OPSIQO_UAT_ORG_ID: ${{ vars.OPSIQO_JOB_ORG_ID }}
+      OPSIQO_UAT_ID_TOKEN: ${{ secrets.OPSIQO_UAT_ID_TOKEN }}
+      OPSIQO_UAT_APP_CHECK_TOKEN: ${{ secrets.OPSIQO_UAT_APP_CHECK_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --registry=https://registry.npmjs.org --no-audit --no-fund
+      - run: npm run uat:lifecycle

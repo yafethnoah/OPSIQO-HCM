@@ -1,0 +1,21 @@
+export type SurveyStatus='draft'|'published'|'closed'|'archived';
+export type SurveyResponseMode='identified'|'confidential'|'anonymous';
+export type SurveyAudience='all'|'employees'|'managers';
+export type SurveyQuestionType='likert5'|'enps'|'single_select'|'text';
+export interface SurveyQuestion {id:string;type:SurveyQuestionType;prompt:string;required:boolean;driver?:string;options?:string[];}
+export interface EmployeeSurvey {id:string;code:string;name:string;description?:string;purpose:string;privacyNotice:string;status:SurveyStatus;responseMode:SurveyResponseMode;audience:SurveyAudience;anonymityThreshold:number;allowAnonymousText:boolean;resultsVisibleToEmployees:boolean;startsAt:string;endsAt:string;questions:SurveyQuestion[];eligibleCountAtPublish?:number;createdBy:string;createdAt:string;updatedAt:string;publishedBy?:string;publishedAt?:string;closedAt?:string;}
+export interface SurveyAnswer {questionId:string;numberValue?:number;textValue?:string;optionValue?:string;}
+export interface SurveyResponse {id:string;surveyId:string;respondentType:'identified'|'confidential'|'anonymous';workerId?:string;submittedByUid?:string;answers:SurveyAnswer[];submittedAt:string;}
+export interface SurveyResultQuestion {questionId:string;prompt:string;type:SurveyQuestionType;driver?:string;responses:number;average?:number;distribution?:Record<string,number>;comments?:string[];suppressed?:boolean;}
+export interface SurveyResult {surveyId:string;surveyName:string;responseMode:SurveyResponseMode;responseCount:number;eligibleCount:number;participationPct:number;threshold:number;released:boolean;employeeRecommendationScore?:number;questions:SurveyResultQuestion[];}
+
+export type ServiceTicketPriority='low'|'normal'|'high'|'urgent';
+export type ServiceTicketStatus='open'|'assigned'|'pending_requester'|'resolved'|'closed'|'cancelled';
+export interface ServiceCatalogItem {id:string;code:string;name:string;description:string;category:string;enabled:boolean;defaultPriority:ServiceTicketPriority;firstResponseHours:number;resolutionHours:number;requesterCanView:boolean;createdAt:string;updatedAt:string;updatedBy:string;}
+export interface HrServiceTicket {id:string;referenceNumber:string;requesterWorkerId:string;requesterUid:string;catalogItemId:string;category:string;subject:string;description:string;priority:ServiceTicketPriority;status:ServiceTicketStatus;confidentiality:'standard'|'restricted';assignedToUid?:string;firstResponseDueAt:string;resolutionDueAt:string;firstRespondedAt?:string;resolvedAt?:string;closedAt?:string;resolutionSummary?:string;slaFirstResponseBreached:boolean;slaResolutionBreached:boolean;createdAt:string;updatedAt:string;}
+export interface ServiceTicketComment {id:string;ticketId:string;authorUid:string;authorWorkerId?:string;visibility:'requester'|'internal';message:string;createdAt:string;}
+export interface ServiceSatisfaction {id:string;ticketId:string;requesterWorkerId:string;rating:1|2|3|4|5;comment?:string;createdAt:string;}
+export interface KnowledgeArticle {id:string;slug:string;title:string;summary:string;body:string;category:string;keywords:string[];status:'draft'|'published'|'archived';helpfulCount:number;notHelpfulCount:number;createdBy:string;createdAt:string;updatedBy:string;updatedAt:string;publishedAt?:string;}
+export interface Recognition {id:string;senderWorkerId:string;recipientWorkerId:string;value:string;message:string;visibility:'organization'|'private';createdBy:string;createdAt:string;}
+export interface EmployeeIdea {id:string;title:string;description:string;category:string;anonymous:boolean;authorWorkerId?:string;status:'submitted'|'under_review'|'planned'|'implemented'|'declined';reviewNote?:string;createdAt:string;updatedAt:string;}
+export interface ExperienceDashboard {scope:'self'|'organization';metrics:{activeSurveys:number;openTickets:number;slaBreached:number;avgResolutionHours:number;csat:number;latestRecommendationScore:number;latestParticipationPct:number;recognitions30d:number;ideasOpen:number};surveys:Array<EmployeeSurvey&{result?:SurveyResult;responded?:boolean}>;tickets:HrServiceTicket[];catalog:ServiceCatalogItem[];knowledge:KnowledgeArticle[];recognition:Recognition[];ideas:EmployeeIdea[];generatedAt:string;privacyNotice:string;}

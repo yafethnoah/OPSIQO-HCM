@@ -1,0 +1,2 @@
+import { PageHeader } from '@/components/page-header';import { IntegrationCommandCenter } from '@/components/integration-command-center';import { IntegrationRuntimeCenter } from '@/components/integration-runtime-center';
+export default function IntegrationsPage(){return <><PageHeader title="Enterprise Integration Runtime & Data Exchange" subtitle="Governed connectors, executable adapter profiles, signed webhooks, scheduled/delta sync, staging, reconciliation, replay controls and integration observability."/><IntegrationCommandCenter/><IntegrationRuntimeCenter/></>}

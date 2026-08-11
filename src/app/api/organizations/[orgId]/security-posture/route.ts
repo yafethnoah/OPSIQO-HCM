@@ -1,0 +1,4 @@
+import { NextResponse } from 'next/server';
+import { actorFromRequest, requirePermission } from '@/lib/auth/session';
+import { apiErrorResponse } from '@/lib/http/errors';
+export async function GET(request:Request,context:{params:Promise<{orgId:string}>}){try{const{orgId}=await context.params;const actor=await actorFromRequest(request,orgId);requirePermission(actor,'security.manage');return NextResponse.json({data:{appCheckRequired:process.env.OPSIQO_REQUIRE_APP_CHECK==='true',adminMfaRequired:process.env.OPSIQO_REQUIRE_ADMIN_MFA==='true',allowedAdminProviders:(process.env.OPSIQO_ALLOWED_ADMIN_PROVIDERS||'').split(',').map(v=>v.trim()).filter(Boolean),demoMode:process.env.OPSIQO_DEMO_MODE==='true',jobSecretConfigured:Boolean(process.env.OPSIQO_JOB_SECRET),firebaseProjectConfigured:Boolean(process.env.FIREBASE_PROJECT_ID),policyMode:'fail_closed'}});}catch(e){return apiErrorResponse(e);}}

@@ -1,0 +1,123 @@
+# OPSIQO HCM v3.6.1 Production Evidence Closure & Cloud DR Runbook
+
+## 1. Purpose
+v3.6.1 closes the gap between source-level validation and production evidence. It does not manufacture a green acceptance result. The final evidence bundle can become `ready=true` only when the reviewed dependency lockfile, complete CI/build suite, deployed UAT, current cloud backup/PITR evidence and controlled restore exercise all pass in the protected environment.
+
+## 2. One-time repository / CI preparation
+1. Run the manual **OPSIQO v3.6.1 Reviewed Lockfile Bootstrap** workflow from the exact release commit and type `GENERATE_LOCKFILE`. The workflow must not auto-commit or push.
+2. Download and review `package-lock.json`, `lockfile-review.json`, `npm-tree.json`, the patch and SHA-256 evidence.
+3. Place the approved lockfile in the release branch and run `npm run source:manifest:generate`. Review and commit both `package-lock.json` and `SOURCE_MANIFEST.sha256`.
+4. Confirm `npm run source:manifest:verify` and `npm run supplychain:lockfile-review` pass against the committed files.
+5. Configure protected GitHub environments `production-evidence` and `production` with required reviewers.
+6. Configure Google Cloud Workload Identity Federation for GitHub Actions; avoid long-lived service-account keys for the cloud-evidence job.
+7. Configure a dedicated DR evidence service account. Grant only the cloud permissions required to read Firestore database/backup metadata, initiate an isolated restore, verify the temporary database through the application identity, and remove the temporary database. Use a reviewed custom role where practical rather than broad owner access.
+8. Configure GitHub CodeQL/security scanning and Gitleaks. Organization repositories using Gitleaks Action may require the protected `GITLEAKS_LICENSE` secret.
+
+## 3. Required production-evidence variables / secrets
+```text
+FIREBASE_PROJECT_ID=<production-project>
+FIRESTORE_DATABASE_ID=(default)                 # or the approved named production database
+GCP_WORKLOAD_IDENTITY_PROVIDER=<projects/.../providers/...>
+GCP_DR_EVIDENCE_SERVICE_ACCOUNT=<service-account-email>
+
+OPSIQO_CLOUD_DR_REQUIRE_PITR=true
+OPSIQO_CLOUD_DR_REQUIRE_SCHEDULED_BACKUP=true
+OPSIQO_CLOUD_DR_MAX_BACKUP_AGE_HOURS=36
+
+OPSIQO_DR_SENTINEL_DOCUMENT_PATH=systemRecoverySentinels/primary
+OPSIQO_DR_SENTINEL_EXPECTED_SHA256=<protected 64-hex digest>
+OPSIQO_DR_TARGET_RTO_MINUTES=<approved target>
+OPSIQO_DR_TARGET_RPO_MINUTES=<approved target>
+```
+Use a non-sensitive sentinel containing stable JSON scalar values only. Do not use a worker, payroll, health, accommodation, discipline or other personal/sensitive record as the sentinel.
+
+## 4. Capture cloud backup/PITR evidence without restoring
+Run the manual workflow **OPSIQO Cloud DR Evidence Capture**. It:
+- authenticates to Google Cloud through GitHub OIDC/WIF;
+- captures production Firestore database/PITR metadata;
+- captures backup schedules;
+- lists backup metadata;
+- checks the configured PITR/scheduled-backup policy and backup freshness;
+- uploads raw metadata plus `opsiqo-cloud-dr-evidence.json`.
+
+The collector uses metadata only. A passing metadata assessment does not prove that application data is recoverable.
+
+## 5. Execute production evidence closure
+Run **OPSIQO v3.6.1 Production Evidence Closure** and type exactly:
+```text
+RESTORE_TEST
+```
+The workflow must be protected by environment reviewers because it creates and later deletes a temporary Firestore database and may incur cloud cost.
+
+The workflow performs, in order:
+1. committed lockfile structural re-review plus exact-tree source-manifest verification;
+2. dependency install and `npm audit`;
+3. dedicated Gitleaks scan and CodeQL analysis;
+4. bounded OPSIQO static scan and CycloneDX inventory generation;
+5. release gate, typecheck, tests, Rules tests and production build;
+6. AI evaluation/governance, production preflight and authenticated deployed UAT;
+7. build packaging and provenance generation;
+8. fresh Firestore PITR/backup metadata capture;
+9. latest READY backup selection;
+10. restore to a new `opsiqo-dr-<run>-<attempt>` database;
+11. sentinel hash verification against the independently configured expected digest;
+12. actual RTO/RPO measurement;
+13. temporary database deletion and cleanup verification;
+14. production evidence bundle generation and SHA-256 verification.
+
+Never change the workflow to restore into `(default)` or another active production database.
+
+## 6. Firestore restore evidence interpretation
+The workflow measures:
+- **RTO:** restore start → successful sentinel verification.
+- **RPO:** backup `snapshotTime` → exercise start.
+
+A full `pass` requires target RTO met, target RPO met, sentinel integrity verified, and cleanup completed. `partial` or `fail` cannot produce a ready production-evidence bundle.
+
+Firestore PITR and scheduled backups protect different recovery paths. Capture the policy decision explicitly; do not infer that enabling either one automatically meets the organization's RPO/RTO requirements.
+
+## 7. Final evidence bundle
+The authoritative output is:
+```text
+artifacts/opsiqo-production-evidence.json
+```
+It binds the CI run and source commit to SHA-256 evidence for:
+- `package-lock.json`;
+- `SOURCE_MANIFEST.sha256`;
+- CycloneDX SBOM;
+- build provenance;
+- packaged `.next` build;
+- cloud DR metadata assessment;
+- controlled restore exercise.
+
+Run:
+```powershell
+npm run production:evidence:verify
+```
+before accepting the bundle. Retain the GitHub run and uploaded artifacts according to the organization's evidence-retention policy.
+
+## 8. Production deployment references
+After independent acceptance, configure deployment metadata:
+```text
+OPSIQO_RELEASE_VERSION=3.6.1
+OPSIQO_FIREBASE_ADMIN_AUTH_MODE=<adc|service_account>
+OPSIQO_PRODUCTION_EVIDENCE_REF=<approved CI run/evidence reference>
+OPSIQO_CLOUD_DR_EVIDENCE_REF=<approved current cloud-DR evidence reference>
+OPSIQO_DR_EXERCISE_EVIDENCE_REF=<approved restore-exercise evidence reference>
+```
+These values are pointers. `/api/health/ready` checks that the deployment has traceable evidence references; it does not independently re-run the cloud exercise on every readiness request.
+
+## 9. Rollback / failed exercise
+If any build or cloud-DR gate fails:
+1. do not promote the release;
+2. preserve the failed CI/evidence bundle and logs;
+3. ensure any temporary restore database is removed;
+4. open/continue a Platform Reliability incident or corrective action where material;
+5. fix the root cause and run a new evidence-closure workflow; never edit a failed evidence artifact into a pass;
+6. retain prior accepted production release evidence until the new release is independently accepted.
+
+## 10. Important limitations
+- v3.6.1 cannot prove cloud backup/PITR configuration from environment variables alone.
+- The temporary restore test verifies the configured sentinel, not every document or external dependency.
+- Firestore backup restore creates a new database; external integrations, secrets, Identity Platform state, Storage objects and third-party systems require their own recovery controls.
+- A green evidence bundle is release-specific operational assurance, not legal, regulatory, security or availability certification.

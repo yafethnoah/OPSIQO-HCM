@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server';import { actorFromRequest } from '@/lib/auth/session';import { apiErrorResponse } from '@/lib/http/errors';import { submitSurveyResponse } from '@/lib/experience/service';
+export async function POST(request:Request,context:{params:Promise<{orgId:string;surveyId:string}>}){try{const{orgId,surveyId}=await context.params;const actor=await actorFromRequest(request,orgId);return NextResponse.json({data:await submitSurveyResponse(actor,surveyId,await request.json())},{status:201});}catch(e){return apiErrorResponse(e);}}

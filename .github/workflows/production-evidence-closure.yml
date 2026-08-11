@@ -1,0 +1,250 @@
+name: OPSIQO v3.6.1 Production Evidence Closure
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_restore:
+        description: 'Type RESTORE_TEST to authorize a temporary Firestore restore exercise.'
+        required: true
+        type: string
+      target_rto_minutes:
+        description: 'Approved DR target RTO in minutes.'
+        required: true
+        default: '120'
+        type: string
+      target_rpo_minutes:
+        description: 'Approved DR target RPO in minutes.'
+        required: true
+        default: '1440'
+        type: string
+permissions:
+  contents: read
+  id-token: write
+  security-events: write
+jobs:
+  closure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment: production-evidence
+    env:
+      NODE_ENV: production
+      OPSIQO_RELEASE_VERSION: '3.6.1'
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      OPSIQO_FIREBASE_ADMIN_AUTH_MODE: adc
+      FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+      NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
+      FIRESTORE_DATABASE_ID: ${{ vars.FIRESTORE_DATABASE_ID }}
+      APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+      NEXT_PUBLIC_APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+      OPSIQO_REQUIRE_APP_CHECK: 'true'
+      NEXT_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY: ${{ secrets.FIREBASE_APP_CHECK_SITE_KEY }}
+      OPSIQO_REQUIRE_ADMIN_MFA: 'true'
+      OPSIQO_REQUIRE_CLEAN_DOCUMENT_SCAN: 'true'
+      OPSIQO_JOB_SECRET: ${{ secrets.OPSIQO_JOB_SECRET }}
+      OPSIQO_SURVEY_ANONYMITY_SECRET: ${{ secrets.OPSIQO_SURVEY_ANONYMITY_SECRET }}
+      OPSIQO_REGULATORY_SOURCE_HOSTS: ${{ vars.OPSIQO_REGULATORY_SOURCE_HOSTS }}
+      OPSIQO_ENABLE_ENTERPRISE_SSO: ${{ vars.OPSIQO_ENABLE_ENTERPRISE_SSO }}
+      OPSIQO_IDENTITY_HOSTS: ${{ vars.OPSIQO_IDENTITY_HOSTS }}
+      OPSIQO_ALLOWED_ADMIN_PROVIDERS: ${{ vars.OPSIQO_ALLOWED_ADMIN_PROVIDERS }}
+      OPSIQO_ENABLE_SECURITY_OPERATIONS: ${{ vars.OPSIQO_ENABLE_SECURITY_OPERATIONS }}
+      OPSIQO_SECURITY_EVENT_INGEST_SECRET: ${{ secrets.OPSIQO_SECURITY_EVENT_INGEST_SECRET }}
+      OPSIQO_SECURITY_EVENT_INGEST_ORG_ID: ${{ vars.OPSIQO_JOB_ORG_ID }}
+      OPSIQO_SECURITY_EVENT_INGEST_SECRETS_JSON: ${{ secrets.OPSIQO_SECURITY_EVENT_INGEST_SECRETS_JSON }}
+      OPSIQO_SECURITY_SIEM_HOSTS: ${{ vars.OPSIQO_SECURITY_SIEM_HOSTS }}
+      OPSIQO_ENABLE_EXTERNAL_INTEGRATIONS: ${{ vars.OPSIQO_ENABLE_EXTERNAL_INTEGRATIONS }}
+      OPSIQO_INTEGRATION_HOSTS: ${{ vars.OPSIQO_INTEGRATION_HOSTS }}
+      OPSIQO_ENABLE_PLATFORM_RELIABILITY: 'true'
+      OPSIQO_BACKUP_EVIDENCE_MODE: firebase_pitr
+      OPSIQO_PLATFORM_MONITORING_SOURCE: ${{ vars.OPSIQO_PLATFORM_MONITORING_SOURCE }}
+      OPSIQO_CLOUD_DR_REQUIRE_PITR: ${{ vars.OPSIQO_CLOUD_DR_REQUIRE_PITR }}
+      OPSIQO_CLOUD_DR_REQUIRE_SCHEDULED_BACKUP: ${{ vars.OPSIQO_CLOUD_DR_REQUIRE_SCHEDULED_BACKUP }}
+      OPSIQO_CLOUD_DR_MAX_BACKUP_AGE_HOURS: ${{ vars.OPSIQO_CLOUD_DR_MAX_BACKUP_AGE_HOURS }}
+      OPSIQO_PRODUCTION_EVIDENCE_REF: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      OPSIQO_CLOUD_DR_EVIDENCE_REF: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#cloud-dr
+      OPSIQO_DR_EXERCISE_EVIDENCE_REF: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#restore-exercise
+      OPSIQO_AI_PROVIDER: ${{ vars.OPSIQO_AI_PROVIDER }}
+      OPSIQO_REQUIRE_GOVERNED_AI_CONFIG: 'true'
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      OPSIQO_JOB_ORG_ID: ${{ vars.OPSIQO_JOB_ORG_ID }}
+      OPSIQO_UAT_BASE_URL: ${{ vars.OPSIQO_UAT_BASE_URL }}
+      OPSIQO_UAT_ORG_ID: ${{ vars.OPSIQO_JOB_ORG_ID }}
+      OPSIQO_UAT_ID_TOKEN: ${{ secrets.OPSIQO_UAT_ID_TOKEN }}
+      OPSIQO_UAT_APP_CHECK_TOKEN: ${{ secrets.OPSIQO_UAT_APP_CHECK_TOKEN }}
+      OPSIQO_DR_SENTINEL_DOCUMENT_PATH: ${{ vars.OPSIQO_DR_SENTINEL_DOCUMENT_PATH }}
+      OPSIQO_DR_SENTINEL_EXPECTED_SHA256: ${{ secrets.OPSIQO_DR_SENTINEL_EXPECTED_SHA256 }}
+      OPSIQO_DR_TARGET_RTO_MINUTES: ${{ inputs.target_rto_minutes }}
+      OPSIQO_DR_TARGET_RPO_MINUTES: ${{ inputs.target_rpo_minutes }}
+    steps:
+      - name: Require explicit restore authorization
+        run: test '${{ inputs.confirm_restore }}' = 'RESTORE_TEST'
+      - uses: actions/checkout@v6
+      - name: Require reviewed lockfile
+        run: test -f package-lock.json && echo 'OPSIQO_EVIDENCE_LOCKFILE=pass' >> "$GITHUB_ENV"
+      - name: Self-test exact-tree manifest verifier
+        run: node scripts/test-source-manifest.mjs
+
+      - name: Verify committed source manifest
+        run: node scripts/source-manifest.mjs verify && echo 'OPSIQO_EVIDENCE_SOURCE_MANIFEST=pass' >> "$GITHUB_ENV"
+      - name: Review committed lockfile structure
+        run: node scripts/review-lockfile.mjs --artifact artifacts/committed-lockfile-review.json && echo 'OPSIQO_EVIDENCE_LOCKFILE_REVIEW=pass' >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DR_EVIDENCE_SERVICE_ACCOUNT }}
+          project_id: ${{ vars.FIREBASE_PROJECT_ID }}
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          install_components: beta
+      - name: Dedicated repository secret scan
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      - name: Record dedicated secret scan gate
+        run: echo 'OPSIQO_EVIDENCE_SECRET_SCAN=pass' >> "$GITHUB_ENV"
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+      - name: Trusted dependency install
+        run: npm ci --registry=https://registry.npmjs.org --no-audit --no-fund && echo 'OPSIQO_EVIDENCE_NPM_CI=pass' >> "$GITHUB_ENV"
+      - name: Dependency vulnerability gate
+        run: npm audit --audit-level=high && echo 'OPSIQO_EVIDENCE_NPM_AUDIT=pass' >> "$GITHUB_ENV"
+      - name: Static source/secret gate
+        run: npm run security:static-scan && echo 'OPSIQO_EVIDENCE_STATIC_SCAN=pass' >> "$GITHUB_ENV"
+      - name: SBOM
+        run: npm run supplychain:sbom && echo 'OPSIQO_EVIDENCE_SBOM=pass' >> "$GITHUB_ENV"
+      - name: Release source gate
+        run: npm run release:gate
+      - name: TypeScript
+        run: npm run typecheck && echo 'OPSIQO_EVIDENCE_TYPECHECK=pass' >> "$GITHUB_ENV"
+      - name: Unit/integration tests
+        run: npm test && echo 'OPSIQO_EVIDENCE_UNIT_TESTS=pass' >> "$GITHUB_ENV"
+      - name: Firestore Rules tests
+        run: npm run test:rules && echo 'OPSIQO_EVIDENCE_RULES_TESTS=pass' >> "$GITHUB_ENV"
+      - name: Production build
+        run: npm run build && echo 'OPSIQO_EVIDENCE_BUILD=pass' >> "$GITHUB_ENV"
+      - name: CodeQL SAST analysis
+        uses: github/codeql-action/analyze@v4
+      - name: Record CodeQL gate
+        run: echo 'OPSIQO_EVIDENCE_CODEQL=pass' >> "$GITHUB_ENV"
+      - name: AI evaluation
+        run: npm run ai:evaluate && echo 'OPSIQO_EVIDENCE_AI_EVALUATE=pass' >> "$GITHUB_ENV"
+      - name: AI governance
+        run: npm run ai:governance-check && echo 'OPSIQO_EVIDENCE_AI_GOVERNANCE=pass' >> "$GITHUB_ENV"
+      - name: Production preflight
+        run: npm run preflight:production && echo 'OPSIQO_EVIDENCE_PREFLIGHT=pass' >> "$GITHUB_ENV"
+      - name: Integrated deployed UAT
+        run: npm run uat:lifecycle && echo 'OPSIQO_EVIDENCE_INTEGRATED_UAT=pass' >> "$GITHUB_ENV"
+      - name: Package production build
+        run: tar -czf opsiqo-build.tgz .next
+      - name: Build provenance
+        run: npm run supplychain:provenance -- opsiqo-build.tgz && echo 'OPSIQO_EVIDENCE_PROVENANCE=pass' >> "$GITHUB_ENV"
+
+      - name: Capture Firestore DR metadata
+        run: |
+          mkdir -p artifacts
+          DB="${FIRESTORE_DATABASE_ID:-(default)}"
+          gcloud firestore databases describe --project="$FIREBASE_PROJECT_ID" --database="$DB" --format=json > artifacts/firestore-database.json
+          gcloud firestore backups schedules list --project="$FIREBASE_PROJECT_ID" --database="$DB" --format=json > artifacts/firestore-backup-schedules.json
+          gcloud firestore backups list --project="$FIREBASE_PROJECT_ID" --format=json > artifacts/firestore-backups.json
+          npm run cloud:dr:capture
+
+      - name: Select latest READY Firestore backup
+        id: backup
+        shell: bash
+        run: |
+          DB="${FIRESTORE_DATABASE_ID:-(default)}"
+          EXPECTED_DB="projects/${FIREBASE_PROJECT_ID}/databases/${DB}"
+          BACKUP=$(jq -r --arg database "$EXPECTED_DB" '[.[] | select(.state=="READY" and .database==$database)] | sort_by(.snapshotTime) | reverse | .[0].name // empty' artifacts/firestore-backups.json)
+          SNAPSHOT=$(jq -r --arg database "$EXPECTED_DB" '[.[] | select(.state=="READY" and .database==$database)] | sort_by(.snapshotTime) | reverse | .[0].snapshotTime // empty' artifacts/firestore-backups.json)
+          test -n "$BACKUP" && test -n "$SNAPSHOT"
+          echo "backup=$BACKUP" >> "$GITHUB_OUTPUT"
+          echo "snapshot=$SNAPSHOT" >> "$GITHUB_OUTPUT"
+
+      - name: Restore latest backup into temporary database and verify sentinel
+        id: restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          RESTORE_DB="opsiqo-dr-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "restore_db=$RESTORE_DB" >> "$GITHUB_OUTPUT"
+          echo "started_at=$STARTED_AT" >> "$GITHUB_OUTPUT"
+          gcloud beta firestore databases restore \
+            --project="$FIREBASE_PROJECT_ID" \
+            --source-backup='${{ steps.backup.outputs.backup }}' \
+            --destination-database="$RESTORE_DB" \
+            --quiet
+          VERIFIED=false
+          for attempt in $(seq 1 90); do
+            if OPSIQO_DR_RESTORE_DATABASE_ID="$RESTORE_DB" npm run cloud:dr:sentinel >/tmp/opsiqo-dr-sentinel.json 2>/tmp/opsiqo-dr-sentinel.err; then
+              VERIFIED=true
+              break
+            fi
+            sleep 30
+          done
+          test "$VERIFIED" = true
+          COMPLETED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          cp /tmp/opsiqo-dr-sentinel.json artifacts/opsiqo-dr-sentinel.json
+          echo "completed_at=$COMPLETED_AT" >> "$GITHUB_OUTPUT"
+          echo "sentinel_verified=true" >> "$GITHUB_OUTPUT"
+
+      - name: Delete temporary restored database
+        id: cleanup
+        if: always() && steps.restore.outputs.restore_db != ''
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          DB='${{ steps.restore.outputs.restore_db }}'
+          gcloud firestore databases delete --project="$FIREBASE_PROJECT_ID" --database="$DB" --quiet
+          DELETE_RC=$?
+          if [ "$DELETE_RC" -ne 0 ]; then echo 'cleanup_status=failed' >> "$GITHUB_OUTPUT"; exit 1; fi
+          for attempt in $(seq 1 60); do
+            if ! gcloud firestore databases describe --project="$FIREBASE_PROJECT_ID" --database="$DB" >/dev/null 2>&1; then
+              echo 'cleanup_status=completed' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'cleanup_status=pending' >> "$GITHUB_OUTPUT"
+          exit 1
+
+      - name: Capture measured DR exercise result
+        if: always()
+        continue-on-error: true
+        env:
+          OPSIQO_DR_SOURCE_BACKUP: ${{ steps.backup.outputs.backup }}
+          OPSIQO_DR_RESTORE_DATABASE_ID: ${{ steps.restore.outputs.restore_db }}
+          OPSIQO_DR_STARTED_AT: ${{ steps.restore.outputs.started_at }}
+          OPSIQO_DR_COMPLETED_AT: ${{ steps.restore.outputs.completed_at }}
+          OPSIQO_DR_BACKUP_SNAPSHOT_TIME: ${{ steps.backup.outputs.snapshot }}
+          OPSIQO_DR_SENTINEL_VERIFIED: ${{ steps.restore.outputs.sentinel_verified }}
+          OPSIQO_DR_CLEANUP_STATUS: ${{ steps.cleanup.outputs.cleanup_status }}
+        run: npm run cloud:dr:exercise:capture
+
+      - name: Generate production evidence closure bundle
+        if: always()
+        continue-on-error: true
+        run: npm run production:evidence:generate
+      - name: Verify production evidence bundle hashes/readiness
+        if: always()
+        run: npm run production:evidence:verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opsiqo-v3.6.1-production-evidence-${{ github.run_id }}
+          retention-days: 180
+          path: |
+            artifacts/*.json
+            opsiqo-build.tgz

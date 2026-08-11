@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server';import { actorFromRequest } from '@/lib/auth/session';import { apiErrorResponse } from '@/lib/http/errors';import { submitSatisfaction } from '@/lib/experience/service';
+export async function POST(request:Request,context:{params:Promise<{orgId:string;ticketId:string}>}){try{const{orgId,ticketId}=await context.params;const actor=await actorFromRequest(request,orgId);return NextResponse.json({data:await submitSatisfaction(actor,ticketId,await request.json())},{status:201});}catch(e){return apiErrorResponse(e);}}
