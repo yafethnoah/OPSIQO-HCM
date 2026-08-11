@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server';import { actorFromRequest } from '@/lib/auth/session';import { apiErrorResponse } from '@/lib/http/errors';import { saveWorkerSkill } from '@/lib/learning/service';
+export async function POST(request:Request,context:{params:Promise<{orgId:string;workerId:string}>}){try{const{orgId,workerId}=await context.params;const actor=await actorFromRequest(request,orgId);const body=await request.json();return NextResponse.json({data:await saveWorkerSkill(actor,{...body,workerId})});}catch(e){return apiErrorResponse(e);}}

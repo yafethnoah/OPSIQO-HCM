@@ -1,0 +1,95 @@
+name: OPSIQO v3.6.1 Reviewed Lockfile Bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_generate:
+        description: 'Type GENERATE_LOCKFILE to create review artifacts. This workflow never commits automatically.'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  OPSIQO_RELEASE_VERSION: '3.6.1'
+
+jobs:
+  generate-review-artifact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Require explicit authorization
+        shell: bash
+        run: test '${{ inputs.confirm_generate }}' = 'GENERATE_LOCKFILE'
+
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Ensure repository starts without an unreviewed lockfile
+        shell: bash
+        run: |
+          if [ -f package-lock.json ]; then
+            echo 'package-lock.json already exists. Review/update it through the normal dependency-change process instead of bootstrap.' >&2
+            exit 2
+          fi
+
+      - name: Self-test dependency-free lockfile reviewer
+        run: node scripts/test-lockfile-review.mjs
+
+      - name: Self-test exact-tree manifest verifier
+        run: node scripts/test-source-manifest.mjs
+
+      - name: Generate npm lockfile without lifecycle scripts
+        shell: bash
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org
+
+      - name: Dependency-free structural lockfile review
+        shell: bash
+        run: node scripts/review-lockfile.mjs --artifact artifacts/lockfile-review.json
+
+      - name: Generate candidate exact-tree source manifest including lockfile
+        run: node scripts/source-manifest.mjs generate --output artifacts/SOURCE_MANIFEST.with-lockfile.sha256
+
+      - name: Prove npm ci consumes the generated graph
+        shell: bash
+        run: npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org
+
+      - name: Capture npm dependency tree for reviewer
+        shell: bash
+        run: npm ls --all --json > artifacts/npm-tree.json || true
+
+      - name: Create human-review patch and SHA-256 evidence
+        shell: bash
+        run: |
+          git diff --no-index /dev/null package-lock.json > artifacts/package-lock.patch || true
+          sha256sum package.json package-lock.json scripts/review-lockfile.mjs > artifacts/lockfile-bootstrap.sha256
+          {
+            echo '# OPSIQO v3.6.1 lockfile bootstrap review'
+            echo
+            echo "Workflow run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "Source commit: ${GITHUB_SHA}"
+            echo
+            echo 'The generated package-lock.json is intentionally NOT committed by this workflow.'
+            echo 'A human reviewer must inspect package-lock.json, artifacts/lockfile-review.json, npm-tree.json, and the patch before committing the lockfile.'
+            echo 'After approval/commit, run the protected v3.6.1 Production Evidence Closure workflow.'
+          } > artifacts/REVIEW_REQUIRED.md
+
+      - name: Upload lockfile review bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: opsiqo-v3.6.1-lockfile-review-${{ github.run_id }}
+          retention-days: 30
+          if-no-files-found: error
+          path: |
+            package-lock.json
+            artifacts/lockfile-review.json
+            artifacts/npm-tree.json
+            artifacts/package-lock.patch
+            artifacts/lockfile-bootstrap.sha256
+            artifacts/SOURCE_MANIFEST.with-lockfile.sha256
+            artifacts/REVIEW_REQUIRED.md

@@ -1,0 +1,1 @@
+import{processSecurityGovernance}from'../src/lib/security-operations/service';const org=String(process.env.OPSIQO_JOB_ORG_ID||'').trim();if(!org)throw new Error('OPSIQO_JOB_ORG_ID is required.');processSecurityGovernance(org).then(x=>{console.log(JSON.stringify(x,null,2));process.exit(0)}).catch(e=>{console.error(e);process.exit(1)});

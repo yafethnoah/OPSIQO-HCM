@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server';import { actorFromRequest } from '@/lib/auth/session';import { apiErrorResponse } from '@/lib/http/errors';import { actOnLearningAssignment } from '@/lib/learning/service';
+export async function PATCH(request:Request,context:{params:Promise<{orgId:string;assignmentId:string}>}){try{const{orgId,assignmentId}=await context.params;const actor=await actorFromRequest(request,orgId);return NextResponse.json({data:await actOnLearningAssignment(actor,assignmentId,await request.json())});}catch(e){return apiErrorResponse(e);}}

@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server';import { actorFromRequest } from '@/lib/auth/session';import { apiErrorResponse } from '@/lib/http/errors';import { updateCaseAction } from '@/lib/employee-relations/service';
+export async function PATCH(request:Request,context:{params:Promise<{orgId:string;caseId:string;actionId:string}>}){try{const{orgId,caseId,actionId}=await context.params;return NextResponse.json({data:await updateCaseAction(await actorFromRequest(request,orgId),caseId,actionId,await request.json())});}catch(e){return apiErrorResponse(e);}}

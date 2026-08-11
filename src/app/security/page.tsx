@@ -1,0 +1,1 @@
+import {PageHeader} from '@/components/page-header';import{SecurityPosture}from '@/components/security-posture';export default function SecurityPage(){return <><PageHeader title="Security" subtitle="Production identity, App Check, privileged-access and automation security posture."/><SecurityPosture/></>}

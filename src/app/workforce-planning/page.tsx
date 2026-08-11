@@ -1,0 +1,2 @@
+import { PageHeader } from '@/components/page-header';import { WorkforcePlanningWorkspace } from '@/components/workforce-planning-workspace';
+export default function WorkforcePlanningPage(){return <><PageHeader title="Workforce Planning & Scenario Modelling" subtitle="Evidence-based headcount, FTE, cost, demand, vacancy, skills and scenario modelling with explicit human assumptions and decision controls."/><WorkforcePlanningWorkspace/></>}

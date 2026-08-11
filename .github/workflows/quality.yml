@@ -1,0 +1,29 @@
+name: OPSIQO HCM quality gate
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Require dependency lockfile
+        run: test -f package-lock.json
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci --registry=https://registry.npmjs.org --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:rules
+      - run: npm run build

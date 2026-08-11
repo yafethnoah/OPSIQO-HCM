@@ -1,0 +1,363 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /prehireAccessIndex/{docId} { allow read, write: if false; }
+    function signedIn() { return request.auth != null; }
+    function membership(orgId) { return get(/databases/$(database)/documents/organizations/$(orgId)/memberships/$(request.auth.uid)); }
+    function activeMember(orgId) { return signedIn() && membership(orgId).data.status == 'active'; }
+    function role(orgId) { return membership(orgId).data.role; }
+    function isHR(orgId) { return activeMember(orgId) && role(orgId) in ['super_admin', 'org_admin', 'hr_admin', 'hr_partner']; }
+    function isAdmin(orgId) { return activeMember(orgId) && role(orgId) in ['super_admin', 'org_admin', 'hr_admin']; }
+    function isManager(orgId) { return activeMember(orgId) && role(orgId) in ['super_admin', 'org_admin', 'hr_admin', 'hr_partner', 'manager']; }
+
+    match /organizations/{orgId} {
+      allow read: if activeMember(orgId);
+      allow write: if isAdmin(orgId);
+
+      match /memberships/{uid} {
+        allow read: if activeMember(orgId) && (request.auth.uid == uid || isHR(orgId));
+        allow write: if false;
+      }
+      match /invitations/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /invitationTokenIndex/{docId} { allow read, write: if false; }
+      match /invitationEmailIndex/{docId} { allow read, write: if false; }
+      match /employeeNumberIndex/{docId} { allow read, write: if false; }
+      match /workEmailIndex/{docId} { allow read, write: if false; }
+      match /secondaryAssignmentIndex/{docId} { allow read, write: if false; }
+      match /secondaryAssignmentPlanIndex/{docId} { allow read, write: if false; }
+      match /positionOccupancy/{docId} { allow read: if activeMember(orgId); allow write: if false; }
+
+      match /orgUnits/{docId} { allow read: if activeMember(orgId); allow write: if isAdmin(orgId); }
+      match /positions/{docId} { allow read: if activeMember(orgId); allow write: if isHR(orgId); }
+      match /workers/{docId} { allow read: if activeMember(orgId); allow write: if isHR(orgId); }
+      match /people/{docId} {
+        allow read: if isHR(orgId) || (activeMember(orgId) && resource.data.authUid == request.auth.uid);
+        allow create, delete: if isHR(orgId);
+        allow update: if isHR(orgId) || (
+          activeMember(orgId)
+          && resource.data.authUid == request.auth.uid
+          && request.resource.data.authUid == resource.data.authUid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['preferredName', 'personalEmail', 'phone', 'updatedAt'])
+        );
+      }
+      match /employments/{docId} { allow read: if isManager(orgId); allow write: if isHR(orgId); }
+      match /assignments/{docId} { allow read: if activeMember(orgId); allow write: if isHR(orgId); }
+      match /employeeChanges/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /secondaryAssignmentPlans/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /workflowDefinitions/{docId} { allow read: if isManager(orgId); allow write: if isAdmin(orgId); }
+      match /workflowRuns/{docId} { allow read: if isManager(orgId); allow write: if false; }
+      match /workflowStepRuns/{docId} { allow read: if isManager(orgId); allow write: if false; }
+      match /workflowEscalations/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /workflowDispatches/{docId} { allow read: if isAdmin(orgId); allow write: if false; }
+      match /domainEvents/{docId} { allow read: if isAdmin(orgId); allow write: if false; }
+      match /automationRuns/{docId} { allow read: if isAdmin(orgId); allow write: if false; }
+      match /settings/{docId} { allow read: if isAdmin(orgId); allow write: if false; }
+      match /notifications/{docId} {
+        allow read: if activeMember(orgId) && (
+          isAdmin(orgId)
+          || resource.data.targetUid == request.auth.uid
+          || resource.data.targetRole == role(orgId)
+        );
+        allow write: if false;
+      }
+      match /requisitions/{docId} { allow read: if isHR(orgId) || (isManager(orgId) && resource.data.hiringManagerWorkerId == membership(orgId).data.workerId); allow write: if false; }
+      match /candidates/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /applications/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /interviews/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /scorecards/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /offers/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /onboardingCases/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /onboardingTasks/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /onboardingPolicies/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /prehireDocuments/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /policyAcknowledgements/{docId} { allow read: if isHR(orgId); allow write: if false; }
+      match /prehireOfferIndex/{docId} { allow read, write: if false; }
+      match /candidateEmailIndex/{docId} { allow read, write: if false; }
+      match /candidateApplicationIndex/{docId} { allow read, write: if false; }
+      match /hireConversionIndex/{docId} { allow read, write: if false; }
+      match /counters/{docId} { allow read, write: if false; }
+      match /employeeDocuments/{docId} { allow read, write: if false; }
+      match /employeeDocumentVersions/{docId} { allow read, write: if false; }
+      match /policies/{docId} { allow read, write: if false; }
+      match /policyVersions/{docId} { allow read, write: if false; }
+      match /retentionRules/{docId} { allow read, write: if false; }
+      match /complianceRequirements/{docId} { allow read, write: if false; }
+      match /prehireEvidencePromotion/{docId} { allow read, write: if false; }
+      match /leaveTypes/{docId} { allow read, write: if false; }
+      match /leaveBalances/{docId} { allow read, write: if false; }
+      match /leaveRequests/{docId} { allow read, write: if false; }
+      match /holidayCalendars/{docId} { allow read, write: if false; }
+      match /holidays/{docId} { allow read, write: if false; }
+      match /timePolicies/{docId} { allow read, write: if false; }
+      match /workerTimeProfiles/{docId} { allow read, write: if false; }
+      match /timeEntries/{docId} { allow read, write: if false; }
+      match /timeExceptions/{docId} { allow read, write: if false; }
+      match /timesheets/{docId} { allow read, write: if false; }
+      match /payrollExports/{docId} { allow read, write: if false; }
+      match /separationCases/{docId} { allow read, write: if false; }
+      match /separationTasks/{docId} { allow read, write: if false; }
+      match /separationAssets/{docId} { allow read, write: if false; }
+      match /exitInterviews/{docId} { allow read, write: if false; }
+      match /notificationDedupe/{docId} { allow read, write: if false; }
+      match /notificationTemplates/{docId} { allow read, write: if false; }
+      match /lifecycleDiagnosticRuns/{docId} { allow read, write: if false; }
+      match /replacementRequisitionIndex/{docId} { allow read, write: if false; }
+      match /performanceCycles/{docId} { allow read, write: if false; }
+      match /performanceGoals/{docId} { allow read, write: if false; }
+      match /competencies/{docId} { allow read, write: if false; }
+      match /competencyExpectations/{docId} { allow read, write: if false; }
+      match /performanceReviews/{docId} { allow read, write: if false; }
+      match /performanceCheckIns/{docId} { allow read, write: if false; }
+      match /feedbackRequests/{docId} { allow read, write: if false; }
+      match /feedbackResponses/{docId} { allow read, write: if false; }
+      match /developmentPlans/{docId} { allow read, write: if false; }
+      match /performanceImprovementPlans/{docId} { allow read, write: if false; }
+      match /skills/{docId} { allow read, write: if false; }
+      match /skillCodeIndex/{docId} { allow read, write: if false; }
+      match /positionSkillRequirements/{docId} { allow read, write: if false; }
+      match /workerSkills/{docId} { allow read, write: if false; }
+      match /courses/{docId} { allow read, write: if false; }
+      match /courseCodeIndex/{docId} { allow read, write: if false; }
+      match /learningPaths/{docId} { allow read, write: if false; }
+      match /learningPathCodeIndex/{docId} { allow read, write: if false; }
+      match /learningAssignments/{docId} { allow read, write: if false; }
+      match /learningCertificates/{docId} { allow read, write: if false; }
+      match /careerProfiles/{docId} { allow read, write: if false; }
+      match /careerReadinessPolicies/{docId} { allow read, write: if false; }
+      match /internalMobilityInterests/{docId} { allow read, write: if false; }
+      match /criticalPositions/{docId} { allow read, write: if false; }
+      match /successorNominations/{docId} { allow read, write: if false; }
+      match /talentAssessments/{docId} { allow read, write: if false; }
+      match /jobFamilies/{docId} { allow read, write: if false; }
+      match /jobFamilyCodeIndex/{docId} { allow read, write: if false; }
+      match /jobLevels/{docId} { allow read, write: if false; }
+      match /jobLevelCodeIndex/{docId} { allow read, write: if false; }
+      match /salaryBands/{docId} { allow read, write: if false; }
+      match /salaryBandCodeIndex/{docId} { allow read, write: if false; }
+      match /positionCompensationProfiles/{docId} { allow read, write: if false; }
+      match /workerCompensationRecords/{docId} { allow read, write: if false; }
+      match /workerCompensationCurrent/{docId} { allow read, write: if false; }
+      match /marketBenchmarks/{docId} { allow read, write: if false; }
+      match /compensationCycles/{docId} { allow read, write: if false; }
+      match /compensationRecommendations/{docId} { allow read, write: if false; }
+      match /compensationLetters/{docId} { allow read, write: if false; }
+      match /totalRewardsInputs/{docId} { allow read, write: if false; }
+      match /payEquityJobClasses/{docId} { allow read, write: if false; }
+      match /payTransparencyPolicies/{docId} { allow read, write: if false; }
+      match /requisitionCompensationDisclosures/{docId} { allow read, write: if false; }
+      match /employeeRelationsCases/{docId} { allow read, write: if false; }
+      match /employeeRelationsCaseTeam/{docId} { allow read, write: if false; }
+      match /employeeRelationsParticipants/{docId} { allow read, write: if false; }
+      match /employeeRelationsEvidence/{docId} { allow read, write: if false; }
+      match /employeeRelationsInterviews/{docId} { allow read, write: if false; }
+      match /employeeRelationsFindings/{docId} { allow read, write: if false; }
+      match /employeeRelationsActions/{docId} { allow read, write: if false; }
+      match /employeeAccommodationPlans/{docId} { allow read, write: if false; }
+      match /safetyIncidents/{docId} { allow read, write: if false; }
+      match /safetyHazards/{docId} { allow read, write: if false; }
+      match /safetyInvestigations/{docId} { allow read, write: if false; }
+      match /safetyCorrectiveActions/{docId} { allow read, write: if false; }
+      match /returnToWorkPlans/{docId} { allow read, write: if false; }
+      match /safetyInspections/{docId} { allow read, write: if false; }
+      match /safetyInspectionFindings/{docId} { allow read, write: if false; }
+      match /safetyCommitteeProfiles/{docId} { allow read, write: if false; }
+      match /safetyCommitteeMeetings/{docId} { allow read, write: if false; }
+      match /safetyCommitteeRecommendations/{docId} { allow read, write: if false; }
+      match /employeeSurveys/{docId} { allow read, write: if false; }
+      match /surveyResponses/{docId} { allow read, write: if false; }
+      match /surveyParticipationIndex/{docId} { allow read, write: if false; }
+      match /serviceCatalogItems/{docId} { allow read, write: if false; }
+      match /hrServiceTickets/{docId} { allow read, write: if false; }
+      match /serviceTicketComments/{docId} { allow read, write: if false; }
+      match /serviceSatisfaction/{docId} { allow read, write: if false; }
+      match /knowledgeArticles/{docId} { allow read, write: if false; }
+      match /recognitions/{docId} { allow read, write: if false; }
+      match /employeeIdeas/{docId} { allow read, write: if false; }
+      match /workforcePlans/{docId} { allow read, write: if false; }
+      match /workforcePlanCodeIndex/{docId} { allow read, write: if false; }
+      match /workforceSnapshots/{docId} { allow read, write: if false; }
+      match /workforceScenarios/{docId} { allow read, write: if false; }
+      match /workforceDemand/{docId} { allow read, write: if false; }
+      match /analyticsMetrics/{docId} { allow read, write: if false; }
+      match /analyticsMetricCodeIndex/{docId} { allow read, write: if false; }
+      match /analyticsSnapshots/{docId} { allow read, write: if false; }
+      match /analyticsForecastModels/{docId} { allow read, write: if false; }
+      match /analyticsForecastModelCodeIndex/{docId} { allow read, write: if false; }
+      match /analyticsForecastRuns/{docId} { allow read, write: if false; }
+
+      match /aiPromptTemplates/{docId} { allow read, write: if false; }
+      match /aiModelProfiles/{docId} { allow read, write: if false; }
+      match /aiRuns/{docId} { allow read, write: if false; }
+      match /aiActionPlans/{docId} { allow read, write: if false; }
+      match /aiEvalRuns/{docId} { allow read, write: if false; }
+      match /diagnosticFrameworks/{docId} { allow read, write: if false; }
+      match /diagnosticFrameworkCodeIndex/{docId} { allow read, write: if false; }
+      match /diagnosticControls/{docId} { allow read, write: if false; }
+      match /diagnosticAssessments/{docId} { allow read, write: if false; }
+      match /diagnosticControlResults/{docId} { allow read, write: if false; }
+      match /diagnosticFindings/{docId} { allow read, write: if false; }
+      match /diagnosticRemediationPlans/{docId} { allow read, write: if false; }
+      match /governanceControls/{docId} { allow read, write: if false; }
+      match /governanceAttestations/{docId} { allow read, write: if false; }
+      match /governanceExceptions/{docId} { allow read, write: if false; }
+      match /governanceRisks/{docId} { allow read, write: if false; }
+      match /regulatorySources/{docId} { allow read, write: if false; }
+      match /regulatorySourceSnapshots/{docId} { allow read, write: if false; }
+      match /regulatoryChanges/{docId} { allow read, write: if false; }
+      match /regulatoryObligations/{docId} { allow read, write: if false; }
+      match /policyImpactAssessments/{docId} { allow read, write: if false; }
+      match /policyReattestationCampaigns/{docId} { allow read, write: if false; }
+      match /legalReviewQueue/{docId} { allow read, write: if false; }
+      match /assuranceEvidence/{docId} { allow read, write: if false; }
+      match /assuranceEvidenceCodeIndex/{docId} { allow read, write: if false; }
+      match /assurancePlanCodeIndex/{docId} { allow read, write: if false; }
+      match /assuranceFindingCodeIndex/{docId} { allow read, write: if false; }
+      match /assuranceEvidenceLedger/{docId} { allow read, write: if false; }
+      match /assurancePlans/{docId} { allow read, write: if false; }
+      match /assuranceTests/{docId} { allow read, write: if false; }
+      match /assuranceEvidenceRequests/{docId} { allow read, write: if false; }
+      match /assuranceSamples/{docId} { allow read, write: if false; }
+      match /assuranceFindings/{docId} { allow read, write: if false; }
+      match /assuranceCapaPlans/{docId} { allow read, write: if false; }
+      match /assuranceReports/{docId} { allow read, write: if false; }
+      match /privacyDataAssets/{docId} { allow read, write: if false; }
+      match /privacyDataAssetCodeIndex/{docId} { allow read, write: if false; }
+      match /privacyProcessingActivities/{docId} { allow read, write: if false; }
+      match /privacyProcessingCodeIndex/{docId} { allow read, write: if false; }
+      match /privacyRetentionSchedules/{docId} { allow read, write: if false; }
+      match /privacyRetentionCodeIndex/{docId} { allow read, write: if false; }
+      match /privacyAssessments/{docId} { allow read, write: if false; }
+      match /privacyAssessmentCodeIndex/{docId} { allow read, write: if false; }
+      match /privacyRequests/{docId} { allow read, write: if false; }
+      match /privacyIncidents/{docId} { allow read, write: if false; }
+      match /privacyVendors/{docId} { allow read, write: if false; }
+      match /privacyVendorCodeIndex/{docId} { allow read, write: if false; }
+      match /privacyTransfers/{docId} { allow read, write: if false; }
+      match /privacyTransferCodeIndex/{docId} { allow read, write: if false; }
+      match /privacyAiUseCases/{docId} { allow read, write: if false; }
+      match /privacyAiUseCaseCodeIndex/{docId} { allow read, write: if false; }
+      match /privacyAiModelRisks/{docId} { allow read, write: if false; }
+      match /privacyAiModelRiskCodeIndex/{docId} { allow read, write: if false; }
+
+      match /resilienceCriticalRoles/{docId} { allow read, write: if false; }
+      match /resilienceCriticalRoleCodeIndex/{docId} { allow read, write: if false; }
+      match /resilienceImpactAnalyses/{docId} { allow read, write: if false; }
+      match /resilienceImpactCodeIndex/{docId} { allow read, write: if false; }
+      match /resilienceContinuityPlans/{docId} { allow read, write: if false; }
+      match /resilienceContinuityPlanCodeIndex/{docId} { allow read, write: if false; }
+      match /resilienceIncidents/{docId} { allow read, write: if false; }
+      match /resilienceRecoveryPlans/{docId} { allow read, write: if false; }
+      match /resilienceRecoveryPlanCodeIndex/{docId} { allow read, write: if false; }
+      match /resilienceExercises/{docId} { allow read, write: if false; }
+      match /resilienceExerciseCodeIndex/{docId} { allow read, write: if false; }
+      match /resilienceReports/{docId} { allow read, write: if false; }
+
+      match /strategyObjectives/{docId} { allow read, write: if false; }
+      match /strategyObjectiveCodeIndex/{docId} { allow read, write: if false; }
+      match /strategyCapabilityGaps/{docId} { allow read, write: if false; }
+      match /strategyCapabilityCodeIndex/{docId} { allow read, write: if false; }
+      match /strategyScenarios/{docId} { allow read, write: if false; }
+      match /strategyScenarioCodeIndex/{docId} { allow read, write: if false; }
+      match /strategyInitiatives/{docId} { allow read, write: if false; }
+      match /strategyInitiativeCodeIndex/{docId} { allow read, write: if false; }
+      match /strategyRiskAppetite/{docId} { allow read, write: if false; }
+      match /strategyReports/{docId} { allow read, write: if false; }
+
+      match /orgDesignSnapshots/{docId} { allow read, write: if false; }
+      match /orgDesignSnapshotCodeIndex/{docId} { allow read, write: if false; }
+      match /orgDesignRoleProfiles/{docId} { allow read, write: if false; }
+      match /orgDesignRoleProfileCodeIndex/{docId} { allow read, write: if false; }
+      match /orgDesignDecisionRights/{docId} { allow read, write: if false; }
+      match /orgDesignDecisionCodeIndex/{docId} { allow read, write: if false; }
+      match /orgDesignScenarios/{docId} { allow read, write: if false; }
+      match /orgDesignScenarioCodeIndex/{docId} { allow read, write: if false; }
+      match /orgDesignRestructuringProposals/{docId} { allow read, write: if false; }
+      match /orgDesignRestructuringCodeIndex/{docId} { allow read, write: if false; }
+      match /orgDesignKpis/{docId} { allow read, write: if false; }
+      match /orgDesignKpiCodeIndex/{docId} { allow read, write: if false; }
+      match /orgDesignReports/{docId} { allow read, write: if false; }
+
+
+      match /commandCenterActions/{docId} { allow read, write: if false; }
+      match /commandCenterActionCodeIndex/{docId} { allow read, write: if false; }
+      match /commandCenterDataQualitySnapshots/{docId} { allow read, write: if false; }
+      match /commandCenterSlos/{docId} { allow read, write: if false; }
+      match /commandCenterSloCodeIndex/{docId} { allow read, write: if false; }
+      match /commandCenterReleaseAssessments/{docId} { allow read, write: if false; }
+      match /commandCenterReports/{docId} { allow read, write: if false; }
+
+
+      match /integrationConnectors/{docId} { allow read, write: if false; }
+      match /integrationConnectorCodeIndex/{docId} { allow read, write: if false; }
+      match /integrationContracts/{docId} { allow read, write: if false; }
+      match /integrationContractCodeIndex/{docId} { allow read, write: if false; }
+      match /integrationRuns/{docId} { allow read, write: if false; }
+      match /integrationIdempotencyIndex/{docId} { allow read, write: if false; }
+      match /integrationStagingRecords/{docId} { allow read, write: if false; }
+      match /integrationDeadLetters/{docId} { allow read, write: if false; }
+      match /integrationReconciliations/{docId} { allow read, write: if false; }
+      match /integrationEvents/{docId} { allow read, write: if false; }
+      match /integrationAdapterProfiles/{docId} { allow read, write: if false; }
+      match /integrationAdapterCodeIndex/{docId} { allow read, write: if false; }
+      match /integrationRuntimeStates/{docId} { allow read, write: if false; }
+      match /integrationSchedules/{docId} { allow read, write: if false; }
+      match /integrationScheduleCodeIndex/{docId} { allow read, write: if false; }
+      match /integrationWebhookReceipts/{docId} { allow read, write: if false; }
+      match /integrationWebhookSignatureIndex/{docId} { allow read, write: if false; }
+      match /integrationReplayRequests/{docId} { allow read, write: if false; }
+      match /integrationSandboxRuns/{docId} { allow read, write: if false; }
+
+      match /identityProviders/{docId} { allow read, write: if false; }
+      match /identityProviderCodeIndex/{docId} { allow read, write: if false; }
+      match /identityProviderTests/{docId} { allow read, write: if false; }
+      match /identityRoleMappings/{docId} { allow read, write: if false; }
+      match /identityRoleMappingCodeIndex/{docId} { allow read, write: if false; }
+      match /identityAccounts/{docId} { allow read, write: if false; }
+      match /identityAccessRequests/{docId} { allow read, write: if false; }
+      match /identityAccessReviews/{docId} { allow read, write: if false; }
+      match /identityAccessReviewCodeIndex/{docId} { allow read, write: if false; }
+      match /identityAccessReviewItems/{docId} { allow read, write: if false; }
+      match /identityProvisioningRequests/{docId} { allow read, write: if false; }
+      match /identityReconciliations/{docId} { allow read, write: if false; }
+      match /identitySessionEvidence/{docId} { allow read, write: if false; }
+
+      match /securityEvents/{docId} { allow read, write: if false; }
+      match /securityEventSignatureIndex/{docId} { allow read, write: if false; }
+      match /securityIncidents/{docId} { allow read, write: if false; }
+      match /securityIncidentCodeIndex/{docId} { allow read, write: if false; }
+      match /securityPrivilegedAccess/{docId} { allow read, write: if false; }
+      match /securityPrivilegedAccessCodeIndex/{docId} { allow read, write: if false; }
+      match /securityBreakGlass/{docId} { allow read, write: if false; }
+      match /securityBreakGlassCodeIndex/{docId} { allow read, write: if false; }
+      match /securityKeyRotations/{docId} { allow read, write: if false; }
+      match /securityKeyRotationCodeIndex/{docId} { allow read, write: if false; }
+      match /securityRecertifications/{docId} { allow read, write: if false; }
+      match /securityRecertificationCodeIndex/{docId} { allow read, write: if false; }
+      match /securityPostureSnapshots/{docId} { allow read, write: if false; }
+      match /securitySiemExports/{docId} { allow read, write: if false; }
+
+      match /platformSboms/{docId} { allow read, write: if false; }
+      match /platformSupplyChainScans/{docId} { allow read, write: if false; }
+      match /platformSupplyChainScanCodeIndex/{docId} { allow read, write: if false; }
+      match /platformBuildProvenance/{docId} { allow read, write: if false; }
+      match /platformBuildProvenanceCodeIndex/{docId} { allow read, write: if false; }
+      match /platformBackupPolicies/{docId} { allow read, write: if false; }
+      match /platformBackupPolicyCodeIndex/{docId} { allow read, write: if false; }
+      match /platformBackupEvidence/{docId} { allow read, write: if false; }
+      match /platformDrPlans/{docId} { allow read, write: if false; }
+      match /platformDrPlanCodeIndex/{docId} { allow read, write: if false; }
+      match /platformDrExercises/{docId} { allow read, write: if false; }
+      match /platformConfigBaselines/{docId} { allow read, write: if false; }
+      match /platformConfigBaselineCodeIndex/{docId} { allow read, write: if false; }
+      match /platformDriftSnapshots/{docId} { allow read, write: if false; }
+      match /platformIncidents/{docId} { allow read, write: if false; }
+      match /platformIncidentCodeIndex/{docId} { allow read, write: if false; }
+      match /platformServiceObjectives/{docId} { allow read, write: if false; }
+      match /platformServiceObjectiveCodeIndex/{docId} { allow read, write: if false; }
+      match /platformReliabilitySnapshots/{docId} { allow read, write: if false; }
+
+      match /approvals/{docId} { allow read: if activeMember(orgId); allow write: if false; }
+      match /auditLogs/{docId} { allow read: if isHR(orgId); allow write: if false; }
+    }
+  }
+}

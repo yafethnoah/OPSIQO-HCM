@@ -1,0 +1,46 @@
+name: OPSIQO Software Supply Chain Evidence
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  OPSIQO_RELEASE_VERSION: '3.6.1'
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+      - name: Require reviewed lockfile
+        run: test -f package-lock.json
+      - name: Review committed lockfile structure
+        run: node scripts/review-lockfile.mjs --artifact artifacts/committed-lockfile-review.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci --registry=https://registry.npmjs.org --no-audit --no-fund
+      - run: npm audit --audit-level=high
+      - run: npm run security:static-scan
+      - run: npm run supplychain:sbom
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:rules
+      - run: npm run build
+      - name: Package build
+        run: tar -czf opsiqo-build.tgz .next
+      - run: npm run supplychain:provenance -- opsiqo-build.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opsiqo-supply-chain-evidence
+          path: |
+            artifacts/opsiqo-hcm.cdx.json
+            artifacts/opsiqo-hcm.provenance.json
+            opsiqo-build.tgz

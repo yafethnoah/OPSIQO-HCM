@@ -1,0 +1,2 @@
+import { PageHeader } from '@/components/page-header';import { CompensationWorkspace } from '@/components/compensation-workspace';
+export default function CompensationPage(){return <><PageHeader title="Compensation & Total Rewards" subtitle="Job architecture, salary bands, effective-dated pay, market positioning, compensation planning, pay-equity review and transparent total rewards."/><CompensationWorkspace/></>}

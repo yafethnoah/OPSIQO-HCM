@@ -1,0 +1,1 @@
+import { processDiagnosticGovernance } from '@/lib/hr-diagnostic/service';const orgId=process.env.OPSIQO_JOB_ORG_ID||process.env.NEXT_PUBLIC_OPSIQO_ORG_ID||process.env.OPSIQO_DEMO_ORG_ID;if(!orgId)throw new Error('Set OPSIQO_JOB_ORG_ID.');processDiagnosticGovernance(orgId).then(x=>{console.log(JSON.stringify(x,null,2));}).catch(e=>{console.error(e);process.exit(1);});

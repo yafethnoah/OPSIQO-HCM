@@ -1,0 +1,1 @@
+import { processResilienceGovernance } from '../src/lib/resilience/service';const orgId=String(process.env.OPSIQO_JOB_ORG_ID||'').trim();if(!orgId){console.error('OPSIQO_JOB_ORG_ID is required.');process.exit(2)}processResilienceGovernance(orgId).then(r=>{console.log(JSON.stringify(r,null,2))}).catch(e=>{console.error(e);process.exit(1)});
