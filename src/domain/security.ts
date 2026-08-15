@@ -208,4 +208,5 @@ export interface ActorContext {
   workerId?: string;
   permissions: Permission[];
   demo?: boolean;
+  guest?: boolean;
 }

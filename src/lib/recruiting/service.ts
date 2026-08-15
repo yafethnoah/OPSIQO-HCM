@@ -56,7 +56,7 @@ async function applicationBundle(actor: ActorContext, applicationId: string) {
   return { application, requisition, candidate: candidateSnap.data() as Candidate };
 }
 
-export async function listRequisitions(actor: ActorContext) {
+export async function listRequisitions(actor: ActorContext): Promise<Requisition[]> {
   let q: any = adminDb().collection(`organizations/${actor.orgId}/requisitions`);
   if (!hrRoles.has(actor.role)) {
     if (!actor.workerId) return [];
@@ -114,12 +114,12 @@ export async function actOnRequisition(actor: ActorContext, requisitionId: strin
   await batch.commit(); return next;
 }
 
-export async function listApplications(actor: ActorContext, requisitionId?: string) {
+export async function listApplications(actor: ActorContext, requisitionId?: string): Promise<Array<Application & { candidate?: Candidate; requisition?: Requisition }>> {
   if (requisitionId) await getRequisition(actor, requisitionId);
   const db = adminDb(); let q: any = db.collection(`organizations/${actor.orgId}/applications`);
   if (requisitionId) q = q.where('requisitionId', '==', requisitionId);
   const snap = await q.orderBy('updatedAt', 'desc').limit(500).get();
-  let applications = snap.docs.map((d: any) => d.data() as Application);
+  let applications: Application[] = snap.docs.map((d: any) => d.data() as Application);
   if (!hrRoles.has(actor.role)) {
     const reqs = await listRequisitions(actor); const allowed = new Set(reqs.map(r => r.id)); applications = applications.filter(a => allowed.has(a.requisitionId));
   }
@@ -138,7 +138,11 @@ export async function createCandidateApplication(actor: ActorContext, raw: unkno
     const emailIndexRef = db.doc(`organizations/${actor.orgId}/candidateEmailIndex/${emailKey}`); const emailIndex = await tx.get(emailIndexRef);
     let candidateId = emailIndex.data()?.candidateId as string | undefined; let candidate: Candidate;
     if (candidateId) {
-      const existing = await tx.get(db.doc(`organizations/${actor.orgId}/candidates/${candidateId}`)); if (!existing.exists) throw new ApiError(409, 'Candidate email index is inconsistent.', 'candidate_index_inconsistent'); candidate = existing.data() as Candidate;
+      const candidateRef = db.doc(`organizations/${actor.orgId}/candidates/${candidateId}`);
+      const existing = await tx.get(candidateRef); if (!existing.exists) throw new ApiError(409, 'Candidate email index is inconsistent.', 'candidate_index_inconsistent');
+      const current = existing.data() as Candidate;
+      candidate = { ...current, firstName: input.firstName || current.firstName, lastName: input.lastName || current.lastName, displayName: `${input.firstName || current.firstName} ${input.lastName || current.lastName}`.trim(), phone: input.phone || current.phone, location: input.location || current.location, source: input.source || current.source, linkedinUrl: input.linkedinUrl || current.linkedinUrl, resumeText: input.resumeText || current.resumeText, consentAt: timestamp, updatedAt: timestamp };
+      tx.set(candidateRef, candidate, { merge: true });
     } else {
       const newCandidateId = randomUUID(); candidateId = newCandidateId; candidate = { id: newCandidateId, firstName: input.firstName, lastName: input.lastName, displayName: `${input.firstName} ${input.lastName}`.trim(), email: input.email, emailLower: normalizedEmail, phone: input.phone, location: input.location, source: input.source, linkedinUrl: input.linkedinUrl, resumeText: input.resumeText, consentAt: timestamp, createdAt: timestamp, updatedAt: timestamp };
     }
@@ -217,10 +221,10 @@ export async function recruitingDashboard(actor: ActorContext) {
   const reqs = await listRequisitions(actor); const apps = await listApplications(actor); const counts = { openRequisitions: reqs.filter(r => r.status === 'open').length, applications: apps.length, interviews: apps.filter(a => a.stage === 'interview').length, offers: apps.filter(a => a.stage === 'offer').length, hires: apps.filter(a => a.stage === 'hired').length }; return { counts, requisitions: reqs.slice(0, 10), applications: apps.slice(0, 50) };
 }
 
-export async function listInterviews(actor: ActorContext, applicationId?: string) {
+export async function listInterviews(actor: ActorContext, applicationId?: string): Promise<Interview[]> {
   const db = adminDb(); let q: any = db.collection(`organizations/${actor.orgId}/interviews`); if (applicationId) { await applicationBundle(actor, applicationId); q = q.where('applicationId', '==', applicationId); }
   const snap = await q.orderBy('scheduledAt', 'desc').limit(250).get(); let rows = snap.docs.map((d: any) => d.data() as Interview);
-  if (!hrRoles.has(actor.role)) { const reqs = await listRequisitions(actor); const allowed = new Set(reqs.map(r => r.id)); rows = rows.filter(r => allowed.has(r.requisitionId) || r.interviewerUids.includes(actor.uid)); }
+  if (!hrRoles.has(actor.role)) { const reqs = await listRequisitions(actor); const allowed = new Set(reqs.map(r => r.id)); rows = rows.filter((r: Interview) => allowed.has(r.requisitionId) || r.interviewerUids.includes(actor.uid)); }
   return rows;
 }
 

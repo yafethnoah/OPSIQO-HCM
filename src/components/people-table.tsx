@@ -1,77 +1,9 @@
 'use client';
-
-import Link from 'next/link';
-import { FormEvent, useEffect, useState } from 'react';
-import { activeOrgId, apiFetch } from '@/lib/http/client';
-type Worker = { id: string; displayName: string; employeeNumber: string; workEmail: string; status: string; hireDate?: string };
-type Unit = { id:string; name:string };
-type Position = { id:string; title:string; orgUnitId:string; availableHeadcount:number; capacityState:string };
-
-export function PeopleTable() {
-  const [data, setData] = useState<Worker[]>([]);
-  const [units, setUnits] = useState<Unit[]>([]);
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [error, setError] = useState('');
-  const [show, setShow] = useState(false);
-  const [selectedUnit, setSelectedUnit] = useState('');
-  const [query,setQuery]=useState('');
-  const [nextCursor,setNextCursor]=useState<string|null>(null);
-  const [loadingMore,setLoadingMore]=useState(false);
-
-  const load = async (cursor?: string, append=false, q=query) => {
-    const orgId=activeOrgId();
-    try {
-      const params=new URLSearchParams({pageSize:'50'}); if(q.trim()) params.set('q',q.trim()); if(cursor) params.set('cursor',cursor);
-      const [workers, unitsResult, positionsResult] = await Promise.all([
-        apiFetch<{data: Worker[];nextCursor:string|null}>(`/api/organizations/${orgId}/employees?${params}`),
-        apiFetch<{data: Unit[]}>(`/api/organizations/${orgId}/org-units`),
-        apiFetch<{data: Position[]}>(`/api/organizations/${orgId}/positions`),
-      ]);
-      setData(prev=>append?[...prev,...workers.data]:workers.data); setNextCursor(workers.nextCursor); setUnits(unitsResult.data); setPositions(positionsResult.data);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Unable to load people.'); }
-  };
-  useEffect(() => { load(); }, []);
-
-  async function create(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault(); setError('');
-    const f = new FormData(e.currentTarget);
-    const positionId = String(f.get('positionId') || '');
-    try {
-      await apiFetch(`/api/organizations/${activeOrgId()}/employees`, { method: 'POST', body: JSON.stringify({
-        legalFirstName: f.get('firstName'), legalLastName: f.get('lastName'), workEmail: f.get('email'),
-        employeeNumber: f.get('employeeNumber'), employmentType: f.get('employmentType'), hireDate: f.get('hireDate'),
-        orgUnitId: selectedUnit || undefined, positionId: positionId || undefined,
-        managerWorkerId: f.get('managerWorkerId') || undefined,
-      })});
-      e.currentTarget.reset(); setSelectedUnit(''); setShow(false); await load();
-    } catch (e) { setError(e instanceof Error ? e.message : 'Unable to create employee.'); }
-  }
-
-  const availablePositions = positions.filter((p) => (!selectedUnit || p.orgUnitId === selectedUnit) && p.availableHeadcount > 0);
-
-  return <div className="stack">
-    <div className="paginationBar"><div className="searchRow"><input className="input" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();load(undefined,false,query);}}} placeholder="Search name, email, or #employee number"/><button className="button secondary" onClick={()=>load(undefined,false,query)}>Search</button><button className="button secondary" onClick={()=>{setQuery('');load(undefined,false,'');}}>Reset</button></div><button className="button" onClick={() => setShow(v => !v)}>+ Add employee</button></div>
-    <div className="muted">Showing {data.length} worker records in the current result set. Results are server-paginated.</div>
-
-    {show && <form className="card stack" onSubmit={create}>
-      <div className="formGrid">
-        <Field label="First name" name="firstName" /> <Field label="Last name" name="lastName" />
-        <Field label="Work email" name="email" type="email" /> <Field label="Employee number" name="employeeNumber" />
-        <Field label="Hire date" name="hireDate" type="date" />
-        <label className="field"><span>Employment type</span><select className="input" name="employmentType" defaultValue="permanent"><option>permanent</option><option>temporary</option><option>contractor</option><option>intern</option><option>volunteer</option></select></label>
-        <label className="field"><span>Organization unit</span><select className="input" value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)}><option value="">Unassigned</option>{units.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
-        <label className="field"><span>Position</span><select className="input" name="positionId" defaultValue=""><option value="">Unassigned</option>{availablePositions.map(p => <option key={p.id} value={p.id}>{p.title} · {p.availableHeadcount} seat(s)</option>)}</select></label>
-        <label className="field"><span>Manager</span><select className="input" name="managerWorkerId" defaultValue=""><option value="">No manager</option>{data.map(w => <option key={w.id} value={w.id}>{w.displayName}</option>)}</select></label>
-      </div>
-      <div className="notice">Creating an employee validates unique employee number, unique work email and position capacity before committing the Person → Worker → Employment → Assignment transaction.</div>
-      <div><button className="button" type="submit">Create authoritative worker record</button></div>
-    </form>}
-    {error && <div className="error">{error}</div>}
-    <div className="card tableWrap"><table><thead><tr><th>Employee</th><th>ID</th><th>Email</th><th>Hire date</th><th>Status</th><th></th></tr></thead><tbody>
-      {data.map(w => <tr key={w.id}><td><strong>{w.displayName}</strong></td><td>{w.employeeNumber}</td><td>{w.workEmail}</td><td>{w.hireDate || '—'}</td><td><span className="badge">{w.status}</span></td><td><Link className="textLink" href={`/people/${w.id}`}>Open profile →</Link></td></tr>)}
-      {!data.length && <tr><td colSpan={6} className="muted">No live workers yet. Run the seed or add the first employee.</td></tr>}
-    </tbody></table></div>
-    {nextCursor&&<div className="paginationBar"><span className="muted">More results are available.</span><button className="button secondary" disabled={loadingMore} onClick={async()=>{setLoadingMore(true);await load(nextCursor,true,query);setLoadingMore(false);}}>{loadingMore?'Loading…':'Load next 50'}</button></div>}
-  </div>;
-}
-function Field({label, name, type='text'}: {label:string; name:string; type?:string}) { return <label className="field"><span>{label}</span><input required className="input" name={name} type={type} /></label>; }
+import Link from 'next/link';import{FormEvent,useEffect,useState}from'react';import{activeOrgId,apiFetch}from'@/lib/http/client';import{EmptyState,LoadingState}from'@/components/data-states';
+type Worker={id:string;displayName:string;employeeNumber:string;workEmail:string;status:string;hireDate?:string};type Unit={id:string;name:string};type Position={id:string;title:string;orgUnitId:string;availableHeadcount:number;capacityState:string;status?:string};
+export function PeopleTable(){const[data,setData]=useState<Worker[]>([]),[units,setUnits]=useState<Unit[]>([]),[positions,setPositions]=useState<Position[]>([]),[error,setError]=useState(''),[show,setShow]=useState(false),[selectedUnit,setSelectedUnit]=useState(''),[selectedPosition,setSelectedPosition]=useState(''),[query,setQuery]=useState(''),[nextCursor,setNextCursor]=useState<string|null>(null),[loadingMore,setLoadingMore]=useState(false),[loading,setLoading]=useState(true),[creating,setCreating]=useState(false);
+const load=async(cursor?:string,append=false,q=query)=>{const org=activeOrgId();try{if(!append)setLoading(true);setError('');const params=new URLSearchParams({pageSize:'50'});if(q.trim())params.set('q',q.trim());if(cursor)params.set('cursor',cursor);const[w,u,p]=await Promise.all([apiFetch<{data:Worker[];nextCursor:string|null}>(`/api/organizations/${org}/employees?${params}`),apiFetch<{data:Unit[]}>(`/api/organizations/${org}/org-units`),apiFetch<{data:Position[]}>(`/api/organizations/${org}/positions`)]);setData(x=>append?[...x,...w.data]:w.data);setNextCursor(w.nextCursor);setUnits(u.data);setPositions(p.data)}catch(e){setError(e instanceof Error?e.message:'Unable to load people.')}finally{if(!append)setLoading(false)}};useEffect(()=>{void load();const h=()=>{setData([]);setNextCursor(null);setSelectedUnit('');setSelectedPosition('');void load(undefined,false,'')};window.addEventListener('opsiqo:organization-changed',h);window.addEventListener('opsiqo:employees-imported',h);return()=>{window.removeEventListener('opsiqo:organization-changed',h);window.removeEventListener('opsiqo:employees-imported',h)}},[]);
+const availablePositions=positions.filter(p=>p.orgUnitId===selectedUnit&&p.availableHeadcount>0&&!['full','closed','frozen'].includes(String(p.capacityState||'').toLowerCase())&&!['closed','frozen'].includes(String(p.status||'').toLowerCase()));const invalidAssignment=Boolean(selectedUnit)!==Boolean(selectedPosition);const noCapacity=!!selectedUnit&&availablePositions.length===0;
+async function create(e:FormEvent<HTMLFormElement>){e.preventDefault();if(invalidAssignment||noCapacity)return setError(noCapacity?'The selected organization unit has no available position capacity. Create or open a position before assigning this employee.':'Select both an organization unit and an available position, or leave both unassigned.');setCreating(true);setError('');const form=e.currentTarget,f=new FormData(form);try{await apiFetch(`/api/organizations/${activeOrgId()}/employees`,{method:'POST',body:JSON.stringify({legalFirstName:f.get('firstName'),legalLastName:f.get('lastName'),workEmail:f.get('email'),employeeNumber:f.get('employeeNumber'),employmentType:f.get('employmentType'),hireDate:f.get('hireDate'),orgUnitId:selectedUnit||undefined,positionId:selectedPosition||undefined,managerWorkerId:f.get('managerWorkerId')||undefined})});form.reset();setSelectedUnit('');setSelectedPosition('');setShow(false);await load()}catch(e){const m=e instanceof Error?e.message:'Unable to create employee.';setError(m.includes('positionId and orgUnitId')?'Select both an organization unit and an available position, or leave both unassigned.':m)}finally{setCreating(false)}}
+return <div className="stack"><div className="paginationBar"><div className="searchRow"><input className="input" value={query} onChange={e=>setQuery(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();void load(undefined,false,query)}}} placeholder="Search name, email, or #employee number"/><button className="button secondary" onClick={()=>load(undefined,false,query)}>Search</button><button className="button" onClick={()=>setShow(v=>!v)}>{show?'Cancel':'Add employee'}</button></div><Link href="/import-center" className="button secondary">Advanced Import Center</Link></div>{show&&<form className="card stack" onSubmit={create}><div className="toolbar"><div><h2 className="sectionTitle">Create employee</h2><p className="muted">An assignment is created only when both an organization unit and an available position are selected.</p></div></div><div className="formGrid"><Field label="First name" name="firstName"/><Field label="Last name" name="lastName"/><Field label="Work email" name="email" type="email"/><Field label="Employee number" name="employeeNumber"/><label className="field"><span>Employment type</span><select className="input" name="employmentType" defaultValue="permanent"><option value="permanent">Permanent</option><option value="temporary">Temporary</option><option value="contractor">Contractor</option><option value="intern">Intern</option><option value="volunteer">Volunteer</option></select></label><Field label="Hire date" name="hireDate" type="date"/><label className="field"><span>Organization unit</span><select className="input" value={selectedUnit} onChange={e=>{setSelectedUnit(e.target.value);setSelectedPosition('')}}><option value="">Unassigned</option>{units.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label><label className="field"><span>Position</span><select className="input" value={selectedPosition} onChange={e=>setSelectedPosition(e.target.value)} disabled={!selectedUnit||noCapacity}><option value="">{!selectedUnit?'Select an organization unit first':noCapacity?'No available positions':'Select an available position'}</option>{availablePositions.map(p=><option key={p.id} value={p.id}>{p.title} · {p.availableHeadcount} available</option>)}</select></label><label className="field"><span>Manager (optional)</span><select className="input" name="managerWorkerId" defaultValue=""><option value="">No manager</option>{data.map(w=><option key={w.id} value={w.id}>{w.displayName}</option>)}</select></label></div>{noCapacity&&<div className="notice"><strong>No available positions in this organization unit.</strong><br/>Open or create capacity before assigning this employee. <Link href="/organization">Go to Organization</Link></div>}{invalidAssignment&&!noCapacity&&<div className="notice">Organization unit and position must be supplied together. Leave both unassigned if the employee will be assigned later.</div>}<div><button className="button" type="submit" disabled={creating||invalidAssignment||noCapacity}>{creating?'Creating…':'Create authoritative worker record'}</button></div></form>}{error&&<div className="error">{error}</div>}{loading?<LoadingState label="Loading people…"/>:data.length===0?<EmptyState title="No people found" detail="Create an employee or import governed workforce data."/>:<section className="card tableWrap"><table><thead><tr><th>Employee</th><th>Number</th><th>Email</th><th>Status</th><th>Hire date</th></tr></thead><tbody>{data.map(w=><tr key={w.id}><td><Link href={`/people/${w.id}`}><strong>{w.displayName}</strong></Link></td><td>{w.employeeNumber}</td><td>{w.workEmail}</td><td><span className="badge">{w.status}</span></td><td>{w.hireDate||'—'}</td></tr>)}</tbody></table></section>}{nextCursor&&<div className="paginationBar"><span className="muted">Server-paginated results</span><button className="button secondary" disabled={loadingMore} onClick={async()=>{setLoadingMore(true);await load(nextCursor,true,query);setLoadingMore(false)}}>{loadingMore?'Loading…':'Load next 50'}</button></div>}</div>}
+function Field({label,name,type='text'}:{label:string;name:string;type?:string}){return <label className="field"><span>{label}</span><input required className="input" name={name} type={type}/></label>}

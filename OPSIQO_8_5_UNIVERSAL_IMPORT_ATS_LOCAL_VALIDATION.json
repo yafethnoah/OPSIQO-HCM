@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "8.5-universal-import-ats-local-static-validation",
+  "generatedAtUtc": "2026-08-14T20:53:27.767681+00:00",
+  "sourceFiles": 1071,
+  "typescriptSyntax": {
+    "status": "PASS",
+    "filesChecked": 869,
+    "syntaxErrors": 0
+  },
+  "completionAudit": {
+    "status": "PASS",
+    "passed": 28,
+    "failed": 0
+  },
+  "atsImportAudit": {
+    "status": "PASS",
+    "passed": 29,
+    "failed": 0
+  },
+  "atsPureSmoke": {
+    "status": "PASS",
+    "scoreExample": 93,
+    "assessmentCoverageExample": 100,
+    "protectedCriterionExcluded": true,
+    "sparseEvidenceCoverage": 23,
+    "unsupportedCoverLetterClaimDetected": true
+  },
+  "universalImportPureSmoke": {
+    "status": "PASS",
+    "policyStructuredMapping": true,
+    "procedureSteps": 3,
+    "digitalFormFields": 4,
+    "employeeRosterMappedFields": 8
+  },
+  "highConfidenceSecretScan": {
+    "status": "PASS",
+    "filesScanned": 1058,
+    "hits": [],
+    "documentedPlaceholders": [
+      ".env.example"
+    ]
+  },
+  "fullNpmSemanticGates": {
+    "status": "NOT_RUN_HERE",
+    "reason": "npm dependency installation did not complete in this container; run the included Windows full validation runner before treating this modified source as code-green."
+  },
+  "productionGo": "NOT_IMPLIED"
+}

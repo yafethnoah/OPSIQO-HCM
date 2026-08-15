@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "8.5-ats-import-audit-v2",
+  "generatedAtUtc": "2026-08-14T23:00:02.073Z",
+  "passed": 29,
+  "failed": 0,
+  "checks": [
+    {
+      "id": "universal-import-domain",
+      "status": "PASS",
+      "detail": "Structured universal-import domain types"
+    },
+    {
+      "id": "universal-parser",
+      "status": "PASS",
+      "detail": "Deterministic classification/mapping for HR resources"
+    },
+    {
+      "id": "safe-zip-parser",
+      "status": "PASS",
+      "detail": "ZIP bounds/traversal/ratio controls"
+    },
+    {
+      "id": "governed-universal-ai",
+      "status": "PASS",
+      "detail": "Governed AI enrichment preserves human confirmation boundary"
+    },
+    {
+      "id": "library-analysis-service",
+      "status": "PASS",
+      "detail": "Import records support governed analysis and detected-type application"
+    },
+    {
+      "id": "library-draft-promotions",
+      "status": "PASS",
+      "detail": "Structured imports promote only to draft/proposal targets"
+    },
+    {
+      "id": "library-zip-children",
+      "status": "PASS",
+      "detail": "ZIP extraction re-enters scan/review gates for each child"
+    },
+    {
+      "id": "employee-manager-resolution",
+      "status": "PASS",
+      "detail": "Employee import resolves existing/in-file managers and blocks cycles"
+    },
+    {
+      "id": "employee-roster-universal-mapping",
+      "status": "PASS",
+      "detail": "Universal roster analysis maps known columns and routes authoritative creation through Employee Import"
+    },
+    {
+      "id": "import-center-ui",
+      "status": "PASS",
+      "detail": "Universal parser and truthful external-source state are visible"
+    },
+    {
+      "id": "ats-domain",
+      "status": "PASS",
+      "detail": "ATS review/cover-letter evidence model"
+    },
+    {
+      "id": "ats-protected-exclusion",
+      "status": "PASS",
+      "detail": "Protected-trait vocabulary excluded from scoring tokens"
+    },
+    {
+      "id": "ats-sensitive-jd-filter",
+      "status": "PASS",
+      "detail": "Sensitive criteria excluded from job-description extraction"
+    },
+    {
+      "id": "ats-explainable-score",
+      "status": "PASS",
+      "detail": "Explainable ATS score breakdown/evidence"
+    },
+    {
+      "id": "ats-truthful-coverage",
+      "status": "PASS",
+      "detail": "ATS exposes evidence coverage instead of treating missing criteria as perfect"
+    },
+    {
+      "id": "ats-no-auto-decision",
+      "status": "PASS",
+      "detail": "ATS cannot present score as automatic hiring decision"
+    },
+    {
+      "id": "ats-cover-letter-grounding",
+      "status": "PASS",
+      "detail": "Cover-letter generation/review grounded in resume evidence"
+    },
+    {
+      "id": "ats-governed-ai",
+      "status": "PASS",
+      "detail": "Governed AI resume parsing/cover-letter drafting"
+    },
+    {
+      "id": "ats-service",
+      "status": "PASS",
+      "detail": "ATS authoritative service integration"
+    },
+    {
+      "id": "ats-pdf-boundary",
+      "status": "PASS",
+      "detail": "PDF resume extraction uses governed parsing path"
+    },
+    {
+      "id": "ats-routes",
+      "status": "PASS",
+      "detail": "ATS APIs exposed under tenant-scoped recruiting routes"
+    },
+    {
+      "id": "resume-intake-ui",
+      "status": "PASS",
+      "detail": "Resume parser can prefill candidate intake before human submit"
+    },
+    {
+      "id": "ats-review-ui",
+      "status": "PASS",
+      "detail": "Recruiter ATS/cover-letter review UI present"
+    },
+    {
+      "id": "jd-assistant-ui",
+      "status": "PASS",
+      "detail": "Job-description requirement assistant present"
+    },
+    {
+      "id": "recruiting-wiring",
+      "status": "PASS",
+      "detail": "ATS components wired into real recruiting workspace"
+    },
+    {
+      "id": "candidate-update-on-reuse",
+      "status": "PASS",
+      "detail": "Existing candidate enrichment not discarded on repeat application"
+    },
+    {
+      "id": "ats-tests",
+      "status": "PASS",
+      "detail": "ATS safety/scoring tests present"
+    },
+    {
+      "id": "import-tests",
+      "status": "PASS",
+      "detail": "Universal parser tests present"
+    },
+    {
+      "id": "cloud-connector-truth",
+      "status": "PASS",
+      "detail": "Cloud connectors are not falsely claimed as connected"
+    }
+  ]
+}

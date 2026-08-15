@@ -1,0 +1,84 @@
+[
+  {
+    "id": "ar-leave",
+    "category": "multilingual",
+    "command": {
+      "id": "ar-leave",
+      "language": "ar",
+      "text": "أريد تقديم طلب إجازة من 24 إلى 28 أغسطس."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": true,
+      "providerFallbackAvailable": true
+    },
+    "expected": {
+      "intent": "REQUEST_LEAVE",
+      "actionType": "REQUEST_LEAVE",
+      "riskClass": "medium",
+      "executionMode": "prepare_only",
+      "requiresConfirmation": true,
+      "executed": false,
+      "result": "not_executed",
+      "requiredMissingFields": [
+        "leaveType"
+      ],
+      "allowedAuthoritativeServices": [
+        "requestLeave"
+      ],
+      "mustBlockReasons": [],
+      "expectedLanguage": "ar"
+    }
+  },
+  {
+    "id": "ar-position",
+    "category": "multilingual",
+    "command": {
+      "id": "ar-position",
+      "language": "ar",
+      "text": "أنشئ وظيفة مدير موارد بشرية في قسم الموارد البشرية."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": true,
+      "providerFallbackAvailable": true
+    },
+    "expected": {
+      "intent": "CREATE_POSITION",
+      "actionType": "CREATE_POSITION",
+      "riskClass": "high",
+      "executionMode": "prepare_only",
+      "requiresConfirmation": true,
+      "executed": false,
+      "result": "not_executed",
+      "requiredMissingFields": [
+        "positionCode"
+      ],
+      "allowedAuthoritativeServices": [
+        "createPosition"
+      ],
+      "mustBlockReasons": [],
+      "expectedLanguage": "ar"
+    }
+  }
+]

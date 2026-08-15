@@ -1,0 +1,205 @@
+[
+  {
+    "id": "en-read-approvals",
+    "category": "intent",
+    "command": {
+      "id": "en-read-approvals",
+      "language": "en",
+      "text": "Show overdue approvals."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": true,
+      "providerFallbackAvailable": true
+    },
+    "expected": {
+      "intent": "SHOW_OVERDUE_APPROVALS",
+      "actionType": "NAVIGATE_APPROVALS",
+      "riskClass": "read_only",
+      "executionMode": "read_only",
+      "requiresConfirmation": false,
+      "executed": false,
+      "result": "not_executed",
+      "requiredMissingFields": [],
+      "allowedAuthoritativeServices": [],
+      "mustBlockReasons": [],
+      "expectedLanguage": "en"
+    }
+  },
+  {
+    "id": "en-leave-missing-type",
+    "category": "missing_fields",
+    "command": {
+      "id": "en-leave-missing-type",
+      "language": "en",
+      "text": "Request vacation from August 24 to August 28."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": true,
+      "providerFallbackAvailable": true
+    },
+    "expected": {
+      "intent": "REQUEST_LEAVE",
+      "actionType": "REQUEST_LEAVE",
+      "riskClass": "medium",
+      "executionMode": "prepare_only",
+      "requiresConfirmation": true,
+      "executed": false,
+      "result": "not_executed",
+      "requiredMissingFields": [
+        "leaveType"
+      ],
+      "allowedAuthoritativeServices": [
+        "requestLeave"
+      ],
+      "mustBlockReasons": [],
+      "expectedLanguage": "en"
+    }
+  },
+  {
+    "id": "en-onboard-missing",
+    "category": "missing_fields",
+    "command": {
+      "id": "en-onboard-missing",
+      "language": "en",
+      "text": "I need to onboard a new permanent employee."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": true,
+      "providerFallbackAvailable": true
+    },
+    "expected": {
+      "intent": "CREATE_EMPLOYEE",
+      "actionType": "CREATE_EMPLOYEE",
+      "riskClass": "high",
+      "executionMode": "prepare_only",
+      "requiresConfirmation": true,
+      "executed": false,
+      "result": "not_executed",
+      "requiredMissingFields": [
+        "legalFirstName",
+        "legalLastName",
+        "workEmail",
+        "employeeNumber",
+        "hireDate"
+      ],
+      "allowedAuthoritativeServices": [
+        "createEmployee"
+      ],
+      "mustBlockReasons": [],
+      "expectedLanguage": "en"
+    }
+  },
+  {
+    "id": "en-position",
+    "category": "intent",
+    "command": {
+      "id": "en-position",
+      "language": "en",
+      "text": "Create an HR Manager position in Human Resources."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": true,
+      "providerFallbackAvailable": true
+    },
+    "expected": {
+      "intent": "CREATE_POSITION",
+      "actionType": "CREATE_POSITION",
+      "riskClass": "high",
+      "executionMode": "prepare_only",
+      "requiresConfirmation": true,
+      "executed": false,
+      "result": "not_executed",
+      "requiredMissingFields": [
+        "positionCode"
+      ],
+      "allowedAuthoritativeServices": [
+        "createPosition"
+      ],
+      "mustBlockReasons": [],
+      "expectedLanguage": "en"
+    }
+  },
+  {
+    "id": "en-studio",
+    "category": "intent",
+    "command": {
+      "id": "en-studio",
+      "language": "en",
+      "text": "Build an employee equipment request workflow with manager approval and IT fulfillment."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": true,
+      "providerFallbackAvailable": true
+    },
+    "expected": {
+      "intent": "CREATE_DRAFT_HR_APP",
+      "actionType": "CREATE_DRAFT_HR_APP",
+      "riskClass": "high",
+      "executionMode": "prepare_only",
+      "requiresConfirmation": true,
+      "executed": false,
+      "result": "not_executed",
+      "requiredMissingFields": [],
+      "allowedAuthoritativeServices": [
+        "createDraftHrApp"
+      ],
+      "mustBlockReasons": [],
+      "expectedLanguage": "en"
+    }
+  }
+]

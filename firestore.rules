@@ -190,6 +190,10 @@ service cloud.firestore {
       match /aiRuns/{docId} { allow read, write: if false; }
       match /aiActionPlans/{docId} { allow read, write: if false; }
       match /aiEvalRuns/{docId} { allow read, write: if false; }
+      match /contractImportDrafts/{docId} { allow read, write: if false; }
+      match /contractRecords/{docId} { allow read, write: if false; }
+      match /contractModuleSyncProposals/{docId} { allow read, write: if false; }
+      match /workerContractProfiles/{docId} { allow read, write: if false; }
       match /diagnosticFrameworks/{docId} { allow read, write: if false; }
       match /diagnosticFrameworkCodeIndex/{docId} { allow read, write: if false; }
       match /diagnosticControls/{docId} { allow read, write: if false; }

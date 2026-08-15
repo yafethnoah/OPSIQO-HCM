@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import type { ActorContext } from '@/domain/security';
 import type { LearningAssignment, LearningCourseView, LearningDashboard } from '@/domain/learning';
+import { LoadingState } from '@/components/data-states';
 
 type Tab='overview'|'skills'|'gaps'|'catalog'|'assignments'|'certificates'|'setup';
 const due30=()=>new Date(Date.now()+30*86400000).toISOString();
@@ -11,7 +12,7 @@ export function LearningWorkspace(){
  const load=async()=>{setError('');try{const[d,m]=await Promise.all([apiFetch<{data:LearningDashboard}>(`/api/organizations/${activeOrgId()}/learning/dashboard`),apiFetch<{actor:ActorContext}>('/api/me')]);setData(d.data);setActor(m.actor);}catch(e){setError(e instanceof Error?e.message:'Unable to load skills and learning workspace.');}};
  useEffect(()=>{load();const h=()=>load();window.addEventListener('opsiqo:organization-changed',h);return()=>window.removeEventListener('opsiqo:organization-changed',h);},[]);
  async function call(path:string,init:RequestInit){setBusy(true);setError('');setMsg('');try{await apiFetch(path,init);setMsg('Saved successfully.');await load();}catch(e){setError(e instanceof Error?e.message:'Action failed.');}finally{setBusy(false);}}
- if(!data||!actor)return <div className="stack">{error&&<div className="error">{error}</div>}<div className="card">Loading skills intelligence…</div></div>;
+ if(!data||!actor)return <div className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading skills, learning and compliance evidence…"/></div>;
  const name=(id:string)=>data.workerDirectory.find(w=>w.id===id)?.displayName||id;const course=(id:string)=>data.courses.find(c=>c.id===id);
  return <div className="stack">{error&&<div className="error">{error}</div>}{msg&&<div className="success">{msg}</div>}
   <div className="learningHero"><div><div className="eyebrow">Phase 3 · Skills Intelligence</div><h2>Skills → gaps → learning → verified evidence</h2><p>Self-reported proficiency stays distinct from verified evidence and course-earned capability.</p></div><div className="performanceHeroScore"><span>Scope</span><strong>{data.scope}</strong><small>Generated {new Date(data.generatedAt).toLocaleString()}</small></div></div>

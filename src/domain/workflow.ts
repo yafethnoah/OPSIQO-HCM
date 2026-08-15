@@ -8,6 +8,7 @@ export type WorkflowTrigger =
   | 'requisition.opened'
   | 'application.created'
   | 'application.stage_changed'
+  | 'recruiting.ats_review_completed'
   | 'offer.accepted'
   | 'hire.completed'
   | 'onboarding.started'

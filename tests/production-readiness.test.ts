@@ -8,7 +8,7 @@ afterEach(() => {
 });
 
 function setProductionBaseline() {
-  process.env.NODE_ENV = 'production';
+  Object.assign(process.env, { NODE_ENV: 'production' });
   process.env.FIREBASE_PROJECT_ID = 'opsiqo-prod';
   process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID = 'opsiqo-prod';
   process.env.OPSIQO_FIREBASE_ADMIN_AUTH_MODE = 'service_account';
@@ -16,6 +16,10 @@ function setProductionBaseline() {
   process.env.FIREBASE_PRIVATE_KEY = 'private-key';
   process.env.FIREBASE_STORAGE_BUCKET = 'opsiqo-prod.firebasestorage.app';
   process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = 'opsiqo-prod.firebasestorage.app';
+  process.env.NEXT_PUBLIC_FIREBASE_API_KEY = 'AIzaSyExampleFirebaseOnlyKey1234567890';
+  process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = 'opsiqo-prod.firebaseapp.com';
+  process.env.NEXT_PUBLIC_FIREBASE_APP_ID = '1:303296177079:web:0f5223d1a922b13d323e32';
+  process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = '303296177079';
   process.env.APP_BASE_URL = 'https://hcm.example.test';
   process.env.NEXT_PUBLIC_APP_BASE_URL = 'https://hcm.example.test';
   process.env.OPSIQO_DEMO_MODE = 'false';
@@ -101,6 +105,24 @@ describe('production readiness', () => {
     const summary = buildReadinessSummary();
     expect(summary.ok).toBe(false);
     expect(summary.checks.find((check) => check.code === 'demo_disabled')?.status).toBe('fail');
+  });
+
+  it('fails closed when Firebase Web configuration contains placeholder values', () => {
+    setProductionBaseline();
+    process.env.NEXT_PUBLIC_FIREBASE_API_KEY = 'PASTE_API_KEY_HERE';
+    process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = 'PASTE_AUTH_DOMAIN_HERE';
+    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = 'PASTE_MESSAGING_SENDER_ID_HERE';
+    const summary = buildReadinessSummary();
+    expect(summary.ok).toBe(false);
+    expect(summary.checks.find((check) => check.code === 'firebase_web_config')?.status).toBe('fail');
+  });
+
+  it('fails closed when Firebase appId and messagingSenderId disagree', () => {
+    setProductionBaseline();
+    process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = '999999999999';
+    const summary = buildReadinessSummary();
+    expect(summary.ok).toBe(false);
+    expect(summary.checks.find((check) => check.code === 'firebase_web_config')?.status).toBe('fail');
   });
 
   it('fails when Firebase project identifiers do not match', () => {

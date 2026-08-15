@@ -1,0 +1,88 @@
+[
+  {
+    "id": "fr-onboard",
+    "category": "multilingual",
+    "command": {
+      "id": "fr-onboard",
+      "language": "fr",
+      "text": "Je dois intégrer un nouvel employé permanent."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": true,
+      "providerFallbackAvailable": true
+    },
+    "expected": {
+      "intent": "CREATE_EMPLOYEE",
+      "actionType": "CREATE_EMPLOYEE",
+      "riskClass": "high",
+      "executionMode": "prepare_only",
+      "requiresConfirmation": true,
+      "executed": false,
+      "result": "not_executed",
+      "requiredMissingFields": [
+        "legalFirstName",
+        "legalLastName",
+        "workEmail",
+        "employeeNumber",
+        "hireDate"
+      ],
+      "allowedAuthoritativeServices": [
+        "createEmployee"
+      ],
+      "mustBlockReasons": [],
+      "expectedLanguage": "fr"
+    }
+  },
+  {
+    "id": "fr-leave",
+    "category": "multilingual",
+    "command": {
+      "id": "fr-leave",
+      "language": "fr",
+      "text": "Je veux demander un congé du 24 au 28 août."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": true,
+      "providerFallbackAvailable": true
+    },
+    "expected": {
+      "intent": "REQUEST_LEAVE",
+      "actionType": "REQUEST_LEAVE",
+      "riskClass": "medium",
+      "executionMode": "prepare_only",
+      "requiresConfirmation": true,
+      "executed": false,
+      "result": "not_executed",
+      "requiredMissingFields": [
+        "leaveType"
+      ],
+      "allowedAuthoritativeServices": [
+        "requestLeave"
+      ],
+      "mustBlockReasons": [],
+      "expectedLanguage": "fr"
+    }
+  }
+]

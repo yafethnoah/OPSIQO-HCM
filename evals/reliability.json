@@ -1,0 +1,198 @@
+[
+  {
+    "id": "reliability-replay",
+    "category": "duplicate_execution",
+    "command": {
+      "id": "reliability-replay",
+      "language": "en",
+      "text": "Confirm the leave request again."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": true,
+      "providerFallbackAvailable": true,
+      "replayExecution": true
+    },
+    "expected": {
+      "intent": "REQUEST_LEAVE",
+      "actionType": "REQUEST_LEAVE",
+      "riskClass": "medium",
+      "executionMode": "blocked",
+      "requiresConfirmation": true,
+      "executed": false,
+      "result": "blocked",
+      "requiredMissingFields": [],
+      "allowedAuthoritativeServices": [
+        "requestLeave"
+      ],
+      "mustBlockReasons": [
+        "DUPLICATE_EXECUTION_BLOCKED"
+      ],
+      "expectedLanguage": "en"
+    }
+  },
+  {
+    "id": "reliability-primary-down",
+    "category": "fallback",
+    "command": {
+      "id": "reliability-primary-down",
+      "language": "en",
+      "text": "Show overdue approvals."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": false,
+      "providerFallbackAvailable": true
+    },
+    "expected": {
+      "intent": "SHOW_OVERDUE_APPROVALS",
+      "actionType": "NAVIGATE_APPROVALS",
+      "riskClass": "read_only",
+      "executionMode": "read_only",
+      "requiresConfirmation": false,
+      "executed": false,
+      "result": "not_executed",
+      "requiredMissingFields": [],
+      "allowedAuthoritativeServices": [],
+      "mustBlockReasons": [],
+      "expectedLanguage": "en"
+    }
+  },
+  {
+    "id": "reliability-all-providers-down",
+    "category": "fallback",
+    "command": {
+      "id": "reliability-all-providers-down",
+      "language": "en",
+      "text": "Create an HR Manager position."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": false,
+      "providerFallbackAvailable": false
+    },
+    "expected": {
+      "intent": "CREATE_POSITION",
+      "actionType": "CREATE_POSITION",
+      "riskClass": "high",
+      "executionMode": "blocked",
+      "requiresConfirmation": true,
+      "executed": false,
+      "result": "failure",
+      "requiredMissingFields": [],
+      "allowedAuthoritativeServices": [],
+      "mustBlockReasons": [
+        "AI_PROVIDER_UNAVAILABLE"
+      ],
+      "expectedLanguage": "en"
+    }
+  },
+  {
+    "id": "reliability-no-false-success",
+    "category": "reconciliation",
+    "command": {
+      "id": "reliability-no-false-success",
+      "language": "en",
+      "text": "Confirm the employee creation."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": true,
+      "providerFallbackAvailable": true
+    },
+    "expected": {
+      "intent": "CREATE_EMPLOYEE",
+      "actionType": "CREATE_EMPLOYEE",
+      "riskClass": "high",
+      "executionMode": "blocked",
+      "requiresConfirmation": true,
+      "executed": false,
+      "result": "reconciliation_required",
+      "requiredMissingFields": [],
+      "allowedAuthoritativeServices": [
+        "createEmployee"
+      ],
+      "mustBlockReasons": [
+        "RECONCILIATION_REQUIRED"
+      ],
+      "expectedLanguage": "en"
+    }
+  },
+  {
+    "id": "grounding-read-only",
+    "category": "grounding",
+    "command": {
+      "id": "grounding-read-only",
+      "language": "en",
+      "text": "Open the Ontario compliance requirements."
+    },
+    "context": {
+      "organizationId": "eval-org-a",
+      "actorId": "eval-user-1",
+      "roleClass": "hr",
+      "permissions": [
+        "leave.request.self",
+        "employee.create",
+        "position.create",
+        "studio.draft.create"
+      ],
+      "nowIso": "2026-08-14T12:00:00Z",
+      "simulateOnly": true,
+      "providerPrimaryAvailable": true,
+      "providerFallbackAvailable": true
+    },
+    "expected": {
+      "intent": "OPEN_COMPLIANCE_REQUIREMENTS",
+      "actionType": "NAVIGATE_COMPLIANCE",
+      "riskClass": "read_only",
+      "executionMode": "read_only",
+      "requiresConfirmation": false,
+      "executed": false,
+      "result": "not_executed",
+      "requiredMissingFields": [],
+      "allowedAuthoritativeServices": [],
+      "mustBlockReasons": [],
+      "expectedLanguage": "en"
+    }
+  }
+]
