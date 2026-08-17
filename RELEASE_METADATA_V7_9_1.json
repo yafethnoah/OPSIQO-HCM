@@ -1,0 +1,23 @@
+{
+  "product": "OPSIQO HCM",
+  "productRelease": "8.5-v7.9.1",
+  "certificationBaseline": "3.6.1",
+  "status": "stabilization_candidate",
+  "productionReady": false,
+  "firebaseProject": "opsiqo-hcm-prod-2026",
+  "appHostingBackend": "opsiqo-hcm-prod",
+  "appHostingRegion": "us-east5",
+  "firebaseWebAppId": "1:303296177079:web:1f1048d8669c6e41323e32",
+  "externalCertificationRequired": [
+    "GitHub branch protection",
+    "Secret Manager values and IAM grants",
+    "App Hosting nodejs22 and ABIU",
+    "App Check",
+    "privileged MFA",
+    "monitoring",
+    "PITR/restore evidence",
+    "full CI",
+    "controlled rollout",
+    "authenticated production UAT"
+  ]
+}

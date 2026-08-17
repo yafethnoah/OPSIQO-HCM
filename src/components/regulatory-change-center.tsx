@@ -4,6 +4,7 @@ import type { RegulatoryDashboard } from '@/domain/regulatory';
 import type { Policy } from '@/domain/compliance';
 import type { GovernanceControl } from '@/domain/governance';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
+import { LoadingState } from '@/components/data-states';
 
 type Me={actor:{permissions:string[]}};type Policies={data:Policy[]};type Gov={data:{controls:GovernanceControl[]}};
 const iso=(days=0)=>{const d=new Date();d.setDate(d.getDate()+days);return d.toISOString().slice(0,10)};
@@ -12,7 +13,7 @@ export function RegulatoryChangeCenter(){
  const load=async()=>{try{setError('');const[d,m,p,g]=await Promise.all([apiFetch<{data:RegulatoryDashboard}>(`/api/organizations/${activeOrgId()}/regulatory/dashboard`),apiFetch<Me>('/api/me'),apiFetch<Policies>(`/api/organizations/${activeOrgId()}/policies`).catch(()=>({data:[]} as Policies)),apiFetch<Gov>(`/api/organizations/${activeOrgId()}/governance/dashboard`).catch(()=>({data:{controls:[]}} as Gov))]);setData(d.data);setPermissions(m.actor.permissions);setPolicies(p.data);setControls(g.data.controls||[]);}catch(e){setError(e instanceof Error?e.message:'Unable to load regulatory change center.')}};
  useEffect(()=>{load();const h=()=>load();window.addEventListener('opsiqo:organization-changed',h);return()=>window.removeEventListener('opsiqo:organization-changed',h)},[]);
  const run=async(key:string,fn:()=>Promise<unknown>)=>{try{setBusy(key);setError('');await fn();await load();}catch(e){setError(e instanceof Error?e.message:'Regulatory action failed.')}finally{setBusy('')}};
- if(!data)return <section className="card"><p>{error||'Loading policy & regulatory change management…'}</p></section>;
+ if(!data)return <div className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading policy and regulatory-change evidence…"/></div>;
  const canManage=permissions.includes('regulatory.manage'),canApprove=permissions.includes('regulatory.approve');
  const tabs=['overview','sources','changes','obligations','policy_impact','reattestation','legal_review'];
  return <div className="stack">{error&&<div className="error">{error}</div>}<div className="tabs">{tabs.map(t=><button key={t} className={`tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{t.replaceAll('_',' ')}</button>)}</div>

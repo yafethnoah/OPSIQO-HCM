@@ -20,6 +20,7 @@ import { buildDomainEvent } from '@/lib/events/build';
 import { systemActor } from '@/lib/automation/system-actor';
 import { getNotificationSettingsForOrg } from '@/lib/notifications/service';
 import { employeeChangeSchema, employeeCreateSchema, orgUnitCreateSchema, positionCreateSchema, secondaryAssignmentCreateSchema, secondaryAssignmentEndSchema, secondaryAssignmentPlanActionSchema } from './schemas';
+import { workerDirectoryEntry } from '@/lib/hr/directory';
 
 const now = () => new Date().toISOString();
 const today = () => new Date().toISOString().slice(0, 10);
@@ -274,6 +275,7 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
 
     tx.create(db.doc(`organizations/${actor.orgId}/people/${personId}`), person);
     tx.create(db.doc(`organizations/${actor.orgId}/workers/${workerId}`), worker);
+    tx.create(db.doc(`organizations/${actor.orgId}/workerDirectory/${workerId}`), workerDirectoryEntry(worker));
     tx.create(db.doc(`organizations/${actor.orgId}/employments/${employmentId}`), employment);
     tx.create(indexRef, { employeeNumber: input.employeeNumber, workerId, createdAt: timestamp });
     tx.create(emailIndexRef, { workEmail: normalizedEmail, workerId, createdAt: timestamp });
@@ -371,6 +373,7 @@ async function applyEmployeeChangeInternal(
 
         workerUpdate.primaryAssignmentId = FieldValue.delete();
         tx.update(workerRef, workerUpdate);
+        tx.set(db.doc(`organizations/${actor.orgId}/workerDirectory/${workerId}`), { id: workerId, displayName: currentWorker.displayName, ...(currentWorker.workEmail ? { workEmail: currentWorker.workEmail } : {}), status: nextStatus, updatedAt: timestamp }, { merge: true });
         for (const snap of assignmentSnaps) {
           if (!snap.exists) continue;
           const assignment = snap.data() as Assignment;
@@ -398,6 +401,7 @@ async function applyEmployeeChangeInternal(
         }
       } else {
         tx.update(workerRef, workerUpdate);
+        tx.set(db.doc(`organizations/${actor.orgId}/workerDirectory/${workerId}`), { id: workerId, displayName: currentWorker.displayName, ...(currentWorker.workEmail ? { workEmail: currentWorker.workEmail } : {}), status: nextStatus, updatedAt: timestamp }, { merge: true });
       }
 
       result = {

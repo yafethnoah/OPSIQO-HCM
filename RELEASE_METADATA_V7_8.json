@@ -1,0 +1,10 @@
+{
+  "product": "OPSIQO HCM",
+  "experienceRelease": "8.5-V7.8-EMPLOYEE-PORTAL",
+  "productionEvidenceFoundation": "3.6.1",
+  "releaseDate": "2026-08-15",
+  "baseRelease": "8.5-V7.7-AUTOMATION-MAX",
+  "primaryAddition": "Dedicated Employee Self-Service Portal with leave and HR service transactions",
+  "employeeRoute": "/employee",
+  "governance": "Employees remain self-scoped; approvals and HR administrative actions remain permission-governed and human-authorized."
+}

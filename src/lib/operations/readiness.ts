@@ -18,6 +18,28 @@ export interface ReadinessSummary {
 const value = (key: string) => String(process.env[key] || '').trim();
 const enabled = (key: string) => value(key).toLowerCase() === 'true';
 
+function looksPlaceholder(raw: string): boolean {
+  const v = String(raw || '').trim();
+  if (!v) return true;
+  return /^(?:PASTE|YOUR|CHANGE_ME|CHANGEME|REPLACE|TODO|TBD|EXAMPLE|<|__)/i.test(v)
+    || /(?:_HERE|HERE>|PLACEHOLDER)/i.test(v);
+}
+
+function validFirebaseWebConfig(): boolean {
+  const apiKey = value('NEXT_PUBLIC_FIREBASE_API_KEY');
+  const authDomain = value('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN');
+  const appId = value('NEXT_PUBLIC_FIREBASE_APP_ID');
+  const senderId = value('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID');
+
+  if ([apiKey, authDomain, appId, senderId].some(looksPlaceholder)) return false;
+  if (!/^AIza[0-9A-Za-z_-]{20,}$/.test(apiKey)) return false;
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(authDomain)) return false;
+  const appMatch = appId.match(/^1:(\d+):web:[0-9a-f]+$/i);
+  if (!appMatch) return false;
+  if (!/^\d{6,}$/.test(senderId)) return false;
+  return appMatch[1] === senderId;
+}
+
 function push(checks: ReadinessCheck[], code: string, status: ReadinessStatus, message: string) {
   checks.push({ code, status, message });
 }
@@ -31,15 +53,17 @@ export function buildReadinessSummary(): ReadinessSummary {
   const clientBucket = value('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET');
   const aiProvider = (value('OPSIQO_AI_PROVIDER') || 'demo').toLowerCase();
 
-  push(checks, 'firebase_project', serverProject && clientProject && serverProject === clientProject ? 'pass' : 'fail',
-    'Server and client Firebase project identifiers must both exist and match.');
+  push(checks, 'firebase_project', !looksPlaceholder(serverProject) && !looksPlaceholder(clientProject) && serverProject === clientProject ? 'pass' : 'fail',
+    'Server and client Firebase project identifiers must both exist, be non-placeholder values, and match.');
   const firebaseAdminAuthMode = (value('OPSIQO_FIREBASE_ADMIN_AUTH_MODE') || 'service_account').toLowerCase();
   const firebaseAdminConfigured = firebaseAdminAuthMode === 'adc'
     || (firebaseAdminAuthMode === 'service_account' && Boolean(value('FIREBASE_CLIENT_EMAIL')) && Boolean(value('FIREBASE_PRIVATE_KEY')));
   push(checks, 'firebase_admin', ['service_account', 'adc'].includes(firebaseAdminAuthMode) && firebaseAdminConfigured ? 'pass' : 'fail',
     'Firebase Admin must use an explicitly selected service_account credential injection or Application Default Credentials (ADC) workload identity.');
-  push(checks, 'storage_bucket', serverBucket && clientBucket && serverBucket === clientBucket ? 'pass' : 'fail',
-    'Server and client storage bucket identifiers must both exist and match.');
+  push(checks, 'storage_bucket', !looksPlaceholder(serverBucket) && !looksPlaceholder(clientBucket) && serverBucket === clientBucket ? 'pass' : 'fail',
+    'Server and client storage bucket identifiers must both exist, be non-placeholder values, and match.');
+  push(checks, 'firebase_web_config', validFirebaseWebConfig() ? 'pass' : 'fail',
+    'Firebase Web configuration must contain real non-placeholder apiKey, authDomain, appId, and messagingSenderId values with a consistent appId/senderId pair.');
   push(checks, 'https_base_url', /^https:\/\//i.test(value('APP_BASE_URL')) && /^https:\/\//i.test(value('NEXT_PUBLIC_APP_BASE_URL')) ? 'pass' : production ? 'fail' : 'warn',
     'Production application base URLs must use HTTPS.');
   push(checks, 'demo_disabled', !production || (!enabled('OPSIQO_DEMO_MODE') && !enabled('NEXT_PUBLIC_OPSIQO_DEMO_MODE')) ? 'pass' : 'fail',
@@ -91,6 +115,12 @@ export function buildReadinessSummary(): ReadinessSummary {
     'Production AI must use an approved non-demo provider and governed prompt/model configuration.');
   push(checks, 'ai_credential', !production || (aiProvider === 'openai' ? Boolean(value('OPENAI_API_KEY')) : aiProvider === 'gemini' ? Boolean(value('GEMINI_API_KEY')) : false) ? 'pass' : 'fail',
     'The selected production AI provider credential must be available server-side.');
+  const deploymentPlatform = value('OPSIQO_DEPLOYMENT_PLATFORM').toLowerCase();
+  push(checks, 'deployment_platform', !production || deploymentPlatform === 'firebase_app_hosting' ? 'pass' : 'fail',
+    'Production certification must declare the approved deployment platform. This release is certified for firebase_app_hosting only.');
+  const appHostingEvidence = value('OPSIQO_APP_HOSTING_FRAMEWORK_EVIDENCE_REF');
+  push(checks, 'app_hosting_framework_evidence', !production || deploymentPlatform !== 'firebase_app_hosting' || appHostingEvidence.length >= 8 ? 'pass' : 'fail',
+    'Next.js 16 on Firebase App Hosting requires a real controlled staging/UAT compatibility evidence reference; configuration alone is not certification.');
 
   const ok = checks.every((check) => check.status !== 'fail');
   return {

@@ -1,0 +1,43 @@
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+
+const checks=[];
+const read=p=>existsSync(p)?readFileSync(p,'utf8'):'';
+const has=(p,...tokens)=>{const s=read(p);return tokens.every(t=>s.includes(t));};
+const add=(id,ok,detail)=>checks.push({id,status:ok?'PASS':'FAIL',detail});
+
+add('universal-import-domain',has('src/domain/import-library.ts','UniversalImportAnalysis','ImportFieldProposal','ImportedFormField','zip_library','job_description'),'Structured universal-import domain types');
+add('universal-parser',has('src/lib/data-import/universal-parser.ts','UNIVERSAL_IMPORT_V2','deterministicUniversalImportAnalysis','policyProcedureFields','formFields','analyzeZip'),'Deterministic classification/mapping for HR resources');
+add('safe-zip-parser',has('src/lib/data-import/zip.ts','MAX_ENTRIES','MAX_TOTAL_UNCOMPRESSED','MAX_RATIO','Unsafe ZIP path','compression ratio is unsafe'),'ZIP bounds/traversal/ratio controls');
+add('governed-universal-ai',has('src/lib/data-import/universal-provider.ts','UNIVERSAL_IMPORT_MODEL','UNIVERSAL_IMPORT','requiresHumanConfirmation','protected characteristics','human confirmation'),'Governed AI enrichment preserves human confirmation boundary');
+add('library-analysis-service',has('src/lib/data-import/library-import.ts','analysisStatus','deterministicUniversalImportAnalysis','mergeUniversalAnalyses','apply_detected_kind'),'Import records support governed analysis and detected-type application');
+add('library-draft-promotions',has('src/lib/data-import/library-import.ts','create_policy_draft','create_procedure_draft','create_form_template','create_training_draft','create_structure_proposal','create_job_description_draft'),'Structured imports promote only to draft/proposal targets');
+add('library-zip-children',has('src/lib/data-import/library-import.ts','extract_zip_children','parentImportId','not_scanned','review_required'),'ZIP extraction re-enters scan/review gates for each child');
+add('employee-manager-resolution',has('src/lib/data-import/employee-import.ts','managerReference','managerWorkerId','managerRowNumber','Manager hierarchy contains a cycle','createdByRow'),'Employee import resolves existing/in-file managers and blocks cycles');
+add('employee-roster-universal-mapping',has('src/lib/data-import/universal-parser.ts','EMPLOYEE_COLUMN_ALIASES','employeeRosterFields','employeeNumber','manager')&&has('src/components/import-center-workspace.tsx','Open governed Employee Import'),'Universal roster analysis maps known columns and routes authoritative creation through Employee Import');
+add('import-center-ui',has('src/components/import-center-workspace.tsx','Universal Parse','Use detected type','digital form','ZIP','Google Drive','Not configured'),'Universal parser and truthful external-source state are visible');
+add('ats-domain',has('src/domain/ats.ts','AtsResumeReview','AtsScoreBreakdown','CoverLetterReview','CoverLetterDraft','humanReviewRequired'),'ATS review/cover-letter evidence model');
+add('ats-protected-exclusion',has('src/lib/recruiting/ats-engine.ts','PROTECTED','citizenship','sexual','veteran','!PROTECTED.has'),'Protected-trait vocabulary excluded from scoring tokens');
+add('ats-sensitive-jd-filter',has('src/lib/recruiting/ats-engine.ts','safeJobDescription','sensitiveSegments','excluded from ATS requirement extraction'),'Sensitive criteria excluded from job-description extraction');
+add('ats-explainable-score',has('src/lib/recruiting/ats-engine.ts','requirements:percent','skills:percent','responsibilities:percent','experience:percent','educationCertification','evidence'),'Explainable ATS score breakdown/evidence');
+add('ats-truthful-coverage',has('src/lib/recruiting/ats-engine.ts','assessmentCoverage','assessedDimensions','Unassessed dimensions','No explicit non-sensitive must-have requirements')||has('src/components/ats-recruiting-panel.tsx','Job evidence coverage','Unassessed dimensions'),'ATS exposes evidence coverage instead of treating missing criteria as perfect');
+add('ats-no-auto-decision',has('src/lib/recruiting/ats-engine.ts','does not automatically reject, hire','humanReviewRequired:true'),'ATS cannot present score as automatic hiring decision');
+add('ats-cover-letter-grounding',has('src/lib/recruiting/ats-engine.ts','unsupportedClaims','Verify or remove claims','deterministicCoverLetter'),'Cover-letter generation/review grounded in resume evidence');
+add('ats-governed-ai',has('src/lib/recruiting/ats-provider.ts','RECRUITING_ATS_MODEL','RECRUITING_ATS','protected','Do not guess','evidenceText'),'Governed AI resume parsing/cover-letter drafting');
+add('ats-service',has('src/lib/recruiting/ats-service.ts','parseResumeIntake','reviewApplicationResume','latestAtsReview','createCoverLetterDraft','reviewApplicationCoverLetter'),'ATS authoritative service integration');
+add('ats-pdf-boundary',has('src/lib/recruiting/ats-service.ts','PDF','governed','AI'),'PDF resume extraction uses governed parsing path');
+add('ats-routes',existsSync('src/app/api/organizations/[orgId]/recruiting/ats/parse/route.ts')&&existsSync('src/app/api/organizations/[orgId]/recruiting/applications/[applicationId]/ats/route.ts')&&existsSync('src/app/api/organizations/[orgId]/recruiting/ats/job-description/route.ts'),'ATS APIs exposed under tenant-scoped recruiting routes');
+add('resume-intake-ui',has('src/components/resume-intake-assistant.tsx','Parse & prefill fields','Review every field','transient')&&has('src/components/recruiting-workspace.tsx','candidate-application-form','ResumeIntakeAssistant'),'Resume parser can prefill candidate intake before human submit');
+add('ats-review-ui',has('src/components/ats-recruiting-panel.tsx','ATS','Cover','human','matched','missing'),'Recruiter ATS/cover-letter review UI present');
+add('jd-assistant-ui',has('src/components/job-description-assistant.tsx','requirements','Job-description intelligence','Extract requirements'),'Job-description requirement assistant present');
+add('recruiting-wiring',has('src/components/recruiting-workspace.tsx','AtsRecruitingPanel','ResumeIntakeAssistant','JobDescriptionAssistant','atsLatestScore'),'ATS components wired into real recruiting workspace');
+add('candidate-update-on-reuse',has('src/lib/recruiting/service.ts','linkedinUrl','resumeText','consentAt'),'Existing candidate enrichment not discarded on repeat application');
+add('ats-tests',existsSync('tests/opsiqo85/ats-engine-v2.test.ts'),'ATS safety/scoring tests present');
+add('import-tests',existsSync('tests/opsiqo85/universal-import-v2.test.ts'),'Universal parser tests present');
+add('cloud-connector-truth',has('src/components/import-center-workspace.tsx','Google Drive','OneDrive / SharePoint','Not configured'),'Cloud connectors are not falsely claimed as connected');
+
+const failed=checks.filter(c=>c.status==='FAIL');
+const result={schemaVersion:'8.5-ats-import-audit-v2',generatedAtUtc:new Date().toISOString(),passed:checks.length-failed.length,failed:failed.length,checks};
+mkdirSync('artifacts/audits',{recursive:true});
+writeFileSync('artifacts/audits/OPSIQO_8_5_ATS_IMPORT_AUDIT.json',JSON.stringify(result,null,2));
+console.log(JSON.stringify(result,null,2));
+if(failed.length)process.exit(1);

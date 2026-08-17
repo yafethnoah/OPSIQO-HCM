@@ -29,7 +29,8 @@ service cloud.firestore {
 
       match /orgUnits/{docId} { allow read: if activeMember(orgId); allow write: if isAdmin(orgId); }
       match /positions/{docId} { allow read: if activeMember(orgId); allow write: if isHR(orgId); }
-      match /workers/{docId} { allow read: if activeMember(orgId); allow write: if isHR(orgId); }
+      match /workers/{docId} { allow read: if isHR(orgId) || (activeMember(orgId) && membership(orgId).data.workerId == docId); allow write: if isHR(orgId); }
+      match /workerDirectory/{docId} { allow read: if activeMember(orgId); allow write: if false; }
       match /people/{docId} {
         allow read: if isHR(orgId) || (activeMember(orgId) && resource.data.authUid == request.auth.uid);
         allow create, delete: if isHR(orgId);
@@ -40,13 +41,25 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['preferredName', 'personalEmail', 'phone', 'updatedAt'])
         );
       }
-      match /employments/{docId} { allow read: if isManager(orgId); allow write: if isHR(orgId); }
-      match /assignments/{docId} { allow read: if activeMember(orgId); allow write: if isHR(orgId); }
+      match /employments/{docId} {
+        allow read: if isHR(orgId) || (activeMember(orgId) && resource.data.workerId == membership(orgId).data.workerId);
+        allow write: if isHR(orgId);
+      }
+      match /assignments/{docId} {
+        allow read: if isHR(orgId) || (
+          activeMember(orgId) && (
+            resource.data.workerId == membership(orgId).data.workerId
+            || resource.data.managerWorkerId == membership(orgId).data.workerId
+          )
+        );
+        allow write: if isHR(orgId);
+      }
       match /employeeChanges/{docId} { allow read: if isHR(orgId); allow write: if false; }
       match /secondaryAssignmentPlans/{docId} { allow read: if isHR(orgId); allow write: if false; }
-      match /workflowDefinitions/{docId} { allow read: if isManager(orgId); allow write: if isAdmin(orgId); }
-      match /workflowRuns/{docId} { allow read: if isManager(orgId); allow write: if false; }
-      match /workflowStepRuns/{docId} { allow read: if isManager(orgId); allow write: if false; }
+      // Workflow internals are server-owned. Governed APIs enforce organization and RBAC scope.
+      match /workflowDefinitions/{docId} { allow read, write: if false; }
+      match /workflowRuns/{docId} { allow read, write: if false; }
+      match /workflowStepRuns/{docId} { allow read, write: if false; }
       match /workflowEscalations/{docId} { allow read: if isHR(orgId); allow write: if false; }
       match /workflowDispatches/{docId} { allow read: if isAdmin(orgId); allow write: if false; }
       match /domainEvents/{docId} { allow read: if isAdmin(orgId); allow write: if false; }
@@ -190,6 +203,10 @@ service cloud.firestore {
       match /aiRuns/{docId} { allow read, write: if false; }
       match /aiActionPlans/{docId} { allow read, write: if false; }
       match /aiEvalRuns/{docId} { allow read, write: if false; }
+      match /contractImportDrafts/{docId} { allow read, write: if false; }
+      match /contractRecords/{docId} { allow read, write: if false; }
+      match /contractModuleSyncProposals/{docId} { allow read, write: if false; }
+      match /workerContractProfiles/{docId} { allow read, write: if false; }
       match /diagnosticFrameworks/{docId} { allow read, write: if false; }
       match /diagnosticFrameworkCodeIndex/{docId} { allow read, write: if false; }
       match /diagnosticControls/{docId} { allow read, write: if false; }

@@ -3,12 +3,13 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import type { LifecycleDashboard } from '@/domain/lifecycle';
+import { LoadingState } from '@/components/data-states';
 
 export function LifecycleCommandCenter(){const[data,setData]=useState<LifecycleDashboard|null>(null);const[error,setError]=useState('');const[busy,setBusy]=useState(false);
  const load=()=>apiFetch<{data:LifecycleDashboard}>(`/api/organizations/${activeOrgId()}/lifecycle/dashboard`).then(r=>setData(r.data)).catch(e=>setError(e instanceof Error?e.message:'Unable to load lifecycle command center.'));
  useEffect(()=>{load();},[]);
  async function snapshot(){setBusy(true);setError('');try{await apiFetch(`/api/organizations/${activeOrgId()}/lifecycle/diagnostics`,{method:'POST'});await load();}catch(e){setError(e instanceof Error?e.message:'Unable to persist diagnostics.');}finally{setBusy(false);}}
- if(!data)return <div className="stack">{error&&<div className="error">{error}</div>}<div className="card">Loading lifecycle intelligence…</div></div>;
+ if(!data)return <div className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading lifecycle intelligence and authoritative worker evidence…"/></div>;
  return <div className="stack">{error&&<div className="error">{error}</div>}
   <div className="grid4">{data.metrics.map(m=><Link className="card metricLink" href={m.href} key={m.key}><div className="metricLabel">{m.label}</div><div className="metricValue">{m.value}</div><div className="metricFoot">{m.helper}</div></Link>)}</div>
   <div className="grid2"><section className="card"><div className="rowBetween"><div><h2 className="sectionTitle">Lifecycle funnel</h2><p className="muted">One workforce lifecycle from demand through separation.</p></div><span className="badge">Live</span></div><div className="funnelList">{data.funnel.map((f,i)=><Link href={f.href} className="funnelRow" key={f.stage}><span>{i+1}. {f.stage}</span><strong>{f.value}</strong></Link>)}</div></section>

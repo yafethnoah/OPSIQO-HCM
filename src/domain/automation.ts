@@ -19,8 +19,32 @@ export interface DomainEvent {
   lastError?: string;
 }
 
+
+export type AutomationLaneStatus = 'completed' | 'failed' | 'skipped';
+
+export interface AutomationLaneResult {
+  lane: string;
+  category: 'operational' | 'governance' | 'integration' | 'analytics' | 'security';
+  status: AutomationLaneStatus;
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+  details?: Record<string, unknown>;
+  error?: string;
+}
+
+export interface AutomationCoverageSummary {
+  automatedLanes: number;
+  automatedCapabilities: number;
+  completedLanes: number;
+  failedLanes: number;
+  humanApprovalBoundaries: number;
+}
+
 export interface AutomationRunSummary {
   runId: string;
+  lanes: AutomationLaneResult[];
+  coverage: AutomationCoverageSummary;
   orgId: string;
   startedAt: string;
   completedAt: string;
@@ -46,5 +70,6 @@ export interface AutomationRunSummary {
   aiGovernance: { approvedPlans:number; overdueTasks:number };
   diagnosticGovernance: { assessmentsScanned:number; reassessmentsDue:number; overdueRemediationTasks:number; highCriticalOpenFindings:number; notifications:number };
   lifecycleDiagnostics: { score: number; critical: number; high: number; warning: number; sampled: boolean };
+  invitationGovernance: { scanned: number; expired: number; expiringSoon: number; tokenIndexesDeleted: number; notifications: number };
   notificationDelivery: { scanned: number; sent: number; failed: number; skipped: number };
 }

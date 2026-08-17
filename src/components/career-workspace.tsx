@@ -3,6 +3,7 @@ import { useEffect,useMemo,useState } from 'react';
 import { activeOrgId,apiFetch } from '@/lib/http/client';
 import type { ActorContext } from '@/domain/security';
 import type { CareerDashboard } from '@/domain/career';
+import { LoadingState } from '@/components/data-states';
 
 type Tab='overview'|'profile'|'opportunities'|'readiness'|'succession'|'talent'|'setup';
 export function CareerWorkspace(){
@@ -10,7 +11,7 @@ export function CareerWorkspace(){
  const load=async()=>{setError('');try{const[d,m]=await Promise.all([apiFetch<{data:CareerDashboard}>(`/api/organizations/${activeOrgId()}/career/dashboard`),apiFetch<{actor:ActorContext}>('/api/me')]);setData(d.data);setActor(m.actor);}catch(e){setError(e instanceof Error?e.message:'Unable to load career workspace.');}};
  useEffect(()=>{load();const h=()=>load();window.addEventListener('opsiqo:organization-changed',h);return()=>window.removeEventListener('opsiqo:organization-changed',h);},[]);
  async function call(path:string,init:RequestInit){setBusy(true);setError('');setMsg('');try{await apiFetch(path,init);setMsg('Saved successfully.');await load();}catch(e){setError(e instanceof Error?e.message:'Action failed.');}finally{setBusy(false);}}
- if(!data||!actor)return <div className="stack">{error&&<div className="error">{error}</div>}<div className="card">Loading career and succession intelligence…</div></div>;
+ if(!data||!actor)return <div className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading career and succession intelligence…"/></div>;
  const canSuccession=actor.permissions.includes('succession.read'),canManageSuccession=actor.permissions.includes('succession.manage'),canTalent=actor.permissions.includes('talent.calibrate'),tabs=(['overview','profile','opportunities','readiness',...(canSuccession?['succession' as Tab]:[]),...(canTalent?['talent' as Tab]:[]),...(actor.permissions.includes('career.manage')||canTalent?['setup' as Tab]:[])] as Tab[]);
  const name=(id:string)=>data.workerDirectory.find(w=>w.id===id)?.displayName||id,pos=(id:string)=>data.positionDirectory.find(p=>p.id===id)?.title||id;
  return <div className="stack">{error&&<div className="error">{error}</div>}{msg&&<div className="success">{msg}</div>}

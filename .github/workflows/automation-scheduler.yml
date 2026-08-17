@@ -1,0 +1,31 @@
+name: OPSIQO Production Automation Scheduler
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: opsiqo-production-automation-scheduler
+  cancel-in-progress: false
+jobs:
+  run-automation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Execute governed organization automation cycle
+        env:
+          APP_BASE_URL: ${{ vars.APP_BASE_URL }}
+          OPSIQO_JOB_SECRET: ${{ secrets.OPSIQO_JOB_SECRET }}
+        run: |
+          set -euo pipefail
+          test -n "$APP_BASE_URL"
+          test -n "$OPSIQO_JOB_SECRET"
+          curl --fail-with-body --silent --show-error \
+            --retry 2 --retry-delay 5 \
+            --connect-timeout 15 --max-time 600 \
+            -X POST "${APP_BASE_URL%/}/api/internal/automation" \
+            -H "Content-Type: application/json" \
+            -H "x-opsiqo-job-secret: ${OPSIQO_JOB_SECRET}" \
+            --data '{"scope":"all"}'

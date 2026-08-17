@@ -1,0 +1,1 @@
+import{SettingsWorkspace}from'@/components/settings-workspace';export default function SettingsPage(){return <div className="stack"><div className="pageHeader"><div><span className="eyebrow">Platform</span><h1>Settings</h1><p>Account, appearance, access, organization defaults, notifications, imports, security and diagnostics.</p></div></div><SettingsWorkspace/></div>}

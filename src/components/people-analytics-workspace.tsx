@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { PeopleAnalyticsDashboard, AnalyticsForecastModel, AnalyticsForecastRun, AnalyticsMetricDefinition } from '@/domain/people-analytics';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
+import { LoadingState } from '@/components/data-states';
 
 type Me={actor:{permissions:string[]}};
 const fmt=(v:number,unit:string,currency='CAD')=>unit==='currency'?new Intl.NumberFormat('en-CA',{style:'currency',currency,maximumFractionDigits:0}).format(v):unit==='percent'?`${v.toFixed(1)}%`:new Intl.NumberFormat('en-CA',{maximumFractionDigits:2}).format(v);
@@ -11,7 +12,7 @@ export function PeopleAnalyticsWorkspace(){
  useEffect(()=>{load();const fn=()=>load();window.addEventListener('opsiqo:organization-changed',fn);return()=>window.removeEventListener('opsiqo:organization-changed',fn);},[]);
  const canManage=!!me?.actor.permissions.includes('peopleanalytics.manage'),canApprove=!!me?.actor.permissions.includes('peopleanalytics.approve');
  const call=async(path:string,init:RequestInit)=>{setBusy(true);setError('');try{await apiFetch(path,init);await load();}catch(e){setError(e instanceof Error?e.message:'Action failed.');}finally{setBusy(false);}};
- if(!data)return <div className="card">{error||'Loading People Analytics…'}</div>;
+ if(!data)return <div className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading governed people-analytics snapshots…"/></div>;
  return <div className="stack"><section className="card"><div className="row wrap"><div><h2 className="sectionTitle">People Analytics Studio</h2><p className="muted">Governed metric definitions, historical snapshots, aggregate segments and reviewable forecasts.</p></div><div className="row">{canManage&&<button className="button secondary" disabled={busy} onClick={()=>call(`/api/organizations/${activeOrgId()}/people-analytics/snapshots`,{method:'POST'})}>Capture snapshot</button>}{canManage&&<button className="button" disabled={busy} onClick={()=>call(`/api/organizations/${activeOrgId()}/people-analytics/bootstrap`,{method:'POST'})}>Bootstrap metrics</button>}</div></div>{error&&<p className="error">{error}</p>}<div className="tabs">{(['overview','trends','metrics','forecasts','governance'] as const).map(t=><button key={t} className={tab===t?'tab active':'tab'} onClick={()=>setTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div></section>
  {tab==='overview'&&<Overview data={data}/>} {tab==='trends'&&<Trends data={data}/>} {tab==='metrics'&&<Metrics data={data} canManage={canManage} canApprove={canApprove} busy={busy} call={call}/>} {tab==='forecasts'&&<Forecasts data={data} canManage={canManage} canApprove={canApprove} busy={busy} call={call}/>} {tab==='governance'&&<Governance data={data}/>}</div>;
 }

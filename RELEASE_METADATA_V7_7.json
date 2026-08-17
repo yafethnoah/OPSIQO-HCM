@@ -1,0 +1,22 @@
+{
+  "release": "OPSIQO HCM 8.5 V7.7 Automation-Max",
+  "releaseDate": "2026-08-15",
+  "productionEvidenceVersion": "3.6.1",
+  "baseCertificationCommit": "a856f61b6945e1ecee7249e01dcab6f58fb0f2b5",
+  "automation": {
+    "exportedOrgProcessorsWired": 38,
+    "exportedOrgProcessorsDiscovered": 38,
+    "catalogAutomaticCapabilities": 21,
+    "catalogHumanOrOptInBoundaries": 6,
+    "laneFailureIsolation": true,
+    "multiTenantScheduler": true,
+    "workflowNotificationAutoCompletion": true,
+    "consequentialEmploymentDecisionsAutomatic": false
+  },
+  "distribution": {
+    "containsSecrets": false,
+    "containsNodeModules": false,
+    "containsBuildOutput": false,
+    "immutableManifestValidation": true
+  }
+}

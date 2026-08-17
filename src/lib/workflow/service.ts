@@ -6,6 +6,8 @@ import { adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
 import { buildAudit } from '@/lib/audit/service';
 import { workflowDefinitionCreateSchema, workflowRunCreateSchema, workflowStepActionSchema } from './schemas';
+import { systemActor } from '@/lib/automation/system-actor';
+import { getNotificationSettingsForOrg } from '@/lib/notifications/service';
 
 const now = () => new Date().toISOString();
 const terminal = new Set(['completed', 'rejected', 'skipped', 'failed']);
@@ -36,6 +38,8 @@ export async function createWorkflow(actor: ActorContext, raw: unknown) {
     name: input.name,
     description: input.description,
     trigger: input.trigger,
+    conditions: input.conditions,
+    conditionMode: input.conditionMode,
     enabled: input.enabled,
     version: 1,
     steps: input.steps,
@@ -298,4 +302,44 @@ export async function actOnWorkflowStep(actor: ActorContext, runId: string, work
   });
 
   return response!;
+}
+
+
+export async function processWorkflowNotificationSteps(orgId:string,limit=200){
+ const db=adminDb(),actor=systemActor(orgId,'system:workflow-notification'),settings=await getNotificationSettingsForOrg(orgId),summary={scanned:0,delivered:0,completed:0,failed:0,passes:0};
+ const safe=Math.max(1,Math.min(limit,500));
+ for(let pass=0;pass<10;pass++){
+  const snap=await db.collection(`organizations/${orgId}/workflowStepRuns`).where('status','==','ready').limit(safe).get();
+  const steps=snap.docs.map(d=>d.data() as WorkflowStepRun).filter(step=>step.type==='notification');
+  summary.scanned+=steps.length;summary.passes=pass+1;
+  if(!steps.length)break;
+  let progressed=0;
+  for(const step of steps){
+   try{
+    const runSnap=await db.doc(`organizations/${orgId}/workflowRuns/${step.runId}`).get();
+    if(!runSnap.exists)continue;
+    const run=runSnap.data() as WorkflowRun;
+    const marker=db.doc(`organizations/${orgId}/workflowNotificationDispatches/${encodeURIComponent(step.id)}`);
+    let delivered=false;
+    await db.runTransaction(async tx=>{
+     const prior=await tx.get(marker);if(prior.exists)return;
+     const id=randomUUID(),timestamp=now();
+     tx.create(marker,{stepRunId:step.id,runId:step.runId,createdAt:timestamp});
+     tx.create(db.doc(`organizations/${orgId}/notifications/${id}`),{
+      id,type:'workflow.notification',category:'workflow',title:step.name,
+      message:`Workflow ${run.workflowName||run.workflowId} reached the automated notification step “${step.name}”.`,
+      targetRole:step.ownerRole||'hr_admin',entityType:run.entityType||'workflowRun',entityId:run.entityId||run.id,
+      status:'unread',inAppVisible:settings.inAppEnabled,emailStatus:settings.emailEnabled?'pending':'disabled',emailAttempts:0,
+      createdAt:timestamp,updatedAt:timestamp,
+     });
+     delivered=true;
+    });
+    if(delivered)summary.delivered++;
+    await actOnWorkflowStep(actor,step.runId,step.workflowStepId,{action:'complete',note:'Automatically completed after workflow notification dispatch.'});
+    summary.completed++;progressed++;
+   }catch{summary.failed++;}
+  }
+  if(!progressed)break;
+ }
+ return summary;
 }

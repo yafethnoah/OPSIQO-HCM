@@ -34,12 +34,14 @@ export type Permission =
   | 'security.manage'
   | 'recruiting.read'
   | 'recruiting.manage'
+  | 'recruiting.manage.team'
   | 'recruiting.approve'
   | 'recruiting.interview'
   | 'recruiting.offer'
   | 'recruiting.hire'
   | 'onboarding.read'
   | 'onboarding.manage'
+  | 'onboarding.manage.team'
   | 'onboarding.activate'
   | 'documents.read'
   | 'documents.manage'
@@ -57,6 +59,7 @@ export type Permission =
   | 'time.read'
   | 'time.clock'
   | 'time.manage'
+  | 'time.manage.team'
   | 'time.approve'
   | 'time.configure'
   | 'payroll.export'
@@ -71,10 +74,12 @@ export type Permission =
   | 'performance.review'
   | 'performance.calibrate'
   | 'performance.pip'
+  | 'performance.pip.team'
   | 'learning.read'
   | 'learning.manage'
   | 'learning.assign'
   | 'learning.verify'
+  | 'learning.verify.team'
   | 'learning.self_assign'
   | 'career.read'
   | 'career.manage'
@@ -208,4 +213,5 @@ export interface ActorContext {
   workerId?: string;
   permissions: Permission[];
   demo?: boolean;
+  guest?: boolean;
 }

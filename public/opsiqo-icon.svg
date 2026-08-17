@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="OPSIQO">
+ <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1f3a5f"/><stop offset="1" stop-color="#1abcbc"/></linearGradient></defs>
+ <rect width="512" height="512" rx="112" fill="url(#g)"/>
+ <circle cx="256" cy="256" r="134" fill="none" stroke="white" stroke-width="48"/>
+ <path d="M256 146v220M146 256h220" stroke="white" stroke-width="30" stroke-linecap="round" opacity=".24"/>
+</svg>

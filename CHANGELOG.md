@@ -1,3 +1,13 @@
+# OPSIQO HCM 8.5 V7.8 — Employee Self-Service Portal
+
+- Added dedicated `/employee` Employee Portal as the default landing for employee-role users.
+- Added self-scoped vacation/leave request and request-history experience using the existing governed Time & Leave service.
+- Added self-scoped HR Service request and ticket tracking directly in the Employee Portal.
+- Added permission-filtered employee access to profile, documents/policies, learning, performance, pay, career, safety and notifications.
+- Added role-aware post-authentication and invitation-acceptance landing behavior.
+- Preserved human approval for leave and consequential HR actions; no HR administrative permissions are granted to employee-role users.
+- Added V7.8 source audit, regression tests, release documentation and immutable Windows validation runner.
+
 # v3.6.1 — Production Evidence Closure & Cloud DR Execution
 
 - Added artifact-only reviewed lockfile bootstrap workflow; no automatic commit/push.

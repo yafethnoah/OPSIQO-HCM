@@ -1,0 +1,8 @@
+{
+  "product": "OPSIQO HCM",
+  "release": "8.5-v7.9.3",
+  "baseline": "3.6.1",
+  "type": "ux-functional-closure",
+  "includes": "8.5-v7.9.2-certification-repair",
+  "productionEvidenceRequired": true
+}

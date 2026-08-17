@@ -2,6 +2,10 @@
 import { useEffect, useState } from 'react';
 import type { AiCopilotDashboard, AiRun, AiEvidenceItem } from '@/domain/ai-intelligence';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
+import { OpsiQoOperationProgress } from '@/components/opsiqo-operation-progress';
+import type { OperationStageId } from '@/lib/ux-performance/performanceTypes';
+import { ReconciliationRequiredError } from '@/lib/http/reliability';
+import { LoadingState } from '@/components/data-states';
 
 type Me={actor:{permissions:string[];role:string}};
 
@@ -11,17 +15,19 @@ export function AiCopilotWorkspace(){
   const [question,setQuestion]=useState('What workforce risks need HR attention based on the current evidence?');
   const [answer,setAnswer]=useState<any>(null);
   const [busy,setBusy]=useState(false);
+  const [aiStage,setAiStage]=useState<OperationStageId>('queued');
+  const [aiMessage,setAiMessage]=useState('Ready for a governed AI request.');
   const [error,setError]=useState('');
   const [tab,setTab]=useState<'copilot'|'history'|'actions'|'governance'>('copilot');
   const load=async()=>{try{const org=activeOrgId();const[d,m]=await Promise.all([apiFetch<{data:AiCopilotDashboard}>(`/api/organizations/${org}/ai-copilot/dashboard`),apiFetch<Me>('/api/me')]);setData(d.data);setMe(m);}catch(e){setError(e instanceof Error?e.message:'Unable to load AI Copilot.');}};
   useEffect(()=>{load();const fn=()=>load();window.addEventListener('opsiqo:organization-changed',fn);return()=>window.removeEventListener('opsiqo:organization-changed',fn);},[]);
-  const ask=async()=>{setBusy(true);setError('');try{const r=await apiFetch<{data:any}>(`/api/organizations/${activeOrgId()}/ai-copilot/query`,{method:'POST',body:JSON.stringify({question})});setAnswer(r.data);await load();}catch(e){setError(e instanceof Error?e.message:'AI query failed.');}finally{setBusy(false);}};
+  const ask=async()=>{setBusy(true);setError('');setAiStage('validating');setAiMessage('Validating organization context and permission-scoped evidence.');try{setAiStage('interpreting');setAiMessage('Retrieving governed evidence and asking the configured model to interpret it.');const r=await apiFetch<{data:any}>(`/api/organizations/${activeOrgId()}/ai-copilot/query`,{method:'POST',body:JSON.stringify({question})});setAnswer(r.data);setAiStage('verifying');setAiMessage('Verifying citations, governance controls and the returned evidence set.');await load();setAiStage('completed');setAiMessage('Governed AI response completed.');}catch(e){if(e instanceof ReconciliationRequiredError){setAiStage('reconciliation');setAiMessage('The request outcome is uncertain. Reconcile before submitting again.');}else{setAiStage('failed');setAiMessage('The governed AI request did not complete.');}setError(e instanceof Error?e.message:'AI query failed.');}finally{setBusy(false);}};
   const canApprove=!!me?.actor.permissions.includes('ai.approve');
   const canManage=!!me?.actor.permissions.includes('ai.manage');
-  if(!data)return <div className="card">{error||'Loading AI HR Copilot…'}</div>;
+  if(!data)return <div className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading governed AI HR Copilot configuration and evidence…"/></div>;
   return <div className="stack">
     <section className="card"><div className="row wrap"><div><h2 className="sectionTitle">Evidence-to-Action Intelligence</h2><p className="muted">Provider: {data.provider} · Model: {data.model} · Model profile {data.modelProfile?.code||'runtime'} v{data.modelProfile?.version||1} · Prompt {data.prompt?.code} v{data.prompt?.version}</p></div><span className="badge">Human-controlled</span></div>{error&&<p className="error">{error}</p>}<div className="tabs">{(['copilot','history','actions','governance'] as const).map(t=><button className={tab===t?'tab active':'tab'} key={t} onClick={()=>setTab(t)}>{t[0].toUpperCase()+t.slice(1)}</button>)}</div></section>
-    {tab==='copilot'&&<Copilot question={question} setQuestion={setQuestion} ask={ask} busy={busy} result={answer}/>} 
+    {tab==='copilot'&&<div className="stack">{(busy||['failed','reconciliation','completed'].includes(aiStage))&&<section className="card"><OpsiQoOperationProgress stage={aiStage} message={aiMessage}/></section>}<Copilot question={question} setQuestion={setQuestion} ask={ask} busy={busy} result={answer}/></div>} 
     {tab==='history'&&<History runs={data.recentRuns}/>} 
     {tab==='actions'&&<Actions data={data} canApprove={canApprove} canManage={canManage} reload={load}/>} 
     {tab==='governance'&&<Governance data={data} canManage={canManage} canApprove={canApprove} reload={load}/>} 

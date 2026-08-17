@@ -148,5 +148,5 @@ export interface WorkerComplianceRow {
   compliant: number;
   overdue: number;
   expiring: number;
-  score: number;
+  score: number | null;
 }

@@ -2,7 +2,10 @@ name: OPSIQO SAST and Secret Scanning
 on:
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'release/**'
+      - 'production-*'
   workflow_dispatch:
 permissions:
   contents: read

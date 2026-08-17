@@ -1,0 +1,33 @@
+import { readFileSync, existsSync } from 'node:fs';
+const read=(p)=>readFileSync(p,'utf8');
+const rules=read('firestore.rules'); const ats=read('src/lib/recruiting/ats-service.ts'); const promotion=read('.github/workflows/production-promotion.yml'); const evidenceClosure=read('.github/workflows/production-evidence-closure.yml'); const identity=read('src/lib/release/identity.ts'); const apphosting=read('apphosting.yaml'); const readiness=read('src/lib/operations/readiness.ts'); const settings=read('src/components/settings-workspace.tsx');
+const checks=[
+['ATS recognizes team-scoped recruiting management',/recruiting\.manage\.team/.test(ats)],
+['ATS keeps requisition scope enforcement',/scopedRequisition/.test(ats)&&/listRequisitions/.test(ats)],
+['employment direct reads require HR or owning worker',/match \/employments[\s\S]{0,260}isHR\(orgId\)[\s\S]{0,260}resource\.data\.workerId/.test(rules)],
+['employment is not manager-wide direct read',!/match \/employments\/\{docId\} \{ allow read: if isManager/.test(rules)],
+['workflow definitions are server-owned',/match \/workflowDefinitions\/\{docId\} \{ allow read, write: if false; \}/.test(rules)],
+['workflow runs are server-owned',/match \/workflowRuns\/\{docId\} \{ allow read, write: if false; \}/.test(rules)],
+['workflow step runs are server-owned',/match \/workflowStepRuns\/\{docId\} \{ allow read, write: if false; \}/.test(rules)],
+['production workflow grants OIDC token permission',/id-token:\s*write/.test(promotion)],
+['production workflow uses WIF auth action',/google-github-actions\/auth@v2/.test(promotion)],
+['production workflow uses ADC mode',/OPSIQO_FIREBASE_ADMIN_AUTH_MODE:\s*adc/.test(promotion)],
+['production workflow excludes long-lived private key',!/FIREBASE_PRIVATE_KEY/.test(promotion)],
+['production workflow excludes client email credential',!/FIREBASE_CLIENT_EMAIL/.test(promotion)],
+['production workflow requires certification branch',/OPSIQO_CERTIFICATION_BRANCH/.test(promotion)&&/github\.ref_name/.test(promotion)],
+['frozen source verified before npm ci',promotion.indexOf('source-manifest.mjs verify')>=0&&promotion.indexOf('source-manifest.mjs verify')<promotion.indexOf('npm ci')],
+['release identity distinguishes source commit',/sourceCommit/.test(identity)&&/GITHUB_SHA/.test(identity)],
+['release identity distinguishes cloud revision',/deploymentRevision/.test(identity)&&/K_REVISION/.test(identity)],
+['settings no longer invents a build commit',!/local-uncommitted/.test(settings)&&!/Build commit/.test(settings)],
+['App Hosting no longer sources release commit from Secret Manager',!/NEXT_PUBLIC_OPSIQO_RELEASE_COMMIT/.test(apphosting)],
+['deployment platform is declared',/OPSIQO_DEPLOYMENT_PLATFORM/.test(apphosting)&&/firebase_app_hosting/.test(apphosting)],
+['App Hosting evidence reference configured',/OPSIQO_APP_HOSTING_FRAMEWORK_EVIDENCE_REF/.test(apphosting)],
+['production readiness fails closed on deployment platform',/deployment_platform/.test(readiness)],
+['production readiness fails closed on App Hosting compatibility evidence',/app_hosting_framework_evidence/.test(readiness)],
+['production evidence closure uses current V7.9.3 product release',/OPSIQO_PRODUCT_RELEASE:\s*'8\.5-v7\.9\.3'/.test(evidenceClosure)],
+['production evidence closure declares App Hosting deployment platform',/OPSIQO_DEPLOYMENT_PLATFORM:\s*firebase_app_hosting/.test(evidenceClosure)],
+['production evidence closure maps App Hosting compatibility evidence',/OPSIQO_APP_HOSTING_FRAMEWORK_EVIDENCE_REF:\s*\$\{\{\s*vars\.OPSIQO_APP_HOSTING_FRAMEWORK_EVIDENCE_REF\s*\}\}/.test(evidenceClosure)],
+['code certification runner exists',existsSync('RUN_OPSIQO_8_5_V7_9_2_CODE_CERTIFICATION.ps1')],
+['production certification runner exists',existsSync('RUN_OPSIQO_8_5_V7_9_2_PRODUCTION_CERTIFICATION.ps1')],
+['scheduler default-branch helper exists',existsSync('DEPLOY_AUTOMATION_SCHEDULER_DEFAULT_BRANCH.ps1')&&existsSync('docs/PRODUCTION_AUTOMATION_SCHEDULER.md')],
+]; let failures=0; for(const [label,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${label}`);if(!ok)failures++;}console.log(JSON.stringify({status:failures?'FAIL':'PASS',checks:checks.length,failures},null,2));if(failures)process.exitCode=1;

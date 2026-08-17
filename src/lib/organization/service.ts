@@ -16,7 +16,7 @@ export async function listOrganizationsForIdentity(identity: IdentityContext): P
     .where('status', '==', 'active')
     .get();
 
-  const rows = await Promise.all(membershipSnaps.docs.map(async (doc) => {
+  const rows: Array<OrganizationMembershipSummary | null> = await Promise.all(membershipSnaps.docs.map(async (doc) => {
     const membership = doc.data() as Membership;
     const orgId = doc.ref.parent.parent?.id;
     if (!orgId) return null;
@@ -26,5 +26,5 @@ export async function listOrganizationsForIdentity(identity: IdentityContext): P
     return { orgId, name: org.name, role: membership.role, workerId: membership.workerId, status: membership.status } satisfies OrganizationMembershipSummary;
   }));
 
-  return rows.filter((row): row is OrganizationMembershipSummary => Boolean(row)).sort((a,b) => a.name.localeCompare(b.name));
+  return rows.filter((row): row is OrganizationMembershipSummary => row !== null).sort((a,b) => a.name.localeCompare(b.name));
 }

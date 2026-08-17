@@ -1,21 +1,31 @@
 name: OPSIQO HCM Production Promotion Gate
 on:
   workflow_dispatch:
+    inputs:
+      certification_ref:
+        description: Protected certification branch or ref approved for production
+        required: true
+        type: string
 permissions:
   contents: read
+  id-token: write
 jobs:
-  verify:
+  verify-and-promote:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
     environment: production
     env:
       NODE_ENV: production
       OPSIQO_RELEASE_VERSION: '3.6.1'
+      OPSIQO_PRODUCT_RELEASE: '8.5-v7.9.3'
+      OPSIQO_SOURCE_COMMIT: ${{ github.sha }}
       FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-      OPSIQO_FIREBASE_ADMIN_AUTH_MODE: service_account
+      OPSIQO_FIREBASE_ADMIN_AUTH_MODE: adc
       NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-      FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
-      FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+      NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+      NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
       FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
       NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
       APP_BASE_URL: ${{ vars.APP_BASE_URL }}
@@ -43,49 +53,58 @@ jobs:
       OPSIQO_PRODUCTION_EVIDENCE_REF: ${{ vars.OPSIQO_PRODUCTION_EVIDENCE_REF }}
       OPSIQO_CLOUD_DR_EVIDENCE_REF: ${{ vars.OPSIQO_CLOUD_DR_EVIDENCE_REF }}
       OPSIQO_DR_EXERCISE_EVIDENCE_REF: ${{ vars.OPSIQO_DR_EXERCISE_EVIDENCE_REF }}
+      OPSIQO_DEPLOYMENT_PLATFORM: firebase_app_hosting
+      OPSIQO_APP_HOSTING_FRAMEWORK_EVIDENCE_REF: ${{ vars.OPSIQO_APP_HOSTING_FRAMEWORK_EVIDENCE_REF }}
       OPSIQO_AI_PROVIDER: ${{ vars.OPSIQO_AI_PROVIDER }}
       OPSIQO_REQUIRE_GOVERNED_AI_CONFIG: 'true'
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       OPSIQO_JOB_ORG_ID: ${{ vars.OPSIQO_JOB_ORG_ID }}
     steps:
+      - name: Require protected certification ref
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${{ vars.OPSIQO_CERTIFICATION_BRANCH }}"
+          test "${{ github.ref_name }}" = "${{ vars.OPSIQO_CERTIFICATION_BRANCH }}"
+          test "${{ inputs.certification_ref }}" = "${{ vars.OPSIQO_CERTIFICATION_BRANCH }}"
       - uses: actions/checkout@v6
-      - name: Require reviewed lockfile
-        run: test -f package-lock.json
-      - name: Review committed lockfile structure
-        run: node scripts/review-lockfile.mjs
+        with:
+          ref: ${{ inputs.certification_ref }}
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
+      - name: Verify frozen source before dependency install
+        run: node scripts/source-manifest.mjs verify
+      - name: Authenticate to Google Cloud using OIDC / Workload Identity Federation
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
       - run: npm ci --registry=https://registry.npmjs.org --no-audit --no-fund
-      - run: npm audit --audit-level=high
-      - run: npm run security:static-scan
-      - run: npm run supplychain:sbom
-      - run: npm run release:gate
-      - run: npm run typecheck
-      - run: npm test
-      - run: npm run test:rules
-      - run: npm run build
-      - run: npm run ai:evaluate
-      - run: npm run ai:governance-check
-      - run: npm run preflight:production
+      - name: Run production certification
+        shell: pwsh
+        run: ./RUN_OPSIQO_8_5_V7_9_2_PRODUCTION_CERTIFICATION.ps1 -SkipCodeCertification
       - name: Package build for provenance
         run: tar -czf opsiqo-build.tgz .next
       - run: npm run supplychain:provenance -- opsiqo-build.tgz
       - uses: actions/upload-artifact@v4
         with:
-          name: opsiqo-v3.6.1-supply-chain-evidence
+          name: opsiqo-v7.9.3-production-evidence
           path: |
             artifacts/opsiqo-hcm.cdx.json
             artifacts/opsiqo-hcm.provenance.json
             opsiqo-build.tgz
   integrated-uat:
-    needs: verify
+    needs: verify-and-promote
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: production

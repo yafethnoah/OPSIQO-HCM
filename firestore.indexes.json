@@ -941,16 +941,6 @@
       ]
     },
     {
-      "collectionGroup": "analyticsSnapshots",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "snapshotDate",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "analyticsForecastRuns",
       "queryScope": "COLLECTION",
       "fields": [

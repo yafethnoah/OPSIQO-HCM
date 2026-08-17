@@ -5,6 +5,7 @@ import { ApiError } from '@/lib/http/errors';
 import { buildAudit } from '@/lib/audit/service';
 import { invitationAcceptSchema, invitationActionSchema, invitationCreateSchema } from './schemas';
 import { identityFromRequest } from '@/lib/auth/session';
+import { systemActor } from '@/lib/automation/system-actor';
 
 const now = () => new Date().toISOString();
 const hashToken = (value: string) => createHash('sha256').update(value).digest('hex');
@@ -24,6 +25,87 @@ export async function listInvitations(actor: ActorContext) {
     if (invitation.status === 'pending' && invitation.expiresAt < now()) return { ...invitation, status: 'expired' as const };
     return invitation;
   });
+}
+
+
+async function invitationGovernanceNotifyOnce(orgId: string, key: string, payload: { title: string; message: string; targetUid?: string; targetRole?: string; entityId: string; priority?: 'normal' | 'high' }) {
+  const db = adminDb();
+  const dedupeRef = db.doc(`organizations/${orgId}/notificationDedupe/${hashToken(key)}`);
+  try {
+    await dedupeRef.create({ key, createdAt: now() });
+    const id = randomUUID();
+    await db.doc(`organizations/${orgId}/notifications/${id}`).create({
+      id,
+      type: 'membership.invitation.governance',
+      category: 'identity',
+      title: payload.title,
+      message: payload.message,
+      targetUid: payload.targetUid,
+      targetRole: payload.targetRole || (payload.targetUid ? undefined : 'hr_admin'),
+      priority: payload.priority || 'normal',
+      entityType: 'invitation',
+      entityId: payload.entityId,
+      status: 'unread',
+      inAppVisible: true,
+      emailStatus: 'disabled',
+      emailAttempts: 0,
+      createdAt: now(),
+      updatedAt: now(),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function processInvitationGovernance(orgId: string, limit = 500) {
+  const db = adminDb();
+  const timestamp = now();
+  const soon = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+  const snap = await db.collection(`organizations/${orgId}/invitations`)
+    .where('status', '==', 'pending')
+    .limit(Math.max(1, Math.min(limit, 1000)))
+    .get();
+  const summary = { scanned: snap.size, expired: 0, expiringSoon: 0, tokenIndexesDeleted: 0, notifications: 0 };
+  const actor = systemActor(orgId, 'system:invitation-governance');
+
+  for (const doc of snap.docs) {
+    const invitation = doc.data() as Invitation;
+    if (invitation.expiresAt <= timestamp) {
+      const tokenQuery = await db.collection(`organizations/${orgId}/invitationTokenIndex`).where('invitationId', '==', invitation.id).limit(20).get();
+      const after = { ...invitation, status: 'expired' as const, expiredAt: timestamp };
+      const audit = buildAudit(actor, { action: 'membership.invitation.expire', entityType: 'invitation', entityId: invitation.id, before: invitation, after });
+      const batch = db.batch();
+      batch.set(doc.ref, { status: 'expired', expiredAt: timestamp, updatedAt: timestamp }, { merge: true });
+      batch.set(db.doc(`organizations/${orgId}/invitationEmailIndex/${emailKey(invitation.email)}`), { invitationId: invitation.id, email: invitation.email, status: 'expired', updatedAt: timestamp }, { merge: true });
+      for (const tokenDoc of tokenQuery.docs) batch.delete(tokenDoc.ref);
+      batch.create(db.doc(`organizations/${orgId}/auditLogs/${audit.id}`), audit);
+      await batch.commit();
+      summary.expired += 1;
+      summary.tokenIndexesDeleted += tokenQuery.size;
+      if (await invitationGovernanceNotifyOnce(orgId, `invitation-expired:${invitation.id}:${invitation.expiresAt}`, {
+        title: 'Invitation expired',
+        message: `The pending invitation for ${invitation.email} expired and its remaining token index was removed. Create or resend an invitation only after reviewing current access need.`,
+        targetUid: invitation.invitedBy,
+        entityId: invitation.id,
+        priority: 'normal',
+      })) summary.notifications += 1;
+      continue;
+    }
+
+    if (invitation.expiresAt <= soon) {
+      summary.expiringSoon += 1;
+      if (await invitationGovernanceNotifyOnce(orgId, `invitation-expiring:${invitation.id}:${invitation.expiresAt}`, {
+        title: 'Invitation expires soon',
+        message: `The invitation for ${invitation.email} expires within 48 hours. OPSIQO will not rotate or resend credentials automatically; review the access need before resending.`,
+        targetUid: invitation.invitedBy,
+        entityId: invitation.id,
+        priority: 'normal',
+      })) summary.notifications += 1;
+    }
+  }
+
+  return summary;
 }
 
 async function deliverInvitation(email: string, role: Role, inviteUrl: string) {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import { applicationStageSchema, candidateApplicationCreateSchema, offerCreateSchema, requisitionActionSchema, requisitionCreateSchema } from '../src/lib/recruiting/schemas';
 import { can } from '../src/lib/auth/permissions';
 
@@ -25,7 +25,8 @@ describe('Phase 2 recruiting schemas', () => {
 describe('Phase 2 recruiting permissions', () => {
   it('lets managers recruit within scope but not approve offers or hire', () => {
     expect(can('manager','recruiting.read')).toBe(true);
-    expect(can('manager','recruiting.manage')).toBe(true);
+    expect(can('manager','recruiting.manage.team')).toBe(true);
+    expect(can('manager','recruiting.manage')).toBe(false);
     expect(can('manager','recruiting.interview')).toBe(true);
     expect(can('manager','recruiting.offer')).toBe(false);
     expect(can('manager','recruiting.hire')).toBe(false);
@@ -37,3 +38,4 @@ describe('Phase 2 recruiting permissions', () => {
     expect(can('hr_admin','recruiting.hire')).toBe(true);
   });
 });
+

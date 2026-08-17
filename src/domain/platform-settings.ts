@@ -1,0 +1,9 @@
+export type RegistrationMode='invite_only'|'open_auth_only'|'disabled';
+export type MfaPolicy='optional'|'privileged_required'|'all_required';
+export type LocaleCode='en'|'ar'|'fr'|'es';
+export type DateFormat='YYYY-MM-DD'|'MM/DD/YYYY'|'DD/MM/YYYY';
+export type WeekStart='sunday'|'monday';
+export type DefaultTheme='system'|'light'|'dark';
+export type DefaultDensity='comfortable'|'compact';
+export interface PlatformSettings{id:'platform';registrationMode:RegistrationMode;guestAccessEnabled:boolean;guestReadOnly:boolean;allowPasswordSignIn:boolean;allowSelfPasswordReset:boolean;sessionTimeoutMinutes:number;mfaPolicy:MfaPolicy;defaultLocale:LocaleCode;defaultTimezone:string;dateFormat:DateFormat;weekStartsOn:WeekStart;defaultTheme:DefaultTheme;defaultDensity:DefaultDensity;allowUserAppearanceOverride:boolean;updatedAt:string;updatedBy:string}
+export type PublicRegistrationPolicy=Pick<PlatformSettings,'registrationMode'|'guestAccessEnabled'|'allowPasswordSignIn'|'allowSelfPasswordReset'>;
