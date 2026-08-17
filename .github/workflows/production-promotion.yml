@@ -78,6 +78,8 @@ jobs:
           cache: npm
       - name: Verify frozen source before dependency install
         run: node scripts/source-manifest.mjs verify
+      - name: Review committed lockfile structure
+        run: node scripts/review-lockfile.mjs
       - name: Authenticate to Google Cloud using OIDC / Workload Identity Federation
         uses: google-github-actions/auth@v2
         with:
