@@ -24,7 +24,7 @@ export default function SetupPage() {
     setSignedIn(Boolean(user));
     setEmail(user?.email || '');
     if (!user) { setChecking(false); return; }
-    apiFetch<{data:ExistingOrg[]}>('/api/me/organizations')
+    apiFetch<{data:ExistingOrg[]}>('/api/me/organizations', { orgContext:'omit' })
       .then((result) => {
         const existing = result.data[0];
         if (existing) {
@@ -43,6 +43,7 @@ export default function SetupPage() {
     try {
       const result = await apiFetch<SetupResult>('/api/setup', {
         method:'POST',
+        orgContext:'omit',
         body:JSON.stringify({ organizationName:form.get('organizationName'), firstName:form.get('firstName'), lastName:form.get('lastName') }),
       });
       setActiveOrgId(result.data.orgId);
