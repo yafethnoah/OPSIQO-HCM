@@ -269,10 +269,16 @@ export async function acceptInvitation(request: Request, orgId: string, raw: unk
   if (!tokenIndexSnap.exists) throw new ApiError(404, 'Invitation token is invalid.', 'invalid_invitation');
   const invitationId = tokenIndexSnap.data()?.invitationId as string;
   const invitationRef = db.doc(`organizations/${orgId}/invitations/${invitationId}`);
+  const membershipRef = db.doc(`organizations/${orgId}/memberships/${identity.uid}`);
   const timestamp = now();
   let membership!: Membership;
 
   await db.runTransaction(async (tx) => {
+    const currentTokenIndex = await tx.get(tokenIndexRef);
+    if (!currentTokenIndex.exists || currentTokenIndex.data()?.invitationId !== invitationId) {
+      throw new ApiError(404, 'Invitation token is invalid or already consumed.', 'invalid_invitation');
+    }
+
     const invitationSnap = await tx.get(invitationRef);
     if (!invitationSnap.exists) throw new ApiError(404, 'Invitation not found.', 'invalid_invitation');
     const invitation = invitationSnap.data() as Invitation;
@@ -280,33 +286,56 @@ export async function acceptInvitation(request: Request, orgId: string, raw: unk
     if (invitation.expiresAt <= timestamp) throw new ApiError(410, 'Invitation has expired.', 'invitation_expired');
     if (invitation.email !== authenticatedEmail) throw new ApiError(403, 'Invitation email does not match the signed-in account.', 'invitation_email_mismatch');
 
+    const existingMembershipSnap = await tx.get(membershipRef);
+    const existingMembership = existingMembershipSnap.exists ? existingMembershipSnap.data() as Membership : undefined;
+
     let workerId = invitation.workerId;
     if (!workerId) {
       const workIndex = await tx.get(db.doc(`organizations/${orgId}/workEmailIndex/${emailKey(authenticatedEmail)}`));
       workerId = workIndex.data()?.workerId as string | undefined;
     }
+
+    if (existingMembership?.status === 'active') {
+      if (existingMembership.role !== invitation.role) {
+        throw new ApiError(409, 'This account already has an active membership with a different role. Use the governed role-change workflow instead of an invitation.', 'membership_role_conflict');
+      }
+      if (existingMembership.workerId && workerId && existingMembership.workerId !== workerId) {
+        throw new ApiError(409, 'This account is already linked to a different worker in this organization. Resolve the worker linkage before accepting the invitation.', 'membership_worker_conflict');
+      }
+      workerId = existingMembership.workerId || workerId;
+      membership = { ...existingMembership, updatedAt: timestamp };
+    } else {
+      membership = {
+        uid: identity.uid,
+        workerId,
+        role: invitation.role,
+        status: 'active',
+        createdAt: existingMembership?.createdAt || timestamp,
+        updatedAt: timestamp,
+      };
+    }
+
     let linkedPersonId: string | undefined;
-    if (workerId) {
-      const workerSnap = await tx.get(db.doc(`organizations/${orgId}/workers/${workerId}`));
+    if (membership.workerId) {
+      const workerSnap = await tx.get(db.doc(`organizations/${orgId}/workers/${membership.workerId}`));
       linkedPersonId = workerSnap.data()?.personId as string | undefined;
     }
 
-    membership = {
-      uid: identity.uid,
-      workerId,
-      role: invitation.role,
-      status: 'active',
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    };
-    tx.set(db.doc(`organizations/${orgId}/memberships/${identity.uid}`), membership, { merge: true });
+    tx.set(membershipRef, membership, { merge: true });
     tx.update(invitationRef, { status: 'accepted', acceptedAt: timestamp, acceptedByUid: identity.uid });
     tx.set(db.doc(`organizations/${orgId}/invitationEmailIndex/${emailKey(authenticatedEmail)}`), { invitationId, email: authenticatedEmail, status: 'accepted', updatedAt: timestamp }, { merge: true });
     tx.delete(tokenIndexRef);
     if (linkedPersonId) tx.set(db.doc(`organizations/${orgId}/people/${linkedPersonId}`), { authUid: identity.uid, updatedAt: timestamp }, { merge: true });
 
-    const actor: ActorContext = { uid: identity.uid, orgId, workerId, role: invitation.role, permissions: [] };
-    const audit = buildAudit(actor, { action: 'membership.accept_invitation', entityType: 'membership', entityId: identity.uid, after: membership, metadata: { invitationId } });
+    const actor: ActorContext = { uid: identity.uid, orgId, workerId: membership.workerId, role: membership.role, permissions: [] };
+    const audit = buildAudit(actor, {
+      action: 'membership.accept_invitation',
+      entityType: 'membership',
+      entityId: identity.uid,
+      before: existingMembership,
+      after: membership,
+      metadata: { invitationId, preservedExistingMembership: existingMembership?.status === 'active' },
+    });
     tx.create(db.doc(`organizations/${orgId}/auditLogs/${audit.id}`), audit);
   });
 

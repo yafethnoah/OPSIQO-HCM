@@ -9,10 +9,11 @@ import { apiFetch, setActiveOrgId, tryActiveOrgId } from '@/lib/http/client';
 type Org = { orgId:string; name:string; role:string; status:string };
 
 export function OrganizationSwitcher() {
-  const [organizations,setOrganizations]=useState<Org[]>([]);
-  const [selected,setSelected]=useState('');
-  const [error,setError]=useState('');
-  const [loading,setLoading]=useState(true);
+  const [organizations,setOrganizations] = useState<Org[]>([]);
+  const [selected,setSelected] = useState('');
+  const [error,setError] = useState('');
+  const [loading,setLoading] = useState(true);
+  const [switching,setSwitching] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -23,8 +24,6 @@ export function OrganizationSwitcher() {
       setError('');
 
       try {
-        // Membership discovery is identity-scoped, not organization-scoped.
-        // Do not send a guessed/stale x-org-id during cold-start bootstrap.
         const response = await apiFetch<{data:Org[]}>('/api/me/organizations', { orgContext:'omit' });
         if (cancelled) return;
 
@@ -44,10 +43,9 @@ export function OrganizationSwitcher() {
         setSelected(resolved);
 
         if (resolved !== current) {
+          // Membership discovery already validated this organization server-side.
+          // Establish the local tenant context only after that identity-scoped read.
           setActiveOrgId(resolved);
-          // Other page modules may have mounted before organization discovery and
-          // failed closed. Reload once after establishing a valid membership-backed
-          // organization context so all tenant-scoped modules start consistently.
           window.location.reload();
         }
       } catch (e) {
@@ -80,19 +78,44 @@ export function OrganizationSwitcher() {
     };
   }, []);
 
-  if (loading) return <div className="orgSwitcherSkeleton">Loading organization…</div>;
-  if (error) return <div className="orgSwitcherError" title={error}><span>Organization unavailable</span><br/><Link href="/setup">Set up / reconnect</Link></div>;
-  if (!organizations.length) return <div className="orgSwitcherSkeleton"><Link href="/setup">Set up organization</Link></div>;
+  async function activateOrganization(orgId: string) {
+    if (!orgId || orgId === selected || switching) return;
+    setSwitching(true);
+    setError('');
+    try {
+      const response = await apiFetch<{data:Org}>('/api/me/organizations/activate', {
+        method: 'POST',
+        orgContext: 'omit',
+        body: JSON.stringify({ orgId, reason: 'user_switch' }),
+      });
+      setActiveOrgId(response.data.orgId);
+      setSelected(response.data.orgId);
+      window.location.assign('/dashboard');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to switch organizations.');
+    } finally {
+      setSwitching(false);
+    }
+  }
+
+  if (loading) return <div className="orgSwitcherSkeleton">Loading organizations…</div>;
+  if (error && !organizations.length) return <div className="orgSwitcherError" title={error}><span>Organization unavailable</span><br/><Link href="/signin">Sign in / switch account</Link></div>;
+  if (!organizations.length) return <div className="orgSwitcherSkeleton"><span>No active organization membership</span></div>;
 
   return <label className="orgSwitcher">
-    <span>Organization</span>
-    <select value={selected} onChange={(e) => {
-      const orgId = e.target.value;
-      setActiveOrgId(orgId);
-      setSelected(orgId);
-      window.location.assign('/dashboard');
-    }}>
-      {organizations.map((org) => <option key={org.orgId} value={org.orgId}>{org.name} · {org.role.replaceAll('_',' ')}</option>)}
+    <span>{organizations.length > 1 ? `Organization · ${organizations.length}` : 'Organization'}</span>
+    <select
+      value={selected}
+      disabled={switching}
+      aria-busy={switching}
+      onChange={(event) => void activateOrganization(event.target.value)}
+    >
+      {organizations.map((org) => (
+        <option key={org.orgId} value={org.orgId}>
+          {org.name} · {org.role.replaceAll('_',' ')}
+        </option>
+      ))}
     </select>
+    {error && <small className="error">{error}</small>}
   </label>;
 }

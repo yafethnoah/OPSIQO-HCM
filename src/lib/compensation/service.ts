@@ -26,8 +26,55 @@ async function reserveCode(actor:ActorContext,kind:string,code:string,id:string)
 export async function createJobFamily(actor:ActorContext,raw:unknown){requireHr(actor);if(!actor.permissions.includes('jobarchitecture.manage'))throw new ApiError(403,'Job architecture permission required.','forbidden');const x=jobFamilySchema.parse(raw),id=randomUUID(),timestamp=now(),row:JobFamily={id,...x,createdBy:actor.uid,createdAt:timestamp,updatedAt:timestamp};await reserveCode(actor,'jobFamily',x.code,id);const audit=buildAudit(actor,{action:'compensation.job_family.create',entityType:'jobFamily',entityId:id,after:row});const b=adminDb().batch();b.create(adminDb().doc(`organizations/${actor.orgId}/jobFamilies/${id}`),row);b.create(adminDb().doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);await b.commit();return row;}
 export async function createJobLevel(actor:ActorContext,raw:unknown){requireHr(actor);if(!actor.permissions.includes('jobarchitecture.manage'))throw new ApiError(403,'Job architecture permission required.','forbidden');const x=jobLevelSchema.parse(raw),id=randomUUID(),timestamp=now(),row:JobLevel={id,...x,createdBy:actor.uid,createdAt:timestamp,updatedAt:timestamp};await reserveCode(actor,'jobLevel',x.code,id);const audit=buildAudit(actor,{action:'compensation.job_level.create',entityType:'jobLevel',entityId:id,after:row});const b=adminDb().batch();b.create(adminDb().doc(`organizations/${actor.orgId}/jobLevels/${id}`),row);b.create(adminDb().doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);await b.commit();return row;}
 export async function createSalaryBand(actor:ActorContext,raw:unknown){requireHr(actor);if(!actor.permissions.includes('jobarchitecture.manage'))throw new ApiError(403,'Job architecture permission required.','forbidden');const x=salaryBandSchema.parse(raw),id=randomUUID(),timestamp=now(),row:SalaryBand={id,...x,createdBy:actor.uid,createdAt:timestamp,updatedAt:timestamp};await reserveCode(actor,'salaryBand',x.code,id);const audit=buildAudit(actor,{action:'compensation.salary_band.create',entityType:'salaryBand',entityId:id,after:row});const b=adminDb().batch();b.create(adminDb().doc(`organizations/${actor.orgId}/salaryBands/${id}`),row);b.create(adminDb().doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);await b.commit();return row;}
-export async function savePositionCompProfile(actor:ActorContext,raw:unknown){requireHr(actor);if(!actor.permissions.includes('jobarchitecture.manage'))throw new ApiError(403,'Job architecture permission required.','forbidden');const x=positionCompProfileSchema.parse(raw),db=adminDb(),pos=await db.doc(`organizations/${actor.orgId}/positions/${x.positionId}`).get();if(!pos.exists)throw new ApiError(404,'Position not found.','position_not_found');if(x.salaryBandId&&!((await db.doc(`organizations/${actor.orgId}/salaryBands/${x.salaryBandId}`).get()).exists))throw new ApiError(404,'Salary band not found.','band_not_found');const row:PositionCompensationProfile={id:x.positionId,...x,updatedBy:actor.uid,updatedAt:now()},ref=db.doc(`organizations/${actor.orgId}/positionCompensationProfiles/${x.positionId}`),before=(await ref.get()).data();await ref.set(row,{merge:true});const audit=buildAudit(actor,{action:'compensation.position_profile.save',entityType:'positionCompensationProfile',entityId:x.positionId,before,after:row});await db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`).create(audit);return row;}
-export async function createBenchmark(actor:ActorContext,raw:unknown){requireHr(actor);const x=benchmarkSchema.parse(raw),id=randomUUID(),timestamp=now(),row:MarketBenchmark={id,...x,createdBy:actor.uid,createdAt:timestamp,updatedAt:timestamp};const audit=buildAudit(actor,{action:'compensation.market_benchmark.create',entityType:'marketBenchmark',entityId:id,after:row});const b=adminDb().batch();b.create(adminDb().doc(`organizations/${actor.orgId}/marketBenchmarks/${id}`),row);b.create(adminDb().doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);await b.commit();return row;}
+export async function savePositionCompProfile(actor:ActorContext,raw:unknown){
+  requireHr(actor);
+  if(!actor.permissions.includes('jobarchitecture.manage')) throw new ApiError(403,'Job architecture permission required.','forbidden');
+  const x=positionCompProfileSchema.parse(raw),db=adminDb();
+  const [positionSnap,familySnap,levelSnap,bandSnap,benchmarkSnap]=await Promise.all([
+    db.doc(`organizations/${actor.orgId}/positions/${x.positionId}`).get(),
+    x.jobFamilyId?db.doc(`organizations/${actor.orgId}/jobFamilies/${x.jobFamilyId}`).get():Promise.resolve(undefined),
+    x.levelId?db.doc(`organizations/${actor.orgId}/jobLevels/${x.levelId}`).get():Promise.resolve(undefined),
+    x.salaryBandId?db.doc(`organizations/${actor.orgId}/salaryBands/${x.salaryBandId}`).get():Promise.resolve(undefined),
+    x.marketBenchmarkId?db.doc(`organizations/${actor.orgId}/marketBenchmarks/${x.marketBenchmarkId}`).get():Promise.resolve(undefined),
+  ]);
+  if(!positionSnap.exists) throw new ApiError(404,'Position not found.','position_not_found');
+  if(x.jobFamilyId&&!familySnap?.exists) throw new ApiError(404,'Job family not found.','job_family_not_found');
+  if(x.levelId&&!levelSnap?.exists) throw new ApiError(404,'Job level not found.','job_level_not_found');
+  if(x.salaryBandId&&!bandSnap?.exists) throw new ApiError(404,'Salary band not found.','band_not_found');
+  if(x.marketBenchmarkId&&!benchmarkSnap?.exists) throw new ApiError(404,'Market benchmark not found.','market_benchmark_not_found');
+
+  const row:PositionCompensationProfile={id:x.positionId,...x,updatedBy:actor.uid,updatedAt:now()};
+  const ref=db.doc(`organizations/${actor.orgId}/positionCompensationProfiles/${x.positionId}`);
+  const before=(await ref.get()).data();
+  const audit=buildAudit(actor,{action:'compensation.position_profile.save',entityType:'positionCompensationProfile',entityId:x.positionId,before,after:row});
+  const batch=db.batch();
+  batch.set(ref,row,{merge:true});
+  batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
+  await batch.commit();
+  return row;
+}
+
+export async function createBenchmark(actor:ActorContext,raw:unknown){
+  requireHr(actor);
+  const x=benchmarkSchema.parse(raw),db=adminDb(),id=randomUUID(),timestamp=now();
+  const [familySnap,levelSnap,positionSnap]=await Promise.all([
+    x.jobFamilyId?db.doc(`organizations/${actor.orgId}/jobFamilies/${x.jobFamilyId}`).get():Promise.resolve(undefined),
+    x.levelId?db.doc(`organizations/${actor.orgId}/jobLevels/${x.levelId}`).get():Promise.resolve(undefined),
+    x.positionId?db.doc(`organizations/${actor.orgId}/positions/${x.positionId}`).get():Promise.resolve(undefined),
+  ]);
+  if(x.jobFamilyId&&!familySnap?.exists) throw new ApiError(404,'Job family not found.','job_family_not_found');
+  if(x.levelId&&!levelSnap?.exists) throw new ApiError(404,'Job level not found.','job_level_not_found');
+  if(x.positionId&&!positionSnap?.exists) throw new ApiError(404,'Position not found.','position_not_found');
+
+  await reserveCode(actor,'marketBenchmark',x.code,id);
+  const row:MarketBenchmark={id,...x,createdBy:actor.uid,createdAt:timestamp,updatedAt:timestamp};
+  const audit=buildAudit(actor,{action:'compensation.market_benchmark.create',entityType:'marketBenchmark',entityId:id,after:row});
+  const batch=db.batch();
+  batch.create(db.doc(`organizations/${actor.orgId}/marketBenchmarks/${id}`),row);
+  batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
+  await batch.commit();
+  return row;
+}
 
 export async function createWorkerCompensation(actor:ActorContext,raw:unknown,source?:{cycleId?:string;recommendationId?:string;recordId?:string}){requireApprover(actor);const x=workerCompensationSchema.parse(raw);if(x.effectiveDate>today())throw new ApiError(409,'Future compensation must be scheduled through an approved compensation cycle and applied on its effective date.','future_compensation_requires_cycle');const db=adminDb(),workerRef=db.doc(`organizations/${actor.orgId}/workers/${x.workerId}`),currentRef=db.doc(`organizations/${actor.orgId}/workerCompensationCurrent/${x.workerId}`),id=source?.recordId||(source?.recommendationId?`rec_${source.recommendationId}`:randomUUID()),ref=db.doc(`organizations/${actor.orgId}/workerCompensationRecords/${id}`),timestamp=now();
  const ws=await workerRef.get();if(!ws.exists)throw new ApiError(404,'Worker not found.','worker_not_found');const annualized=x.annualizedBasePay??(x.payBasis==='hourly'?money(x.basePay*2080):x.basePay);const row:WorkerCompensationRecord={id,workerId:x.workerId,effectiveDate:x.effectiveDate,currency:x.currency,payBasis:x.payBasis,basePay:x.basePay,annualizedBasePay:annualized,variableTargetPct:x.variableTargetPct,allowancesAnnual:x.allowancesAnnual,changeReason:x.changeReason,sourceCycleId:source?.cycleId,sourceRecommendationId:source?.recommendationId,note:x.note,createdBy:actor.uid,createdAt:timestamp};
