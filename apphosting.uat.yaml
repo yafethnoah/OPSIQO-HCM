@@ -1,0 +1,63 @@
+# OPSIQO HCM 8.5 V7.9.4.2 — UAT Firebase App Hosting overrides.
+# Backend Environment name must be exactly: uat
+# Firebase Console backend overrides have higher precedence than this file.
+env:
+  - variable: FIREBASE_PROJECT_ID
+    value: opsiqo-hcm-uat-2026
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: opsiqo-hcm-uat-2026
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: '1:68136784443:web:8c05e5e25ec2ee943e021e'
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: '68136784443'
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: opsiqo-hcm-uat-2026.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: FIREBASE_STORAGE_BUCKET
+    value: opsiqo-hcm-uat-2026.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: opsiqo-hcm-uat-2026.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: APP_BASE_URL
+    value: https://uat.opsiqo.ca
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_APP_BASE_URL
+    value: https://uat.opsiqo.ca
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Sensitive values stay in UAT Secret Manager. Never place values in Git.
+  - variable: GEMINI_API_KEY
+    secret: UAT_OPSIQO_GEMINI_API_KEY
+
+  - variable: OPSIQO_JOB_SECRET
+    secret: UAT_OPSIQO_JOB_SECRET
+
+  - variable: OPSIQO_SURVEY_ANONYMITY_SECRET
+    secret: UAT_OPSIQO_SURVEY_ANONYMITY_SECRET
