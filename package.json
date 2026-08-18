@@ -111,7 +111,8 @@
     "test:certification-repair-v7.9.2": "vitest run tests/opsiqo85/certification-repair-v7-9-2.test.ts",
     "opsiqo85:ux-functional-closure-v7.9.3:audit": "node scripts/opsiqo85-ux-functional-closure-v7-9-3-audit.mjs",
     "test:ux-functional-closure-v7.9.3": "vitest run tests/opsiqo85/ux-functional-closure-v7-9-3.test.ts",
-    "opsiqo85:ux-functional:audit": "node scripts/opsiqo85-ux-functional-closure-audit.mjs"
+    "opsiqo85:ux-functional:audit": "node scripts/opsiqo85-ux-functional-closure-audit.mjs",
+    "opsiqo85:mfa-hotfix:audit": "node scripts/opsiqo85-mfa-flow-hotfix-audit.mjs"
   },
   "dependencies": {
     "firebase": "12.16.0",

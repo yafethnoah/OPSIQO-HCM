@@ -4,6 +4,8 @@ import { getToken as getAppCheckToken } from 'firebase/app-check';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { firebaseAppCheck, firebaseAuth } from '@/lib/firebase/client';
 import { fetchWithReliability, ReconciliationRequiredError } from '@/lib/http/reliability';
+import { apiRequestErrorFromPayload } from '@/lib/http/api-request-error';
+export { ApiRequestError, isMfaRequiredError } from '@/lib/http/api-request-error';
 
 const ORG_STORAGE_KEY = 'opsiqo.activeOrgId';
 let authRestorePromise: Promise<User | null> | undefined;
@@ -124,10 +126,7 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
   }
 
   if (!response.ok) {
-    const message = typeof payload === 'object' && payload !== null && 'message' in payload
-      ? String((payload as { message?: unknown }).message || `Request failed (${response.status})`)
-      : `Request failed (${response.status})`;
-    throw new Error(message);
+    throw apiRequestErrorFromPayload(response.status, payload, `Request failed (${response.status})`);
   }
 
   return payload as T;
@@ -140,8 +139,11 @@ export async function apiDownload(path: string): Promise<{ blob: Blob; fileName?
 
   const response = await fetchWithReliability(path, { headers, cache: 'no-store', maxReadAttempts:3 });
   if (!response.ok) {
-    const payload = await response.json().catch(() => ({}));
-    throw new Error(payload?.message || `Download failed (${response.status})`);
+    const contentType = response.headers.get('content-type') || '';
+    const payload = contentType.includes('application/json')
+      ? await response.json().catch(() => ({}))
+      : await response.text().catch(() => '');
+    throw apiRequestErrorFromPayload(response.status, payload, `Download failed (${response.status})`);
   }
 
   const disposition = response.headers.get('content-disposition') || '';

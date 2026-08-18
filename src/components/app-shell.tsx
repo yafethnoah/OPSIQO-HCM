@@ -10,6 +10,7 @@ const PUBLIC_BOOTSTRAP_ROUTES = new Set([
   '/forgot-password',
   '/accept-invite',
   '/setup',
+  '/mfa/setup',
 ]);
 
 function isPublicBootstrapRoute(pathname: string): boolean {
