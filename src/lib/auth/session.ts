@@ -69,6 +69,10 @@ export async function actorFromRequest(request: Request, orgId?: string): Promis
 
   const identity = await identityFromRequest(request);
   const platform = await platformPolicyForOrg(resolvedOrgId);
+  const organizationSnap = await adminDb().doc(`organizations/${resolvedOrgId}`).get();
+  if (!organizationSnap.exists) throw new ApiError(404, 'Organization does not exist.', 'organization_not_found');
+  const organization = organizationSnap.data() as { status?: string };
+  if (organization.status !== 'active') throw new ApiError(403, 'Organization access is suspended or inactive.', 'organization_inactive');
 
   // Anonymous access is deliberately read-only and organization-scoped.
   if (identity.signInProvider === 'anonymous') {

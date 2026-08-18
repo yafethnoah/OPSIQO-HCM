@@ -10,6 +10,7 @@ type Item = {
   label: string;
   href: string;
   permission?: string;
+  platformOnly?: boolean;
   icon: string;
   keywords?: string[];
   area: 'home' | 'people' | 'work' | 'insights' | 'more' | 'admin';
@@ -60,6 +61,7 @@ const allItems: Item[] = [
   { label:'Human Capital Strategy',href:'/strategy',permission:'strategy.read',icon:'◎',keywords:['strategy'],area:'more',priority:55 },
   { label:'Org Design',href:'/org-design',permission:'orgdesign.read',icon:'⌘',keywords:['organization design'],area:'more',priority:55 },
 
+  { label:'Organizations',href:'/platform/organizations',platformOnly:true,icon:'▦',keywords:['tenants','new organization','platform administration'],area:'admin',priority:110 },
   { label:'Settings',href:'/settings',icon:'⚙',keywords:['preferences','profile settings'],area:'admin',priority:100 },
   { label:'Import Center',href:'/import-center',permission:'documents.manage',icon:'⇩',keywords:['import','bulk upload','migration'],area:'admin',priority:95 },
   { label:'Automation',href:'/automation',permission:'automation.read',icon:'⚙',keywords:['automation','jobs'],area:'admin',priority:90 },
@@ -82,7 +84,8 @@ const groupDefinitions: Array<{ area: Item['area']; label: string; defaultClosed
   { area:'admin', label:'Admin & Platform', defaultClosed:true },
 ];
 
-function canSee(item: Item, permissions: string[] | null): boolean {
+function canSee(item: Item, permissions: string[] | null, platformAdmin: boolean): boolean {
+  if (item.platformOnly && !platformAdmin) return false;
   if (permissions === null) return ['/home','/dashboard','/self-service'].includes(item.href);
   return !item.permission || permissions.includes(item.permission);
 }
@@ -94,6 +97,7 @@ function searchableText(item: Item): string {
 export function Nav() {
   const pathname = usePathname();
   const [permissions,setPermissions] = useState<string[]|null>(null);
+  const [platformAdmin,setPlatformAdmin] = useState(false);
   const [collapsed,setCollapsed] = useState(false);
   const [query,setQuery] = useState('');
   const [closedGroups,setClosedGroups] = useState<Record<string,boolean>>(
@@ -105,12 +109,15 @@ export function Nav() {
     apiFetch<{actor:{permissions:string[]}}>('/api/me')
       .then(r=>{ if(alive) setPermissions(r.actor.permissions); })
       .catch(()=>{ if(alive) setPermissions([]); });
+    apiFetch<{data:{allowed:boolean}}>('/api/platform/access', { orgContext:'omit' })
+      .then(r=>{ if(alive) setPlatformAdmin(r.data.allowed === true); })
+      .catch(()=>{ if(alive) setPlatformAdmin(false); });
     return ()=>{ alive = false; };
   },[]);
 
   const visibleItems = useMemo(
-    ()=>allItems.filter(item=>canSee(item,permissions)),
-    [permissions],
+    ()=>allItems.filter(item=>canSee(item,permissions,platformAdmin)),
+    [permissions,platformAdmin],
   );
 
   const normalizedQuery = query.trim().toLowerCase();
