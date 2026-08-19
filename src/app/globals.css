@@ -381,3 +381,20 @@ main:focus { outline: none; }
   .navFinder { padding-inline: 12px; }
   .navFinderInput { font-size: 16px; } /* avoid iOS zoom */
 }
+
+
+/* V7.9.4.3 auth session controls */
+.sessionControls{display:grid;gap:8px;min-width:0}
+.sessionIdentity{display:grid;gap:2px;min-width:0}
+.sessionIdentity span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.sessionIdentity strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sessionSignOut{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--text);padding:9px 11px;cursor:pointer;font-weight:650}
+.sessionSignOut:hover{border-color:var(--accent);color:var(--accent)}
+.sessionSignOut:disabled{opacity:.6;cursor:wait}
+.sidebar .sessionControls{border-top:1px solid rgba(255,255,255,.10);padding-top:12px}
+.sidebar .sessionIdentity span{color:#91a6bd}
+.sidebar .sessionIdentity strong{color:#eef5fb}
+.sidebar .sessionSignOut{border-color:rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#dce8f4}
+.sidebar .sessionSignOut:hover{background:rgba(255,255,255,.10);color:#fff}
+.sidebar.collapsed .sessionControls.compact{display:flex;justify-content:center}
+.sidebar.collapsed .sessionControls.compact .sessionSignOut{width:42px;height:42px;padding:0}

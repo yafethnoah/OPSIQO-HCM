@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { apiFetch, setActiveOrgId } from '@/lib/http/client';
+import { SessionControls } from '@/components/session-controls';
 
 function landingForRole(role:string){if(role==='employee')return'/employee';if(role==='manager')return'/manager';return'/dashboard'}
 
@@ -50,6 +51,7 @@ export function AcceptInvite({orgId,token}:{orgId:string;token:string}){
   }
 
   return <div className="card stack narrowCard">
+    <SessionControls label="Sign out / use a different account" />
     <div className="notice">For security, the signed-in Firebase account email must exactly match the email that received this invitation. Accepting a new invitation adds or reactivates only that organization membership; it does not replace memberships in other organizations.</div>
     {error&&<div className="error">{error}</div>}
     {status&&<div className="success">{status}</div>}

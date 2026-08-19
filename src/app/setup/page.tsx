@@ -6,6 +6,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { AuthBrand } from '@/components/auth-brand';
 import { LoadingState } from '@/components/data-states';
+import { SessionControls } from '@/components/session-controls';
 import { firebaseAuth } from '@/lib/firebase/client';
 import { apiFetch, setActiveOrgId } from '@/lib/http/client';
 
@@ -67,6 +68,7 @@ export default function SetupPage() {
       {checking ? <div className="authCard"><LoadingState label="Checking your organization access…"/></div> : !signedIn ? <section className="authCard stack"><div><span className="authKicker">First organization</span><h1>Set up OPSIQO</h1></div><p>Sign in with the authorized bootstrap administrator account before creating the first organization.</p>{error && <div className="error">{error}</div>}<div><Link className="button" href="/signin?returnTo=/setup">Sign in to continue</Link></div></section> : <form className="authCard stack" onSubmit={submit}>
         <div><span className="authKicker">First organization</span><h1>Create your OPSIQO organization</h1><p className="muted">This one-time action establishes the tenant, initial administrator identity and authoritative organization foundation.</p></div>
         <label className="field"><span>Authenticated administrator</span><input className="input" value={email} disabled /></label>
+        <SessionControls label="Sign out / use a different account" />
         <label className="field"><span>Organization name</span><input className="input" name="organizationName" required minLength={2} maxLength={120} placeholder="Your organization" /></label>
         <div className="formGrid">
           <label className="field"><span>Administrator first name</span><input className="input" name="firstName" required maxLength={80}/></label>

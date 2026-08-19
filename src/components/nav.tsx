@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '@/lib/http/client';
 import { OrganizationSwitcher } from './organization-switcher';
+import { SessionControls } from './session-controls';
 
 type Item = {
   label: string;
@@ -219,6 +220,7 @@ export function Nav() {
       </nav>
 
       <div className="sidebarFooter">
+        <SessionControls compact={collapsed} label="Sign out" />
         <div className="phaseBadge"><span>Enterprise HCM</span><strong>v8.5</strong></div>
         <button
           className="navCollapse"

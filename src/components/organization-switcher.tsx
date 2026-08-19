@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { firebaseAuth } from '@/lib/firebase/client';
-import { apiFetch, setActiveOrgId, tryActiveOrgId } from '@/lib/http/client';
+import { apiFetch, clearActiveOrgId, setActiveOrgId, tryActiveOrgId } from '@/lib/http/client';
 
 type Org = { orgId:string; name:string; role:string; status:string };
 
@@ -36,6 +36,7 @@ export function OrganizationSwitcher() {
           : eligible[0]?.orgId || '';
 
         if (!resolved) {
+          if (current) clearActiveOrgId();
           setSelected('');
           return;
         }
@@ -63,6 +64,7 @@ export function OrganizationSwitcher() {
     const unsubscribe = onAuthStateChanged(firebaseAuth(), (user) => {
       if (cancelled) return;
       if (!user) {
+        clearActiveOrgId();
         setOrganizations([]);
         setSelected('');
         setError('Sign in required.');

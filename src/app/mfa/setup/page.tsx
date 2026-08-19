@@ -15,6 +15,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { AuthBrand } from '@/components/auth-brand';
 import { LoadingState } from '@/components/data-states';
+import { SessionControls } from '@/components/session-controls';
 import { firebaseAuth } from '@/lib/firebase/client';
 import { friendlyTotpError, sanitizeInternalReturnTo } from '@/lib/auth/mfa-client';
 
@@ -122,6 +123,7 @@ export default function MfaSetupPage() {
     <section className="authBrandPanel"><AuthBrand eyebrow="Privileged access security"/><div className="authTrustGrid"><div><strong>Human verified</strong><span>A second factor is required before privileged HR data is released.</span></div><div><strong>No secret logging</strong><span>Authenticator secrets and codes remain only in the active browser enrollment flow.</span></div><div><strong>Fresh session</strong><span>After enrollment, OPSIQO requires a new sign-in that actually proves the second factor.</span></div></div></section>
     <section className="authFormPanel"><div className="authCard stack">
       <div><span className="authKicker">Multi-factor authentication</span><h1>Set up an authenticator app</h1><p className="muted">Signed in as {user.email || user.uid}</p></div>
+      <SessionControls label="Sign out / use a different account" />
       {factors.length > 0 && <section className="stack"><h2 className="sectionTitle">Enrolled factors</h2>{factors.map((factor) => <div className="settingValue" key={factor.uid}><span>{factor.factorId === TotpMultiFactorGenerator.FACTOR_ID ? 'Authenticator app' : factor.factorId}</span><strong>{factor.displayName || 'Second factor'}</strong></div>)}</section>}
       {!secret ? <section className="stack">
         <p>Use a time-based one-time password (TOTP) authenticator. OPSIQO will ask you for a fresh 6-digit code when you sign in to privileged access.</p>
