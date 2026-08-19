@@ -8,7 +8,7 @@ const production = readFileSync('apphosting.production.yaml','utf8');
 describe('V7.9.4.2 App Hosting multi-environment closure',()=>{
   it('keeps the shared App Hosting file environment-neutral',()=>{
     expect(shared).toContain("OPSIQO_PRODUCT_RELEASE");
-    expect(shared).toContain("8.5-v7.9.4.3");
+    expect(shared).toContain("8.5-v7.9.4.4");
     expect(shared).toContain("OPSIQO_REQUIRE_PLATFORM_ADMIN_MFA");
     expect(shared).toContain("OPSIQO_ALLOW_FIRST_ORG_BOOTSTRAP");
     expect(shared).not.toContain('opsiqo-hcm-prod-2026');

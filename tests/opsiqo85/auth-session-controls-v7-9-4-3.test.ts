@@ -37,8 +37,12 @@ describe('V7.9.4.3 auth session controls closure', () => {
     expect(switcher).toContain('clearActiveOrgId();');
   });
 
-  it('publishes the correct product release marker', () => {
-    expect(apphosting).toContain("8.5-v7.9.4.3");
-    expect(apphosting).not.toContain("8.5-v7.9.4.2");
+  it('keeps product release metadata present, synchronized and beyond the pre-session-controls baseline', () => {
+    const serverRelease = apphosting.match(/- variable: OPSIQO_PRODUCT_RELEASE\s+value: '([^']+)'/)?.[1];
+    const publicRelease = apphosting.match(/- variable: NEXT_PUBLIC_OPSIQO_PRODUCT_RELEASE\s+value: '([^']+)'/)?.[1];
+
+    expect(serverRelease).toBeTruthy();
+    expect(publicRelease).toBe(serverRelease);
+    expect(serverRelease).not.toBe('8.5-v7.9.4.2');
   });
 });

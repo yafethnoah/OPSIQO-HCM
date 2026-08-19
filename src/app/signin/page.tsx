@@ -21,6 +21,7 @@ import { AuthBrand } from '@/components/auth-brand';
 import { firebaseAppCheck, firebaseAuth } from '@/lib/firebase/client';
 import { apiFetch, isMfaRequiredError, setActiveOrgId } from '@/lib/http/client';
 import { friendlyTotpError, isFirebaseMfaRequiredError, mfaSetupHref, sanitizeInternalReturnTo } from '@/lib/auth/mfa-client';
+import { invitationContextFromReturnTo } from '@/lib/auth/invitation-client';
 
 type PublicProvider = { name:string; protocol:'oidc'|'saml'; firebaseProviderId:string; jitMode:string };
 type Policy={registrationMode:'invite_only'|'open_auth_only'|'disabled';guestAccessEnabled:boolean;allowPasswordSignIn:boolean;allowSelfPasswordReset:boolean};
@@ -47,7 +48,7 @@ async function signedInLanding(orgId:string){
     return'/home';
   }
 }
-function orgContext(){if(typeof window==='undefined')return process.env.NEXT_PUBLIC_OPSIQO_DEFAULT_ORG_ID||'';const value=new URLSearchParams(window.location.search).get('orgId')||process.env.NEXT_PUBLIC_OPSIQO_DEFAULT_ORG_ID||process.env.NEXT_PUBLIC_OPSIQO_ORG_ID||'';return /^[A-Za-z0-9._-]{2,200}$/.test(value)?value:''}
+function orgContext(){if(typeof window==='undefined')return'';const params=new URLSearchParams(window.location.search);const direct=String(params.get('orgId')||'').trim();if(/^[A-Za-z0-9._-]{2,200}$/.test(direct))return direct;const invitation=invitationContextFromReturnTo(requestedReturnTo());if(invitation)return invitation.orgId;const fallback=process.env.NEXT_PUBLIC_OPSIQO_DEFAULT_ORG_ID||process.env.NEXT_PUBLIC_OPSIQO_ORG_ID||'';return /^[A-Za-z0-9._-]{2,200}$/.test(fallback)?fallback:''}
 async function jitIfConfigured(user:{getIdToken():Promise<string>},orgId:string){if(!orgId)return{status:'not_configured'};const token=await user.getIdToken(),headers:Record<string,string>={authorization:`Bearer ${token}`},appCheck=firebaseAppCheck();if(appCheck)headers['x-firebase-appcheck']=(await getAppCheckToken(appCheck,false)).token;const response=await fetch(`/api/identity/jit/${encodeURIComponent(orgId)}`,{method:'POST',headers});const body=await response.json().catch(()=>({})) as{data?:{status?:string;requestId?:string};message?:string};if(!response.ok)throw new Error(body.message||'Identity access evaluation could not be completed.');return body.data||{status:'unknown'}}
 
 export default function SignInPage(){
@@ -86,6 +87,9 @@ export default function SignInPage(){
   }
 
   async function finishUser(user:User){
+    const requested=requestedReturnTo();
+    const invitationContext=invitationContextFromReturnTo(requested);
+    if(invitationContext){router.push(requested);return;}
     const jit=await jitIfConfigured(user,orgId);
     if(jit?.status==='approval_required'){
       setNotice(`Your identity is verified. Access request ${jit.requestId||''} is awaiting independent approval.`);

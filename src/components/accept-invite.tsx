@@ -23,6 +23,7 @@ export function AcceptInvite({orgId,token}:{orgId:string;token:string}){
     try {
       const result = await apiFetch<{data:{role:string}}>(`/api/organizations/${encodeURIComponent(orgId)}/invitations/accept`, {
         method:'POST',
+        orgContext: 'omit',
         headers:{'content-type':'application/json'},
         body:JSON.stringify({token}),
       });

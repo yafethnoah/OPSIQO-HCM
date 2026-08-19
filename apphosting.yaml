@@ -1,4 +1,4 @@
-# OPSIQO HCM 8.5 V7.9.4.3 — shared Firebase App Hosting defaults.
+# OPSIQO HCM 8.5 V7.9.4.4 — shared Firebase App Hosting defaults.
 # IMPORTANT: This base file must remain safe for every App Hosting environment.
 # Project IDs, app IDs, public URLs and environment-specific secrets belong in
 # apphosting.<environment>.yaml or Firebase Console backend overrides.
@@ -14,10 +14,10 @@ env:
     value: '3.6.1'
 
   - variable: OPSIQO_PRODUCT_RELEASE
-    value: '8.5-v7.9.4.3'
+    value: '8.5-v7.9.4.4'
 
   - variable: NEXT_PUBLIC_OPSIQO_PRODUCT_RELEASE
-    value: '8.5-v7.9.4.3'
+    value: '8.5-v7.9.4.4'
     availability:
       - BUILD
       - RUNTIME
