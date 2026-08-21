@@ -1,0 +1,21 @@
+{
+  "version": "7.32",
+  "identifiers": [
+    "= 0 && todayPct",
+    "=new Date(s.startsAt)&&new Date()",
+    "=s.minimumResponses?",
+    "OPSIQO_ALLOW_FIRST_ORG_BOOTSTRAP",
+    "SHA-256:",
+    "a.current)&&",
+    "all_enterprise",
+    "g.available",
+    "handoff_identity",
+    "new Set",
+    "npm run supplychain:sbom",
+    "syntax.",
+    "timestamp.body",
+    "x-opsiqo-signature",
+    "x-opsiqo-timestamp"
+  ],
+  "boundary": "Technical identifiers and source-code fragments are intentionally not localized and are excluded from the visible-string backlog."
+}

@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState, useRef } from 'react';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 import {
   EmailAuthProvider,
   TotpMultiFactorGenerator,
@@ -24,6 +25,8 @@ function requestedReturnTo(): string {
 }
 
 export default function MfaSetupPage() {
+  const translationRoot=useRef<HTMLDivElement>(null);
+  useLegacySurfaceTranslation('mfa_setup',translationRoot);
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [checking, setChecking] = useState(true);
@@ -110,15 +113,15 @@ export default function MfaSetupPage() {
     setError('');
   }
 
-  if (checking) return <div className="authShell"><section className="authFormPanel"><div className="authCard"><LoadingState label="Checking your secure session…"/></div></section></div>;
+  if (checking) return <div ref={translationRoot} className="authShell"><section className="authFormPanel"><div className="authCard"><LoadingState label="Checking your secure session…"/></div></section></div>;
 
-  if (!user) return <div className="authShell"><section className="authBrandPanel"><AuthBrand eyebrow="Privileged access security"/></section><section className="authFormPanel"><div className="authCard stack"><h1>Sign in required</h1><p className="muted">Sign in before configuring multi-factor authentication.</p><Link className="button" href={`/signin?returnTo=${encodeURIComponent(`/mfa/setup?returnTo=${encodeURIComponent(returnTo)}`)}`}>Sign in securely</Link></div></section></div>;
+  if (!user) return <div ref={translationRoot} className="authShell"><section className="authBrandPanel"><AuthBrand eyebrow="Privileged access security"/></section><section className="authFormPanel"><div className="authCard stack"><h1>Sign in required</h1><p className="muted">Sign in before configuring multi-factor authentication.</p><Link className="button" href={`/signin?returnTo=${encodeURIComponent(`/mfa/setup?returnTo=${encodeURIComponent(returnTo)}`)}`}>Sign in securely</Link></div></section></div>;
 
-  if (!user.emailVerified) return <div className="authShell"><section className="authBrandPanel"><AuthBrand eyebrow="Privileged access security"/></section><section className="authFormPanel"><div className="authCard stack"><h1>Verify your email first</h1><p className="muted">Firebase requires a verified email before a second factor can be enrolled.</p><div className="error" role="alert">Your signed-in email is not verified. Verify it, sign in again, then return to MFA setup.</div><Link className="button secondary" href="/signin">Return to sign in</Link></div></section></div>;
+  if (!user.emailVerified) return <div ref={translationRoot} className="authShell"><section className="authBrandPanel"><AuthBrand eyebrow="Privileged access security"/></section><section className="authFormPanel"><div className="authCard stack"><h1>Verify your email first</h1><p className="muted">Firebase requires a verified email before a second factor can be enrolled.</p><div className="error" role="alert">Your signed-in email is not verified. Verify it, sign in again, then return to MFA setup.</div><Link className="button secondary" href="/signin">Return to sign in</Link></div></section></div>;
 
   const totpUri = secret ? secret.generateQrCodeUrl(user.email || user.uid, 'OPSIQO HCM') : '';
 
-  return <div className="authShell">
+  return <div ref={translationRoot} className="authShell">
     <section className="authBrandPanel"><AuthBrand eyebrow="Privileged access security"/><div className="authTrustGrid"><div><strong>Human verified</strong><span>A second factor is required before privileged HR data is released.</span></div><div><strong>No secret logging</strong><span>Authenticator secrets and codes remain only in the active browser enrollment flow.</span></div><div><strong>Fresh session</strong><span>After enrollment, OPSIQO requires a new sign-in that actually proves the second factor.</span></div></div></section>
     <section className="authFormPanel"><div className="authCard stack">
       <div><span className="authKicker">Multi-factor authentication</span><h1>Set up an authenticator app</h1><p className="muted">Signed in as {user.email || user.uid}</p></div>

@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ActorContext } from '@/domain/security';
 import type { SuperAppDashboard } from '@/domain/superapp';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import { LoadingState } from '@/components/data-states';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 type TeamRow={worker:{id:string;displayName:string;employeeNumber:string;workEmail:string;status:string};assignment:{startDate:string};position?:{title:string};orgUnit?:{name:string}};
 
@@ -22,15 +23,16 @@ const MANAGER_ACTIONS:ManagerAction[]=[
 ];
 
 export function ManagerPortalWorkspace(){
+ const translationRoot=useRef<HTMLDivElement>(null);useLegacySurfaceTranslation('manager_portal',translationRoot);
  const[actor,setActor]=useState<ActorContext|null>(null),[dashboard,setDashboard]=useState<SuperAppDashboard|null>(null),[team,setTeam]=useState<TeamRow[]>([]),[error,setError]=useState('');
  const load=async()=>{setError('');try{const org=activeOrgId();const me=await apiFetch<{actor:ActorContext}>('/api/me');if(me.actor.role!=='manager'&&!['super_admin','org_admin','hr_admin','hr_partner'].includes(me.actor.role))throw new Error('Manager self-service access is not enabled for this membership.');setActor(me.actor);const[d,t]=await Promise.all([apiFetch<{data:SuperAppDashboard}>(`/api/organizations/${org}/superapp/dashboard`),apiFetch<{data:TeamRow[]}>(`/api/organizations/${org}/manager/team`)]);setDashboard(d.data);setTeam(t.data);}catch(e){setError(e instanceof Error?e.message:'Unable to load Manager Self-Service.')}};
  useEffect(()=>{void load();const h=()=>void load();window.addEventListener('opsiqo:organization-changed',h);return()=>window.removeEventListener('opsiqo:organization-changed',h)},[]);
  const actions=useMemo(()=>MANAGER_ACTIONS.filter(a=>actor?.permissions.includes(a.permission as any)),[actor]);
  if(!actor||!dashboard)return <div className="stack">{error&&<div className="error" role="alert">{error}</div>}<LoadingState label="Loading your manager workspace…"/></div>;
  const m=dashboard.manager;
- return <div className="stack managerPortal">
+ return <div ref={translationRoot} className="stack managerPortal">
   {error&&<div className="error" role="alert">{error}</div>}
-  <section className="card managerPortalHero"><div><span className="eyebrow">Manager self-service</span><h2>My Team Command Center</h2><p className="muted">Prioritized approvals, team risks and people actions from your governed manager scope.</p></div><div className="row wrap"><Link className="button" href="/home">Ask OPSIQO</Link><Link className="button secondary" href="/experience">Ask HR</Link></div></section>
+  <section className="card managerPortalHero"><div><span className="eyebrow">Manager self-service</span><h2>My Team Command Center</h2><p className="muted">Prioritized approvals, team risks and people actions from your governed manager scope.</p></div><div className="row wrap"><Link className="button" href="/manager-copilot">Manager Copilot</Link><Link className="button secondary" href="/home">Ask OPSIQO</Link><Link className="button secondary" href="/experience">Ask HR</Link></div></section>
   <section className="metricGrid"><Metric label="Direct reports" value={m?.teamSize??team.length} hint={`${m?.active??team.filter(x=>x.worker.status==='active').length} active`}/><Metric label="Leave approvals" value={m?.pendingLeaveApprovals??0} hint="Awaiting manager action"/><Metric label="Timesheets" value={m?.submittedTimesheets??0} hint="Submitted for review"/><Metric label="Performance" value={m?.awaitingManagerReviews??0} hint="Manager reviews waiting"/><Metric label="Learning overdue" value={m?.overdueLearning??0} hint="Team assignments overdue"/><Metric label="Compliance gaps" value={m?.teamComplianceGaps??0} hint={m?.teamComplianceRate==null?'Not fully assessed':`${m.teamComplianceRate}% assessed compliance`}/></section>
   <div className="grid2">
    <section className="card stack"><div className="rowBetween"><div><span className="eyebrow">Priority queue</span><h2 className="sectionTitle">What needs my attention?</h2></div><Link className="textLink" href="/notifications">All alerts →</Link></div>{dashboard.attention.length?<div className="managerAttentionList">{dashboard.attention.slice(0,10).map(a=><Link key={a.id} href={a.href} className="managerAttentionRow"><div><strong>{a.title}</strong><span>{a.summary}</span>{a.dueAt&&<small>Due {new Date(a.dueAt).toLocaleString()}</small>}</div><span className={`portalSeverity ${a.severity}`}>{a.count??a.severity}</span></Link>)}</div>:<p className="muted">No manager actions are currently flagged.</p>}</section>

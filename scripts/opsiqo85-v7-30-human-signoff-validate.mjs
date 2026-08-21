@@ -1,0 +1,7 @@
+import fs from 'node:fs';import path from 'node:path';import {validateHumanSignoff} from './opsiqo85-v7-30-human-signoff-core.mjs';
+const root=process.cwd(),artifactDir=path.join(root,'artifacts'),file=path.join(artifactDir,'v7-30-human-signoff.json');
+if(!fs.existsSync(file)){console.log('V7.30 human sign-off validation: PENDING — artifacts/v7-30-human-signoff.json does not exist yet.');process.exit(0)}
+let data;try{data=JSON.parse(fs.readFileSync(file,'utf8'))}catch{console.error('V7.30 human sign-off validation: FAIL — file is not valid JSON.');process.exit(1)}
+const result=validateHumanSignoff(data);fs.mkdirSync(artifactDir,{recursive:true});fs.writeFileSync(path.join(artifactDir,'v7-30-human-signoff-validation.json'),JSON.stringify({version:'7.30',generatedAt:new Date().toISOString(),valid:result.valid,approvals:Object.fromEntries(Object.entries(result.approvals).map(([k,v])=>[k,{valid:v.valid,approved:v.approved}])),issues:result.issues,boundary:'Schema and secret-safety validation only. It performs no production action and does not independently verify the truth of supplied human evidence references.'},null,2));
+if(!result.valid){console.error('V7.30 human sign-off validation: FAIL');for(const x of result.issues)console.error(`- ${x}`);process.exit(1)}
+console.log('V7.30 human sign-off validation: PASS — schema is valid; approval states remain whatever the human reviewers recorded.');

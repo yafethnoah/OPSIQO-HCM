@@ -1,0 +1,19 @@
+{
+  "release": "V7.32",
+  "name": "Final Runtime Closure",
+  "hcmVersion": "8.5",
+  "date": "2026-08-20",
+  "overallProgressPercent": 99.99,
+  "sourcePhaseComplete": true,
+  "productionDeploymentPerformed": false,
+  "measuredStaticTranslationBacklog": 0,
+  "truthBoundary": "Source/static runtime closure is complete for the measured catalog. Overall project remains below 100 until dependency-backed Windows certification and required human accessibility, connector, change and deployment sign-offs pass.",
+  "hotfixRevision": 11,
+  "hotfixName": "Document Scan and UAT Hardening Hotfix 11",
+  "hotfixDate": "2026-08-20",
+  "semanticTypeScriptStatus": "baseline_passed_hotfix_requires_windows_recertification",
+  "semanticTypeScriptFinding": "The uploaded Hotfix 10 baseline passed semantic TypeScript on Windows. Hotfix 11 adds scan-governance/readiness/UAT hardening; this packaging environment completed dependency-free syntax and structural validation but could not complete npm ci, so the canonical Windows runner remains the authoritative dependency-backed recertification gate.",
+  "measuredStaticTranslationCandidates": 3528,
+  "documentScanGovernance": "production_clean_requires_evidence",
+  "authenticatedBrowserEvidence": "route_progress_http_status_partial_failure_artifact"
+}

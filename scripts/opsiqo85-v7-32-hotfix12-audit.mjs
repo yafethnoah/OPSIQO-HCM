@@ -1,0 +1,23 @@
+import fs from 'node:fs';
+const read=(p)=>fs.readFileSync(p,'utf8');
+const checks=[];const add=(name,ok)=>checks.push({name,ok:Boolean(ok)});
+const pkg=JSON.parse(read('package.json'));
+const readiness=read('src/lib/operations/readiness.ts');
+const test=read('tests/production-readiness.test.ts');
+const runner=read('RUN_OPSIQO_ONE_V7_32_VALIDATION.ps1');
+add('Readiness summary no longer names Firebase private-key field',!readiness.includes('email/private-key pair'));
+add('Readiness summary uses neutral credential-pair wording',readiness.includes('service-account credential pair'));
+add('Firebase Admin still validates actual private key structure',readiness.includes("value('FIREBASE_PRIVATE_KEY')")&&readiness.includes('BEGIN (?:RSA )?PRIVATE KEY'));
+add('Readiness regression asserts exact Firebase secret value is absent',test.includes('process.env.FIREBASE_PRIVATE_KEY'));
+add('Readiness regression asserts App Check value is absent',test.includes('process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_SITE_KEY'));
+add('Readiness regression asserts automation secret is absent',test.includes('process.env.OPSIQO_JOB_SECRET'));
+add('Readiness regression asserts survey secret is absent',test.includes('process.env.OPSIQO_SURVEY_ANONYMITY_SECRET'));
+add('Readiness regression asserts AI credential is absent',test.includes('process.env.OPENAI_API_KEY'));
+add('Existing private-key sentinel remains fail-closed',test.includes("not.toContain('private-key')"));
+add('Existing test-key sentinel remains fail-closed',test.includes("not.toContain('test-key')"));
+add('Package exposes Hotfix 12 audit',Boolean(pkg.scripts?.['opsiqo85:v7.32:hotfix12:audit']));
+add('Package exposes Hotfix 12 targeted test',Boolean(pkg.scripts?.['test:opsiqo-one-v7.32-hotfix12']));
+add('Canonical runner executes Hotfix 12 audit',runner.includes('V7.32 Hotfix 12 readiness summary secrecy audit'));
+add('Canonical runner executes Hotfix 12 targeted tests',runner.includes('V7.32 Hotfix 12 targeted tests'));
+let fail=0;for(const c of checks){console.log(`${c.ok?'PASS':'FAIL'} ${c.name}`);if(!c.ok)fail++;}
+console.log(`\nOPSIQO V7.32 Hotfix 12 audit: ${checks.length-fail}/${checks.length} PASS`);if(fail)process.exit(1);

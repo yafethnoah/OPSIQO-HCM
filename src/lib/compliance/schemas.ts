@@ -14,6 +14,7 @@ export const documentMetadataSchema = z.object({
 export const documentActionSchema = z.object({
   action: z.enum(['set_scan_clean','set_scan_blocked','place_legal_hold','release_legal_hold','dispose']),
   reason: z.string().max(500).optional(),
+  scanEvidenceRef: z.string().trim().max(1000).optional(),
 });
 
 export const policyCreateSchema = z.object({

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   OAuthProvider,
   SAMLAuthProvider,
@@ -21,6 +21,7 @@ import { AuthBrand } from '@/components/auth-brand';
 import { firebaseAppCheck, firebaseAuth } from '@/lib/firebase/client';
 import { apiFetch, isMfaRequiredError, setActiveOrgId } from '@/lib/http/client';
 import { friendlyTotpError, isFirebaseMfaRequiredError, mfaSetupHref, sanitizeInternalReturnTo } from '@/lib/auth/mfa-client';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 type PublicProvider = { name:string; protocol:'oidc'|'saml'; firebaseProviderId:string; jitMode:string };
 type Policy={registrationMode:'invite_only'|'open_auth_only'|'disabled';guestAccessEnabled:boolean;allowPasswordSignIn:boolean;allowSelfPasswordReset:boolean};
@@ -52,6 +53,8 @@ async function jitIfConfigured(user:{getIdToken():Promise<string>},orgId:string)
 
 export default function SignInPage(){
   const router=useRouter();
+  const surfaceRef=useRef<HTMLDivElement>(null);
+  useLegacySurfaceTranslation('signin',surfaceRef);
   const[error,setError]=useState('');
   const[notice,setNotice]=useState('');
   const[providers,setProviders]=useState<PublicProvider[]>([]);
@@ -123,7 +126,7 @@ export default function SignInPage(){
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[orgId,router]);
 
-  if(process.env.NEXT_PUBLIC_OPSIQO_DEMO_MODE==='true')return <div className="authShell"><section className="authBrandPanel"><AuthBrand eyebrow="Demo workspace"/></section><section className="authFormPanel"><div className="authCard"><h1>Demo mode active</h1><p className="muted">Sign-in is intentionally bypassed for local/demo testing.</p><button className="button" onClick={()=>router.push(safeReturnTo())}>Continue</button></div></section></div>;
+  if(process.env.NEXT_PUBLIC_OPSIQO_DEMO_MODE==='true')return <div ref={surfaceRef} className="authShell"><section className="authBrandPanel"><AuthBrand eyebrow="Demo workspace"/></section><section className="authFormPanel"><div className="authCard"><h1>Demo mode active</h1><p className="muted">Sign-in is intentionally bypassed for local/demo testing.</p><button className="button" onClick={()=>router.push(safeReturnTo())}>Continue</button></div></section></div>;
 
   async function submit(e:FormEvent<HTMLFormElement>){
     e.preventDefault();
@@ -160,7 +163,7 @@ export default function SignInPage(){
   async function guest(){if(!orgId||!policy.guestAccessEnabled)return;setBusy(true);setError('');try{await signInAnonymously(firebaseAuth());setActiveOrgId(orgId);router.push('/organization')}catch(e){setError(e instanceof Error?e.message:'Guest access could not be started.')}finally{setBusy(false)}}
   async function sso(p:PublicProvider){try{setError('');const provider=p.protocol==='saml'?new SAMLAuthProvider(p.firebaseProviderId):new OAuthProvider(p.firebaseProviderId);await signInWithRedirect(firebaseAuth(),provider)}catch(e){setError(e instanceof Error?e.message:'SSO sign-in could not start.')}}
 
-  return <div className="authShell"><section className="authBrandPanel"><AuthBrand eyebrow="Secure workforce intelligence"/><div className="authTrustGrid"><div><strong>Evidence aware</strong><span>Readiness is separated from evidence sufficiency.</span></div><div><strong>Human governed</strong><span>Consequential employment decisions remain human-authorized.</span></div><div><strong>Audit ready</strong><span>Organization boundaries and privileged actions remain traceable.</span></div></div></section><section className="authFormPanel">
+  return <div ref={surfaceRef} className="authShell"><section className="authBrandPanel"><AuthBrand eyebrow="Secure workforce intelligence"/><div className="authTrustGrid"><div><strong>Evidence aware</strong><span>Readiness is separated from evidence sufficiency.</span></div><div><strong>Human governed</strong><span>Consequential employment decisions remain human-authorized.</span></div><div><strong>Audit ready</strong><span>Organization boundaries and privileged actions remain traceable.</span></div></div></section><section className="authFormPanel">
     {mfaResolver ? <form className="authCard stack" onSubmit={completeMfa}><div><span className="authKicker">Second factor required</span><h1>Verify your authenticator</h1><p className="muted">Complete the MFA challenge before OPSIQO releases privileged HR access.</p></div>{mfaResolver.hints.filter((hint)=>hint.factorId===TotpMultiFactorGenerator.FACTOR_ID).length>1&&<label className="field"><span>Authenticator factor</span><select className="input" value={mfaFactorUid} onChange={(e)=>setMfaFactorUid(e.target.value)}>{mfaResolver.hints.filter((hint)=>hint.factorId===TotpMultiFactorGenerator.FACTOR_ID).map((hint)=><option value={hint.uid} key={hint.uid}>{hint.displayName||'Authenticator app'}</option>)}</select></label>}<label className="field"><span>6-digit authenticator code</span><input className="input" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={mfaOtp} onChange={(e)=>setMfaOtp(e.target.value.replace(/\D/g,'').slice(0,6))} required autoFocus/></label>{error&&<div className="error" role="alert">{error}</div>}{notice&&<div className="notice" role="status">{notice}</div>}<button className="button" disabled={busy}>{busy?'Verifying second factor…':'Verify & continue'}</button><button type="button" className="button secondary" disabled={busy} onClick={()=>{setMfaResolver(null);setMfaFactorUid('');setMfaOtp('');setError('');setNotice('')}}>Use a different sign-in</button></form> : <form className="authCard stack" onSubmit={submit}><div><span className="authKicker">Secure access</span><h1>Sign in to OPSIQO</h1><p className="muted">Use your approved organization identity to continue.</p></div>{!policy.allowPasswordSignIn&&<div className="notice">Email/password sign-in is disabled by organization policy. Use an approved SSO provider.</div>}<label className="field"><span>Email</span><input className="input" name="email" type="email" autoComplete="email" required disabled={!policy.allowPasswordSignIn}/></label><label className="field"><span>Password</span><input className="input" name="password" type="password" autoComplete="current-password" required disabled={!policy.allowPasswordSignIn}/></label>{error&&<div className="error" role="alert">{error}</div>}{notice&&<div className="notice" role="status">{notice}</div>}<button className="button" disabled={busy||!policy.allowPasswordSignIn}>{busy?'Signing in…':'Sign in securely'}</button><div className="authLinks">{policy.allowSelfPasswordReset&&<Link href={`/forgot-password${orgId?`?orgId=${encodeURIComponent(orgId)}`:''}`}>Forgot password?</Link>}{policy.registrationMode==='open_auth_only'&&<Link href={`/register${orgId?`?orgId=${encodeURIComponent(orgId)}`:''}`}>Register account</Link>}</div>{policy.guestAccessEnabled&&orgId&&<button type="button" className="button secondary" disabled={busy} onClick={guest}>Continue as read-only guest</button>}{checking&&<p className="muted authInlineStatus">Checking approved enterprise identity providers…</p>}</form>}
     {!mfaResolver&&!checking&&providers.length>0&&<section className="authCard stack"><h2 className="sectionTitle">Enterprise SSO</h2>{providers.map(p=><button key={p.firebaseProviderId} className="button secondary" onClick={()=>sso(p)}>Continue with {p.name}</button>)}<p className="muted">Federation is shown only for active, approved provider profiles. JIT access remains governed.</p></section>}
   </section></div>;

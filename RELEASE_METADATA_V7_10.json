@@ -1,0 +1,18 @@
+{
+  "product": "OPSIQO HCM 8.5",
+  "experience": "OPSIQO ONE",
+  "release": "V7.10",
+  "name": "AI-Native Transformation Foundation",
+  "date": "2026-08-19",
+  "productionEvidenceBaseline": "3.6.1",
+  "status": "source_modified_pending_full_semantic_certification",
+  "foundations": [
+    "outcome_navigation",
+    "my_day",
+    "universal_my_work",
+    "persistent_ask_opsiqo",
+    "cortex_agent_registry",
+    "permission_scoped_knowledge_graph",
+    "ai_action_safety_model"
+  ]
+}

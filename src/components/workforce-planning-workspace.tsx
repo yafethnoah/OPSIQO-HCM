@@ -1,19 +1,21 @@
 'use client';
-import { useEffect,useMemo,useState } from 'react';
+import { useEffect,useMemo,useState, useRef} from 'react';
 import { activeOrgId,apiFetch } from '@/lib/http/client';
 import type { ActorContext } from '@/domain/security';
 import type { WorkforcePlanningDashboard,WorkforceScenarioAction } from '@/domain/workforce-planning';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 type Tab='overview'|'plans'|'scenarios'|'demand'|'risks';
 const fmt=(n:number,c='CAD')=>new Intl.NumberFormat('en-CA',{style:'currency',currency:c,maximumFractionDigits:0}).format(n||0);
 const pct=(n:number)=>`${Math.round((n||0)*10)/10}%`;
 
 export function WorkforcePlanningWorkspace(){
+ const translationRoot=useRef<HTMLDivElement>(null); useLegacySurfaceTranslation('workforce_planning',translationRoot);
   const[data,setData]=useState<WorkforcePlanningDashboard|null>(null),[actor,setActor]=useState<ActorContext|null>(null),[tab,setTab]=useState<Tab>('overview'),[error,setError]=useState(''),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false);
   const load=async()=>{setError('');try{const[d,m]=await Promise.all([apiFetch<{data:WorkforcePlanningDashboard}>(`/api/organizations/${activeOrgId()}/workforce-planning/dashboard`),apiFetch<{actor:ActorContext}>('/api/me')]);setData(d.data);setActor(m.actor);}catch(e){setError(e instanceof Error?e.message:'Unable to load workforce planning.');}};
   useEffect(()=>{load();const h=()=>load();window.addEventListener('opsiqo:organization-changed',h);return()=>window.removeEventListener('opsiqo:organization-changed',h);},[]);
   async function call(path:string,init:RequestInit){setBusy(true);setError('');setMsg('');try{await apiFetch(path,init);setMsg('Saved successfully.');await load();}catch(e){setError(e instanceof Error?e.message:'Action failed.');}finally{setBusy(false);}}
-  if(!data||!actor)return <div className="stack">{error&&<div className="error">{error}</div>}<div className="card">Loading workforce intelligence…</div></div>;
+  if(!data||!actor)return <div ref={translationRoot} className="stack">{error&&<div className="error">{error}</div>}<div className="card">Loading workforce intelligence…</div></div>;
   const canManage=actor.permissions.includes('workforce.manage'),canApprove=actor.permissions.includes('workforce.approve');
   return <div className="stack">{error&&<div className="error">{error}</div>}{msg&&<div className="success">{msg}</div>}
     <div className="learningHero"><div><div className="eyebrow">Phase 4 · Workforce Intelligence</div><h2>Current workforce → demand → scenario → decision</h2><p>Every model is calculated from a frozen HRIS baseline plus explicit assumptions. No hidden attrition, retirement or layoff prediction is used.</p></div><div className="performanceHeroScore"><span>Baseline</span><strong>{data.baseline.headcount}</strong><small>{data.baseline.activeFte} FTE</small></div></div>

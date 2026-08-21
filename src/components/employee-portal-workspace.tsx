@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 import type { ActorContext } from '@/domain/security';
 import type { ExperienceDashboard } from '@/domain/experience';
 import type { SuperAppDashboard } from '@/domain/superapp';
@@ -32,6 +33,8 @@ const fmtDate=(v:string)=>{try{return new Intl.DateTimeFormat(undefined,{year:'n
 const statusClass=(status:string)=>['approved','completed','resolved','closed'].includes(status)?'successBadge':['rejected','cancelled','denied'].includes(status)?'dangerBadge':'badge';
 
 export function EmployeePortalWorkspace(){
+  const translationRoot=useRef<HTMLDivElement>(null);
+  useLegacySurfaceTranslation('employee_portal',translationRoot);
   const[actor,setActor]=useState<ActorContext|null>(null);
   const[dashboard,setDashboard]=useState<SuperAppDashboard|null>(null);
   const[leave,setLeave]=useState<LeaveWorkspace|null>(null);
@@ -110,15 +113,15 @@ export function EmployeePortalWorkspace(){
     finally{setBusy(false);}
   }
 
-  if(!actor||!dashboard)return <div className="stack">{error&&<div className="error" role="alert">{error}</div>}<LoadingState label="Loading your employee services…"/></div>;
+  if(!actor||!dashboard)return <div ref={translationRoot} className="stack">{error&&<div className="error" role="alert">{error}</div>}<LoadingState label="Loading your employee services…"/></div>;
   const employee=dashboard.employee;
   const worker=employee.worker;
 
-  return <div className="stack employeePortal">
+  return <div ref={translationRoot} className="stack employeePortal">
     {error&&<div className="error" role="alert">{error}</div>}
     {notice&&<div className="success" role="status">{notice}</div>}
 
-    <section className="employeePortalHero card"><div><span className="eyebrow">Employee self-service</span><h2>{worker?.displayName||'My Employee Portal'}</h2><p className="muted">{dashboard.employee.assignment?.positionTitle||'Employee'}{dashboard.employee.assignment?.orgUnitName?` · ${dashboard.employee.assignment.orgUnitName}`:''}</p></div><div className="employeePortalHeroActions"><Link className="button" href="/time">Request time off</Link><Link className="button secondary" href="/experience">Ask HR</Link></div></section>
+    <section className="employeePortalHero card"><div><span className="eyebrow">Employee self-service</span><h2>{worker?.displayName||'My Employee Portal'}</h2><p className="muted">{dashboard.employee.assignment?.positionTitle||'Employee'}{dashboard.employee.assignment?.orgUnitName?` · ${dashboard.employee.assignment.orgUnitName}`:''}</p></div><div className="employeePortalHeroActions"><Link className="button" href="/concierge">Employee Concierge</Link><Link className="button secondary" href="/time">Request time off</Link><Link className="button secondary" href="/experience">Ask HR</Link></div></section>
 
     {!actor.workerId&&<section className="card notice"><strong>Employee record link required.</strong><p>Your account is active, but it is not yet linked to an employee record. HR must link your membership before personal HR transactions such as leave requests can be submitted.</p></section>}
 

@@ -76,10 +76,18 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Require approved production evidence references
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OPSIQO_PRODUCTION_EVIDENCE_REF:-}"
+          test -n "${OPSIQO_CLOUD_DR_EVIDENCE_REF:-}"
+          test -n "${OPSIQO_DR_EXERCISE_EVIDENCE_REF:-}"
+          test -n "${OPSIQO_APP_HOSTING_FRAMEWORK_EVIDENCE_REF:-}"
       - name: Verify frozen source before dependency install
         run: node scripts/source-manifest.mjs verify
-      - name: Review committed lockfile structure
-        run: node scripts/review-lockfile.mjs
+      - name: Review committed lockfile before dependency install
+        run: node scripts/review-lockfile.mjs --artifact artifacts/production-promotion-lockfile-review.json
       - name: Authenticate to Google Cloud using OIDC / Workload Identity Federation
         uses: google-github-actions/auth@v2
         with:
@@ -92,6 +100,8 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: npm ci --registry=https://registry.npmjs.org --no-audit --no-fund
+      - name: Production preflight
+        run: npm run preflight:production
       - name: Run production certification
         shell: pwsh
         run: ./RUN_OPSIQO_8_5_V7_9_2_PRODUCTION_CERTIFICATION.ps1 -SkipCodeCertification

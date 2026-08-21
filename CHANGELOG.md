@@ -1,3 +1,12 @@
+# OPSIQO ONE V7.27 — 2026-08-19
+
+- Final certification and translation closure release; overall roadmap/source progress 99%.
+- Added reviewed EN/FR/ES/AR coverage for AI Copilot, People Analytics, Scenario Lab, AI Value and MFA Setup.
+- Reduced corrected translation backlog to 1,082 candidates.
+- Added safe first-failure certification summary, registry-host-only diagnostics, encoded/OneDrive path warnings, and removed duplicate historical targeted test execution.
+- Expanded authenticated browser UAT to five additional routes.
+- Safe Execute remains frozen at notifications.mark_visible_read.
+
 # OPSIQO HCM 8.5 V7.8 — Employee Self-Service Portal
 
 - Added dedicated `/employee` Employee Portal as the default landing for employee-role users.
@@ -214,3 +223,54 @@
 - Restricted Security Operations SIEM export to approved REST-push runtime profiles and independently enforced the exact production `OPSIQO_SECURITY_SIEM_HOSTS` allow-list.
 - Fixed the inherited Firestore Rules test nesting/scope defect and expanded v3.4 browser-denial coverage across employee, manager and HR clients.
 - Corrected stale v3.4 release markers in `.env.example` and the Enterprise Command Center release-assessment form.
+
+## OPSIQO ONE v7.14 — 2026-08-19
+- Added governed Organization Launchpad.
+- Added permission-scoped Daily Brief.
+- Added route-only adaptive navigation, semantic menu ranking and pin/recent/frequent behavior.
+- Added app-level multilingual AI response/RTL foundation.
+- Added global mobile five-outcome navigation.
+- Hardened PWA/offline behavior to static-only caching with no authenticated HR/API data cache.
+- Preserved V7.13–V7.10 AI governance, MFA, tenant isolation, ATS and ESS controls.
+
+## OPSIQO ONE v7.15 — Connected Workforce Operations (2026-08-19)
+- Added permission-scoped Unified Human + Digital Workforce registry.
+- Added Grant/Nonprofit Workforce Intelligence with server-enforced funding-period and 100% allocation controls.
+- Added Employee Service Center on the existing HR service-ticket/SLA architecture.
+- Added creator-private Meeting → Action drafts with content-redacted audit metadata.
+- Upgraded Daily Brief with proactive funding signals and consolidated notification digest.
+- Added Grant Workforce and Unified Workforce Cortex specialists.
+- Preserved five-outcome navigation and all consequential employment/MFA/tenant/AI governance boundaries.
+
+## OPSIQO ONE v7.16 — 2026-08-19
+
+- Added Program Workforce Intelligence with explicit Project → Funding → Allocation → Worker → Position/Org Unit → funded-cost evidence.
+- Added reviewed Meeting → Workflow promotion; promoted workflows are manual and disabled until separately activated.
+- Added the first hard-coded Safe Self-Service Execute capability for notifications explicitly targeted to the signed-in actor; shared role notifications remain untouched.
+- Added accessibility preferences, route announcements and truthful WCAG 2.2 AA readiness evidence without a conformance claim.
+- Added broader English/French/Spanish/Arabic application-shell translations, Arabic RTL and evidence-preserving AI language instructions.
+- Preserved all consequential-action, MFA, tenant-isolation, Agent Builder approval and workflow activation boundaries from earlier OPSIQO ONE releases.
+## OPSIQO ONE v7.18 — 2026-08-19
+
+- Added exact EN/FR/ES/AR translation catalogue for selected high-friction inherited surfaces.
+- Added Translation Readiness and measurable source inventory/backlog.
+- Added authenticated emulator-backed browser accessibility UAT tooling.
+- Added Program Portfolio CSV and JSON evidence-pack exports with provenance/currency boundaries.
+- Added explicit AI Safe Execute implementation/browser-UAT gates; allowlist remains one action.
+- Preserved all consequential-action, MFA, tenant and custom-agent authority boundaries.
+
+
+## OPSIQO ONE v7.26 — 2026-08-19
+
+- Added exact EN/FR/ES/AR reviewed coverage for Employee Portal, Employee Profile, Employee Relations and Separation/Offboarding.
+- Improved translation backlog accuracy by excluding obvious JSX/code fragments from the visible-string heuristic.
+- Reduced the measured translation backlog to 1,389 candidates with 2,238 exact reviewed source candidates across 35 governed surfaces.
+- Fixed Windows certification environment handling so public/authenticated browser UAT restores the caller's pre-existing environment variables instead of deleting them.
+- Expanded authenticated browser accessibility UAT to employee lifecycle routes and reviewed Arabic markers.
+- Preserved the single Safe Execute action, consequential employment firewall, tenant/MFA boundaries and no-deploy certification policy.
+
+## V7.31 — Runtime Translation Finalization & External Certification Bridge
+- Runtime-localized high-value talent, manager, automation, contract, people, lifecycle, launchpad, concierge and preboarding surfaces in EN/FR/ES/AR.
+- Reduced measured translation backlog to 213 candidates across 64 governed surfaces.
+- Expanded authenticated browser UAT for newly localized signed-in routes.
+- Preserved Safe Execute and consequential-employment safety boundaries.

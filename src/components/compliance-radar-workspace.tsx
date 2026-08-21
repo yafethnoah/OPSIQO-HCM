@@ -1,0 +1,19 @@
+'use client';
+import Link from 'next/link';
+import { useEffect,useRef,useState } from 'react';
+import type { ComplianceRadarDashboard } from '@/domain/opsiqo-one-v7-11';
+import { activeOrgId,apiFetch,isMfaRequiredError } from '@/lib/http/client';
+import { mfaSetupHref } from '@/lib/auth/mfa-client';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
+export function ComplianceRadarWorkspace(){const translationRoot=useRef<HTMLDivElement>(null);useLegacySurfaceTranslation('compliance_radar',translationRoot);
+ const[data,setData]=useState<ComplianceRadarDashboard|null>(null),[error,setError]=useState(''),[mfa,setMfa]=useState(false);
+ useEffect(()=>{let alive=true;apiFetch<{data:ComplianceRadarDashboard}>(`/api/organizations/${activeOrgId()}/opsiqo-one/compliance-radar`).then(r=>alive&&setData(r.data)).catch(e=>{if(!alive)return;if(isMfaRequiredError(e))setMfa(true);else setError(e instanceof Error?e.message:'Unable to load Compliance Radar.')});return()=>{alive=false}},[]);
+ if(mfa)return <section className="card stack"><h2 className="sectionTitle">Multi-factor authentication required</h2><Link className="button" href={mfaSetupHref('/compliance-radar')}>Set up MFA</Link></section>;
+ if(!data)return <section className="card">{error?<div className="error">{error}</div>:<div className="loadingState"><div className="loadingDot"/><div><strong>Scanning governed compliance evidence</strong><small>OPSIQO reports missing or expiring configured evidence without making legal conclusions.</small></div></div>}</section>;
+ return <div className="stack" data-opsiqo-one="compliance-radar" ref={translationRoot}><section className="card oneHero"><div><span className="eyebrow">OPSIQO Guard · Compliance Radar</span><h1>{data.headline}</h1><p className="muted">Proactive evidence gaps, expiries and policy-review deadlines from the authoritative compliance service.</p></div><Link className="button secondary" href="/compliance">Full compliance workspace</Link></section>
+ <section className="metricGrid"><Metric label="Compliance rate" value={data.metrics.complianceRate==null?'Not assessed':`${data.metrics.complianceRate}%`}/><Metric label="Evidence gaps" value={data.metrics.gaps}/><Metric label="Expiring" value={data.metrics.expiring}/><Metric label="Policy reviews overdue" value={data.metrics.policiesOverdue}/><Metric label="Policy reviews due" value={data.metrics.policiesDue}/></section>
+ <section className="card"><h2 className="sectionTitle">Radar</h2><div className="oneWorkList">{data.items.map(item=><div className={`oneWorkItem ${item.severity}`} key={item.id}><div><div className="row wrap"><span className={`severityBadge ${item.severity}`}>{item.severity}</span><strong>{item.title}</strong></div><p className="muted">{item.summary}</p><small>{item.evidence.join(' · ')}</small><div className="row wrap radarActions">{item.suggestedActions.map(a=><Link className="button compact secondary" href={a.href} key={a.label}>{a.label}</Link>)}</div></div></div>)}</div></section>
+ {data.workerGaps.length>0&&<section className="card tableWrap"><h2 className="sectionTitle">Affected workers in your scope</h2><table><thead><tr><th>Employee</th><th>Gaps</th><th>Expiring</th><th>Evidence score</th></tr></thead><tbody>{data.workerGaps.map(x=><tr key={x.workerId}><td><strong>{x.displayName}</strong><div className="muted">{x.employeeNumber}</div></td><td>{x.gaps}</td><td>{x.expiring}</td><td>{x.score==null?'Not assessed':`${x.score}%`}</td></tr>)}</tbody></table></section>}
+ <section className="card employeePortalPrivacy"><strong>Evidence, not legal conclusions.</strong><span>{data.governanceNotice}</span></section></div>;
+}
+function Metric({label,value}:{label:string;value:string|number}){return <div className="metricCard"><span>{label}</span><strong>{value}</strong></div>}

@@ -5,6 +5,9 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '@/lib/http/client';
 import { OrganizationSwitcher } from './organization-switcher';
+import { rankNavigationItems } from '@/lib/opsiqo-one/navigation-intelligence';
+import { readAdaptiveNavigation, recordNavigationVisit, suggestedNavigationHrefs, toggleNavigationPin } from '@/lib/preferences/adaptive-navigation';
+import { shellText,useShellLocale } from '@/lib/opsiqo-one/shell-i18n';
 
 type Item = {
   label: string;
@@ -20,35 +23,53 @@ type Group = { label: string; area: Item['area']; items: Item[] };
 
 const allItems: Item[] = [
   { label:'Home',href:'/home',permission:'self.read',icon:'⌂',keywords:['my opsiqo','employee home','start'],area:'home',priority:100 },
+  { label:'My Work',href:'/my-work',permission:'self.read',icon:'✓',keywords:['tasks','approvals','queue','attention'],area:'home',priority:99 },
   { label:'HR Overview',href:'/dashboard',permission:'commandcenter.read',icon:'⌘',keywords:['command center','dashboard'],area:'home',priority:95 },
   { label:'Notifications',href:'/notifications',permission:'notifications.read',icon:'◉',keywords:['alerts','reminders'],area:'home',priority:90 },
+  { label:'Daily Brief',href:'/daily-brief',permission:'self.read',icon:'☀',keywords:['daily brief','morning brief','today','summary'],area:'home',priority:96 },
 
   { label:'My HR',href:'/self-service',permission:'self.read',icon:'◎',keywords:['profile','documents','employee service'],area:'people',priority:100 },
+  { label:'Employee Concierge',href:'/concierge',permission:'self.read',icon:'✦',keywords:['employee concierge','ask hr','employee ai'],area:'people',priority:99 },
+  { label:'Manager Copilot',href:'/manager-copilot',permission:'team.read',icon:'✦',keywords:['manager copilot','one on one','team priorities'],area:'people',priority:97 },
   { label:'Employee Portal',href:'/employee',permission:'self.read',icon:'◈',keywords:['employee services','leave','documents','requests'],area:'people',priority:98 },
   { label:'People',href:'/people',permission:'people.read.directory',icon:'◌',keywords:['employee directory','workers'],area:'people',priority:95 },
   { label:'My Team',href:'/manager',permission:'team.read',icon:'△',keywords:['manager','approvals','direct reports'],area:'people',priority:90 },
   { label:'Organization',href:'/organization',permission:'positions.read',icon:'◇',keywords:['org chart','positions'],area:'people',priority:80 },
+  { label:'Unified Workforce',href:'/workforce-registry',permission:'workforce.read',icon:'◎',keywords:['workforce registry','contractors','volunteers','digital agents','entire workforce'],area:'people',priority:79 },
 
   { label:'Recruiting',href:'/recruiting',permission:'recruiting.read',icon:'⌕',keywords:['ats','candidates','jobs'],area:'work',priority:100 },
   { label:'Onboarding',href:'/onboarding',permission:'onboarding.read',icon:'＋',keywords:['new hire'],area:'work',priority:95 },
   { label:'Time & Leave',href:'/time',permission:'time.read',icon:'◷',keywords:['vacation','absence','timesheet'],area:'work',priority:95 },
   { label:'Performance',href:'/performance',permission:'performance.read',icon:'◆',keywords:['goals','reviews'],area:'work',priority:90 },
   { label:'Learning',href:'/learning',permission:'learning.read',icon:'△',keywords:['skills','training','certificates'],area:'work',priority:85 },
+  { label:'Skills Passport',href:'/skills-passport',permission:'learning.read',icon:'◇',keywords:['verified skills','skill passport'],area:'work',priority:84 },
+  { label:'Career GPS',href:'/career-gps',permission:'career.read',icon:'↗',keywords:['career path','target role','development'],area:'work',priority:83 },
+  { label:'Talent Marketplace',href:'/talent-marketplace',permission:'career.read',icon:'◎',keywords:['internal mobility','internal jobs','opportunities'],area:'work',priority:82 },
   { label:'Compensation',href:'/compensation',permission:'compensation.read',icon:'$',keywords:['pay','salary','rewards'],area:'work',priority:80 },
   { label:'Workflows',href:'/workflows',permission:'workflow.read',icon:'⌁',keywords:['process','approval'],area:'work',priority:75 },
 
+  { label:'Intelligence',href:'/intelligence',permission:'self.read',icon:'✦',keywords:['cortex','knowledge graph','ai','intelligence'],area:'insights',priority:105 },
   { label:'People Analytics',href:'/people-analytics',permission:'peopleanalytics.read',icon:'▥',keywords:['analytics','reports','metrics'],area:'insights',priority:100 },
   { label:'Workforce Intelligence',href:'/workforce-intelligence',permission:'peopleanalytics.read',icon:'◈',keywords:['workforce insight'],area:'insights',priority:90 },
   { label:'Workforce Planning',href:'/workforce-planning',permission:'workforce.read',icon:'▦',keywords:['headcount','planning'],area:'insights',priority:85 },
+  { label:'Scenario Lab',href:'/scenario-lab',permission:'workforce.read',icon:'◫',keywords:['what if','simulation','digital twin'],area:'insights',priority:84 },
+  { label:'Grant Workforce',href:'/grant-workforce',permission:'workforce.read',icon:'▧',keywords:['grant workforce','funding','funder','nonprofit','ngo','salary allocation'],area:'insights',priority:83 },
+  { label:'Program Workforce',href:'/program-workforce',permission:'workforce.read',icon:'▥',keywords:['project grant','program cost','project workforce','program workforce'],area:'work',priority:81 },
+  { label:'Program Portfolio',href:'/program-portfolio',permission:'workforce.read',icon:'▦',keywords:['program portfolio','budget actual','project budget','financial evidence','grant actual'],area:'insights',priority:84 },
   { label:'Operations Cockpit',href:'/operations-cockpit',permission:'commandcenter.read',icon:'◫',keywords:['operations','status'],area:'insights',priority:80 },
   { label:'Operations Orchestrator',href:'/operations-orchestrator',permission:'workflow.read',icon:'⇢',keywords:['orchestration','automation'],area:'insights',priority:75 },
 
   { label:'Career & Succession',href:'/career',permission:'career.read',icon:'↗',keywords:['succession','career'],area:'more',priority:90 },
   { label:'Offboarding',href:'/separations',permission:'separation.read',icon:'↙',keywords:['termination','separation'],area:'more',priority:85 },
+  { label:'Organizational Memory',href:'/organizational-memory',permission:'policies.read',icon:'◈',keywords:['organizational memory','internal knowledge','handbook','policy search'],area:'more',priority:91 },
+  { label:'Policy Intelligence',href:'/policy-intelligence',permission:'policies.read',icon:'§',keywords:['policy intelligence','policy overlap','review due'],area:'more',priority:90 },
+  { label:'Compliance Radar',href:'/compliance-radar',permission:'compliance.read',icon:'◉',keywords:['compliance radar','expiring','gaps'],area:'more',priority:88 },
   { label:'Compliance',href:'/compliance',permission:'compliance.read',icon:'✓',keywords:['policy','acknowledgement'],area:'more',priority:85 },
   { label:'Evidence Center',href:'/evidence-center',permission:'compliance.read',icon:'▣',keywords:['evidence','audit evidence'],area:'more',priority:80 },
   { label:'Employee Relations',href:'/employee-relations',permission:'er.intake',icon:'≋',keywords:['relations','case'],area:'more',priority:80 },
   { label:'Health & Safety',href:'/safety',permission:'safety.report',icon:'✚',keywords:['incident','safety'],area:'more',priority:80 },
+  { label:'Employee Service Center',href:'/employee-service-center',permission:'service.read',icon:'?',keywords:['get help','hr case','service center','employment letter'],area:'more',priority:78 },
+  { label:'Meeting → Action',href:'/meeting-actions',permission:'self.read',icon:'→',keywords:['meeting actions','meeting notes','follow up','decisions'],area:'more',priority:77 },
   { label:'Experience & HR Help',href:'/experience',permission:'experience.read',icon:'♡',keywords:['help','service request'],area:'more',priority:75 },
   { label:'Lifecycle',href:'/lifecycle',permission:'team.read',icon:'↻',keywords:['employee lifecycle'],area:'more',priority:70 },
   { label:'HR Diagnostic',href:'/hr-diagnostic',permission:'diagnostic.read',icon:'◈',keywords:['diagnostic','assessment'],area:'more',priority:65 },
@@ -61,8 +82,15 @@ const allItems: Item[] = [
   { label:'Org Design',href:'/org-design',permission:'orgdesign.read',icon:'⌘',keywords:['organization design'],area:'more',priority:55 },
 
   { label:'Settings',href:'/settings',icon:'⚙',keywords:['preferences','profile settings'],area:'admin',priority:100 },
+  { label:'Experience Readiness',href:'/experience-readiness',permission:'self.read',icon:'◍',keywords:['accessibility','wcag','translation','language coverage'],area:'more',priority:84 },
+  { label:'Translation Readiness',href:'/translation-readiness',permission:'self.read',icon:'文',keywords:['translation readiness','translation backlog','language completion','localization inventory'],area:'more',priority:83 },
+  { label:'Organization Launchpad',href:'/organization-launchpad',permission:'organization.manage',icon:'◎',keywords:['organization setup','launchpad','one click setup','tenant setup'],area:'admin',priority:99 },
   { label:'Import Center',href:'/import-center',permission:'documents.manage',icon:'⇩',keywords:['import','bulk upload','migration'],area:'admin',priority:95 },
   { label:'Automation',href:'/automation',permission:'automation.read',icon:'⚙',keywords:['automation','jobs'],area:'admin',priority:90 },
+  { label:'Agent Builder',href:'/agent-builder',permission:'ai.manage',icon:'✦',keywords:['agent builder','custom agent','cortex agent'],area:'admin',priority:94 },
+  { label:'Automation Marketplace',href:'/automation-marketplace',permission:'workflow.read',icon:'▦',keywords:['automation marketplace','workflow pack','automation pack'],area:'admin',priority:93 },
+  { label:'AI Governance Center',href:'/ai-governance',permission:'ai.use',icon:'⬡',keywords:['ai governance','agents','shadow mode','cortex control'],area:'admin',priority:92 },
+  { label:'AI Value Dashboard',href:'/ai-value',permission:'ai.audit',icon:'▥',keywords:['ai value','roi','ai impact','ai usage'],area:'admin',priority:91 },
   { label:'AI HR Copilot',href:'/ai-copilot',permission:'ai.use',icon:'✦',keywords:['ai','copilot'],area:'admin',priority:90 },
   { label:'Integrations',href:'/integrations',permission:'integration.read',icon:'⛓',keywords:['integration','connector'],area:'admin',priority:80 },
   { label:'Identity & SSO',href:'/identity',permission:'identity.read',icon:'◇',keywords:['identity','sso'],area:'admin',priority:75 },
@@ -87,15 +115,14 @@ function canSee(item: Item, permissions: string[] | null): boolean {
   return !item.permission || permissions.includes(item.permission);
 }
 
-function searchableText(item: Item): string {
-  return [item.label,item.href,...(item.keywords ?? [])].join(' ').toLowerCase();
-}
 
 export function Nav() {
   const pathname = usePathname();
+  const shellLocale = useShellLocale();
   const [permissions,setPermissions] = useState<string[]|null>(null);
   const [collapsed,setCollapsed] = useState(false);
   const [query,setQuery] = useState('');
+  const [adaptiveTick,setAdaptiveTick] = useState(0);
   const [closedGroups,setClosedGroups] = useState<Record<string,boolean>>(
     Object.fromEntries(groupDefinitions.filter(g=>g.defaultClosed).map(g=>[g.label,true])),
   );
@@ -108,6 +135,13 @@ export function Nav() {
     return ()=>{ alive = false; };
   },[]);
 
+  useEffect(()=>{
+    const match=allItems.find(item=>pathname===item.href||pathname.startsWith(`${item.href}/`));
+    if(match) recordNavigationVisit(match.href);
+    setAdaptiveTick(value=>value+1);
+  },[pathname]);
+  useEffect(()=>{const h=()=>setAdaptiveTick(value=>value+1);window.addEventListener('opsiqo:adaptive-navigation-changed',h);return()=>window.removeEventListener('opsiqo:adaptive-navigation-changed',h)},[]);
+
   const visibleItems = useMemo(
     ()=>allItems.filter(item=>canSee(item,permissions)),
     [permissions],
@@ -115,11 +149,14 @@ export function Nav() {
 
   const normalizedQuery = query.trim().toLowerCase();
   const searchResults = useMemo(
-    ()=>normalizedQuery
-      ? visibleItems.filter(item=>searchableText(item).includes(normalizedQuery)).sort((a,b)=>b.priority-a.priority)
-      : [],
+    ()=>normalizedQuery ? rankNavigationItems(visibleItems,normalizedQuery) : [],
     [normalizedQuery,visibleItems],
   );
+  const adaptiveState = useMemo(()=>readAdaptiveNavigation(),[adaptiveTick]);
+  const suggestedItems = useMemo(()=>{
+    const byHref=new Map(visibleItems.map(item=>[item.href,item]));
+    return suggestedNavigationHrefs(new Set(visibleItems.map(item=>item.href)),5).map(href=>byHref.get(href)).filter((item):item is Item=>Boolean(item));
+  },[visibleItems,adaptiveTick]);
 
   const visibleGroups: Group[] = useMemo(
     ()=>groupDefinitions
@@ -133,24 +170,19 @@ export function Nav() {
   );
 
   const renderItem = (item: Item) => {
-    const active = pathname===item.href || pathname.startsWith(`${item.href}/`);
+    const active = pathname===item.href || pathname.startsWith(`${item.href}/`),pinned=adaptiveState.pinned.includes(item.href);
     return (
-      <Link
-        key={item.href}
-        href={item.href}
-        className={`navItem ${active?'active':''}`}
-        title={collapsed?item.label:undefined}
-        aria-current={active?'page':undefined}
-        onClick={()=>setQuery('')}
-      >
-        <span className="navIcon" aria-hidden="true">{item.icon}</span>
-        <span className="navText">{item.label}</span>
-      </Link>
+      <div className="navItemWrap" key={item.href}>
+        <Link href={item.href} className={`navItem ${active?'active':''}`} title={collapsed?item.label:undefined} aria-current={active?'page':undefined} onClick={()=>setQuery('')}>
+          <span className="navIcon" aria-hidden="true">{item.icon}</span><span className="navText">{item.label}</span>
+        </Link>
+        {!collapsed&&<button type="button" className={`navPin ${pinned?'active':''}`} aria-label={`${pinned?'Unpin':'Pin'} ${item.label}`} onClick={()=>toggleNavigationPin(item.href)}>{pinned?'★':'☆'}</button>}
+      </div>
     );
   };
 
   return (
-    <aside className={`sidebar ${collapsed?'collapsed':''}`} aria-label="Application navigation">
+    <aside className={`sidebar ${collapsed?'collapsed':''}`} aria-label={shellText('Application navigation',shellLocale)}>
       <div className="sidebarTop">
         <Link href="/home" className="brand" aria-label="OPSIQO home">
           <img className="brandLogo" src="/brand/opsiqo-wordmark.png" alt="OPSIQO" />
@@ -160,29 +192,39 @@ export function Nav() {
       </div>
 
       {!collapsed && (
+        <div className="outcomeNav" data-opsiqo-shell-i18n="true" aria-label="OPSIQO ONE primary outcomes">
+          <Link className={`outcomeNavItem ${pathname==='/home'?'active':''}`} href="/home"><span aria-hidden="true">⌂</span><strong>{shellText('Home',shellLocale)}</strong></Link>
+          <Link className={`outcomeNavItem ${pathname.startsWith('/my-work')?'active':''}`} href="/my-work"><span aria-hidden="true">✓</span><strong>{shellText('My Work',shellLocale)}</strong></Link>
+          <Link className={`outcomeNavItem ${pathname.startsWith('/people')?'active':''}`} href="/people"><span aria-hidden="true">◌</span><strong>{shellText('People',shellLocale)}</strong></Link>
+          <Link className={`outcomeNavItem ${pathname.startsWith('/intelligence')?'active':''}`} href="/intelligence"><span aria-hidden="true">✦</span><strong>{shellText('Intelligence',shellLocale)}</strong></Link>
+          <Link className={`outcomeNavItem ${pathname.startsWith('/more')?'active':''}`} href="/more"><span aria-hidden="true">•••</span><strong>{shellText('More',shellLocale)}</strong></Link>
+        </div>
+      )}
+
+      {!collapsed && (
         <div className="navFinder">
-          <label className="navFinderLabel" htmlFor="opsiqo-nav-search">Find</label>
+          <label className="navFinderLabel" htmlFor="opsiqo-nav-search">{shellText('Find',shellLocale)}</label>
           <input
             id="opsiqo-nav-search"
             className="navFinderInput"
             type="search"
             value={query}
             onChange={event=>setQuery(event.target.value)}
-            placeholder="Page, task or module…"
+            placeholder={shellText('Page, task or module…',shellLocale)}
             autoComplete="off"
           />
           {normalizedQuery && (
             <div className="navSearchSummary" role="status">
-              {searchResults.length ? `${searchResults.length} result${searchResults.length===1?'':'s'}` : 'No matching page'}
+              {searchResults.length ? `${searchResults.length} result${searchResults.length===1?'':'s'}` : shellText('No matching page',shellLocale)}
             </div>
           )}
         </div>
       )}
 
-      <nav className="navScroll" aria-label="Primary">
+      <nav className="navScroll" aria-label={shellText('Primary',shellLocale)}>
         {normalizedQuery ? (
           <section className="navGroup navSearchResults">
-            <div className="navGroupStaticLabel">Search results</div>
+            <div className="navGroupStaticLabel">{shellText('Search results',shellLocale)}</div>
             <div className="navGroupItems">
               {searchResults.map(renderItem)}
               {!searchResults.length && (
@@ -191,7 +233,9 @@ export function Nav() {
             </div>
           </section>
         ) : (
-          visibleGroups.map(group=>{
+          <>
+          {suggestedItems.length>0&&<section className="navGroup navSuggested" data-adaptive-navigation="true"><div className="navGroupStaticLabel">{shellText('For you',shellLocale)}</div><div className="navGroupItems">{suggestedItems.map(renderItem)}</div></section>}
+          {visibleGroups.map(group=>{
             const closed = closedGroups[group.label]===true;
             return (
               <section className={`navGroup ${closed?'closed':''}`} key={group.label}>
@@ -201,18 +245,19 @@ export function Nav() {
                   aria-expanded={!closed}
                   onClick={()=>setClosedGroups(value=>({...value,[group.label]:!value[group.label]}))}
                 >
-                  <span>{group.label}</span>
+                  <span>{shellText(group.label,shellLocale)}</span>
                   <span className="navGroupChevron" aria-hidden="true">{closed?'›':'⌄'}</span>
                 </button>
                 <div className="navGroupItems">{group.items.map(renderItem)}</div>
               </section>
             );
-          })
+          })}
+          </>
         )}
       </nav>
 
       <div className="sidebarFooter">
-        <div className="phaseBadge"><span>Enterprise HCM</span><strong>v8.5</strong></div>
+        <div className="phaseBadge"><span>OPSIQO ONE</span><strong>v7.32 · HCM v8.5</strong></div>
         <button
           className="navCollapse"
           type="button"

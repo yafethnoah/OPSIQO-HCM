@@ -1,0 +1,9 @@
+import fs from 'node:fs';import path from 'node:path';
+const roots=['src/app','src/components'];
+const files=[];for(const base of roots){const walk=d=>{for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);if(e.isDirectory())walk(p);else if(/\.tsx$/.test(e.name))files.push(p.replaceAll('\\','/'))}};walk(base)}
+const ignore=/^(OPSIQO|HCM|AI|HR|ATS|LMS|MFA|WCAG|API|ID|URL|CAD|USD|CAD|—|\d+)$/i;
+const candidates=[];
+for(const file of files){const text=fs.readFileSync(file,'utf8');const matches=[...text.matchAll(/>([^<>{}\n][^<>{}\n]{2,120})</g)];for(const m of matches){const sample=m[1].replace(/\s+/g,' ').trim();if(!sample||ignore.test(sample)||!/[A-Za-z]{3}/.test(sample)||sample.includes('className=')||sample.startsWith('http'))continue;candidates.push({file,sample})}}
+const v717Surfaces=['src/components/program-portfolio-workspace.tsx','src/components/meeting-actions-workspace.tsx','src/components/daily-brief-workspace.tsx'];
+const report={version:'7.17',supportedLocales:['en','fr','es','ar'],scannedFiles:files.length,cataloguedV717Surfaces:v717Surfaces.filter(fs.existsSync),legacyCandidateCount:candidates.length,candidateExamples:candidates.slice(0,100),generatedAt:new Date().toISOString(),boundary:'This is a source inventory of candidate visible English strings, not a translation-quality or completeness claim. False positives are expected. Browser review remains required for every supported locale.'};
+fs.mkdirSync('artifacts',{recursive:true});fs.writeFileSync('artifacts/v7-17-translation-inventory.json',JSON.stringify(report,null,2));console.log(`V7.17 translation inventory: ${files.length} TSX files scanned; ${candidates.length} candidate legacy strings require review.`);console.log('Evidence: artifacts/v7-17-translation-inventory.json');

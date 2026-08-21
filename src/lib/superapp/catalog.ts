@@ -12,6 +12,7 @@ export const SUPERAPP_ACTIONS:SuperAppAction[]=[
  {id:'performance',label:'Performance',description:'Goals, reviews and development plans',href:'/performance',permission:'performance.read',audience:'all',category:'growth'},
  {id:'compensation',label:'Pay & Rewards',description:'Compensation and total rewards',href:'/compensation',permission:'compensation.read',audience:'all',category:'pay'},
  {id:'hr_help',label:'HR Help',description:'Service requests, knowledge and employee experience',href:'/experience',permission:'service.read',audience:'all',category:'help'},
+ {id:'daily_brief',label:'Daily Brief',description:'What needs attention, what is approaching and one evidence-backed insight',href:'/daily-brief',permission:'self.read',audience:'all',category:'work'},
  {id:'notifications',label:'Notifications',description:'Your OPSIQO alerts and reminders',href:'/notifications',permission:'notifications.read',audience:'all',category:'work'},
  {id:'safety',label:'Safety',description:'Report or review workplace safety matters',href:'/safety',permission:'safety.report',audience:'all',category:'help'},
  {id:'contract_import',label:'Contract Import',description:'Parse an employment contract into a verified HR data draft',href:'/contract-import',permission:'documents.read',roles:HR_ROLES,audience:'all',category:'work'},

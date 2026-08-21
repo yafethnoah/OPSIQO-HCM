@@ -1,12 +1,15 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState, useRef } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 type Unit = { id: string; name: string; code: string; type: string; status: string; parentId?: string };
 type Position = { id: string; title: string; positionCode: string; orgUnitId: string; status: string; fte: number; headcountLimit:number; occupiedHeadcount:number; availableHeadcount:number; occupancyPercent:number; capacityState:string };
 
 export function OrganizationPanel() {
+  const translationRoot = useRef<HTMLDivElement>(null);
+  useLegacySurfaceTranslation('organization_admin', translationRoot);
   const [units, setUnits] = useState<Unit[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [error, setError] = useState('');
@@ -44,7 +47,7 @@ export function OrganizationPanel() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to create position.'); }
   }
 
-  return <div className="stack">
+  return <div ref={translationRoot} className="stack">
     {error && <div className="error">{error}</div>}
     <div className="grid2">
       <form className="card stack" onSubmit={addUnit}>

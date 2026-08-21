@@ -8,7 +8,7 @@ function Run-Gate([string]$Name,[scriptblock]$Action) {
   Write-Host "PASS: $Name" -ForegroundColor Green
 }
 
-Write-Host 'OPSIQO 8.5 V7.7 AUTOMATION-MAX — immutable-source validation' -ForegroundColor Cyan
+Write-Host 'OPSIQO 8.5 V7.7 AUTOMATION-MAX - immutable-source validation' -ForegroundColor Cyan
 Write-Host 'This verifier NEVER regenerates SOURCE_MANIFEST.sha256.' -ForegroundColor Yellow
 Write-Host 'Do NOT run npm audit fix --force on this release candidate.' -ForegroundColor Yellow
 

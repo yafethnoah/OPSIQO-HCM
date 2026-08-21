@@ -1,0 +1,9 @@
+import { describe,it,expect } from 'vitest';import fs from 'node:fs';
+const read=(p:string)=>fs.readFileSync(p,'utf8');
+describe('OPSIQO ONE V7.31 runtime translation finalization',()=>{
+ it('keeps consequential action routing ahead of normal routing',()=>{const s=read('src/lib/opsiqo-one/command-router.ts');expect(s.indexOf('for(const item of blockedConsequential)')).toBeLessThan(s.indexOf('for(const item of patterns)'))});
+ it('keeps Safe Execute limited to directly targeted notification-read state',()=>{const s=read('src/lib/opsiqo-one/safe-execution.ts');expect((s.match(/id:'notifications\.mark_visible_read'/g)||[]).length).toBe(1);expect(s).not.toContain("id:'preference.locale.update'")});
+ it('uses the V7.31 or later translation catalog',()=>{const s=read('src/lib/opsiqo-one/legacy-surface-i18n.ts');const active=Number(s.match(/legacy-surface-translations-v7-(\d+)\.json/)?.[1]||0);expect(active).toBeGreaterThanOrEqual(31)});
+ it('runtime-wires high-value closing surfaces',()=>{for(const [file,id] of [['src/components/skills-passport-workspace.tsx','skills_passport'],['src/components/manager-copilot-workspace.tsx','manager_copilot'],['src/components/career-gps-workspace.tsx','career_gps'],['src/components/talent-marketplace-workspace.tsx','talent_marketplace'],['src/components/automation-control.tsx','automation_control'],['src/components/contract-import-workspace.tsx','contract_import'],['src/components/manager-portal-workspace.tsx','manager_portal'],['src/components/employee-concierge-workspace.tsx','employee_concierge']] as const){expect(read(file)).toContain(`useLegacySurfaceTranslation('${id}'`)}});
+ it('keeps production attestation human-gated',()=>{const s=read('scripts/opsiqo85-v7-31-final-release-attestation.mjs');expect(s).toContain('validateHumanSignoff');expect(s).toContain('productionDeploymentApproved')});
+});

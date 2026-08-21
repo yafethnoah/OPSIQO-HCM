@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/http/client';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 export function EmployeeRelationsWorkspace(){
+  const translationRoot=useRef<HTMLDivElement>(null);
+  useLegacySurfaceTranslation('employee_relations',translationRoot);
   const [orgId,setOrgId]=useState('');
   const [actor,setActor]=useState<any>(null);
   const [rows,setRows]=useState<any[]>([]);
@@ -59,7 +62,7 @@ export function EmployeeRelationsWorkspace(){
   const cards=useMemo(()=>[['Open cases',metrics.openCases||0],['High risk',metrics.highRisk||0],['Investigations',metrics.investigations||0],['Overdue actions',metrics.overdueActions||0],['Accommodation reviews',metrics.accommodationsDue||0],['Outcome notices due',metrics.outcomeNoticesDue||0],['Closed YTD',metrics.closedYtd||0]], [metrics]);
   const violenceWarning=form.type==='workplace_violence'||form.riskLevel==='critical';
 
-  return <div className="stack">
+  return <div ref={translationRoot} className="stack">
     {Object.keys(metrics).length>0&&<div className="metricGrid">{cards.map(([k,v])=><div className="metricCard" key={String(k)}><span>{k}</span><strong>{v}</strong></div>)}</div>}
     {error&&<div className="notice error">{error}</div>}
     <section className="panel">

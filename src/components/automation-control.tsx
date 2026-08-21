@@ -1,7 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import { AUTOMATION_CATALOG } from '@/lib/automation/catalog';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 type Lane={lane:string;category:string;status:'completed'|'failed'|'skipped';durationMs:number;details?:Record<string,unknown>;error?:string};
 type Coverage={automatedLanes:number;automatedCapabilities?:number;completedLanes:number;failedLanes:number;humanApprovalBoundaries:number};
@@ -22,15 +23,16 @@ const boundaryLabel=(value:string)=>value==='automatic'?'Automatic':value==='aut
 const detailText=(details?:Record<string,unknown>)=>details?Object.entries(details).filter(([,v])=>['string','number','boolean'].includes(typeof v)).slice(0,6).map(([k,v])=>`${k.replaceAll('_',' ')}: ${String(v)}`).join(' · '):'Completed';
 
 export function AutomationControl(){
+ const translationRoot=useRef<HTMLDivElement>(null);useLegacySurfaceTranslation('automation_control',translationRoot);
  const[runs,setRuns]=useState<Run[]>([]);const[busy,setBusy]=useState(false);const[error,setError]=useState('');const[msg,setMsg]=useState('');
  const load=async()=>{try{const r=await apiFetch<{data:Run[]}>(`/api/organizations/${activeOrgId()}/automation`);setRuns(r.data);setError('')}catch(e){setError(e instanceof Error?e.message:'Unable to load automation runs.')}};
  useEffect(()=>{void load();},[]);
  async function run(){setBusy(true);setError('');setMsg('');try{const r=await apiFetch<{data:Summary}>(`/api/organizations/${activeOrgId()}/automation`,{method:'POST'});const failed=r.data.coverage?.failedLanes||0;setMsg(failed?`Automation cycle completed with ${failed} isolated lane failure(s); unaffected lanes continued.`:'Automation cycle completed successfully.');await load()}catch(e){setError(e instanceof Error?e.message:'Automation run failed.')}finally{setBusy(false)}}
  const latest=runs[0],lanes=latest?.summary?.lanes||[],coverage=latest?.summary?.coverage;
- return <div className="stack">
+ return <div ref={translationRoot} className="stack">
   {error&&<div className="error" role="alert">{error}</div>}{msg&&<div className="success" role="status">{msg}</div>}
   <div className="grid2">
-   <section className="card stack"><h2 className="sectionTitle">Automation control plane</h2><p className="muted">OPSIQO now runs the safe administrative, monitoring, reminder, event, workflow, integration and governance work automatically. One lane failing no longer stops unrelated automation lanes.</p><button className="button" disabled={busy} onClick={run}>{busy?'Running controlled automation…':'Run full automation cycle now'}</button><div className="securityGate"><strong>Production scheduler</strong><div className="muted">Schedule the secret-protected <code>/api/internal/automation</code> endpoint from Cloud Scheduler or another trusted scheduler. A 30–60 minute cadence is appropriate because every lane is due-date/idempotency governed.</div></div></section>
+   <section className="card stack"><h2 className="sectionTitle">Automation control plane</h2><p className="muted">OPSIQO now runs the safe administrative, monitoring, reminder, event, workflow, integration and governance work automatically. One lane failing no longer stops unrelated automation lanes.</p><button className="button" disabled={busy} onClick={run}>{busy?'Running controlled automation…':'Run full automation cycle now'}</button><div className="securityGate"><strong>Production scheduler</strong><div className="muted">Schedule the secret-protected <code data-opsiqo-no-translate="true">/api/internal/automation</code> endpoint from Cloud Scheduler or another trusted scheduler. A 30–60 minute cadence is appropriate because every lane is due-date/idempotency governed.</div></div></section>
    <section className="card stack"><h2 className="sectionTitle">Automation coverage</h2><div className="settingsGrid"><Val label="Automated capabilities" value={String(coverage?.automatedCapabilities??automated.length)}/><Val label="Automation lanes" value={coverage?String(coverage.automatedLanes):'Not run yet'}/><Val label="Last-cycle lanes completed" value={coverage?String(coverage.completedLanes):'Not run yet'}/><Val label="Last-cycle lane failures" value={coverage?String(coverage.failedLanes):'Not run yet'}/><Val label="Human approval boundaries" value={String(coverage?.humanApprovalBoundaries??governed.length)}/></div><div className="notice">Automation executes approved/configured administrative work and evidence monitoring. It does not decide hiring, termination, discipline, promotion/demotion, individual pay, successor selection, privileged access grants or policy/legal conclusions.</div></section>
   </div>
 

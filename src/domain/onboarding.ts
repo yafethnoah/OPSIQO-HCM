@@ -87,6 +87,9 @@ export interface PrehireDocument {
   storagePath: string;
   sha256: string;
   scanStatus: 'not_scanned' | 'clean' | 'blocked';
+  scanEvidenceRef?: string;
+  scanRecordedBy?: string;
+  scanRecordedAt?: string;
   uploadedAt: string;
   uploadedBy: 'candidate' | string;
 }

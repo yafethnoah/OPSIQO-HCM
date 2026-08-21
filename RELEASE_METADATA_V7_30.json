@@ -1,0 +1,13 @@
+{
+  "release": "OPSIQO ONE V7.30",
+  "title": "Final Source Closure & Validated Production Sign-off",
+  "overallProgressPercent": 99.9,
+  "sourcePhaseComplete": true,
+  "productionDeploymentPerformed": false,
+  "translation": {
+    "reviewedSourceCandidates": 3136,
+    "remainingMeasuredCandidates": 415,
+    "governedSurfaces": 51
+  },
+  "boundary": "V7.30 completes the planned source-closure phase and strengthens validated human sign-off. Overall OPSIQO progress remains below 100 until dependency-backed Windows certification, manual accessibility approval, connector UAT approval, release/change approval and controlled production deployment evidence are completed. This metadata is not a production certification claim."
+}

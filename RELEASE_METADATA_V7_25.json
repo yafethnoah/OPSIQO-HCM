@@ -1,0 +1,23 @@
+{
+  "product": "OPSIQO ONE",
+  "hcmVersion": "8.5",
+  "release": "7.25",
+  "releaseName": "Production Certification Closure",
+  "date": "2026-08-19",
+  "overallProgressPercent": 96,
+  "safeExecuteAllowlist": ["notifications.mark_visible_read"],
+  "translation": {
+    "supportedLocales": ["en", "fr", "es", "ar"],
+    "cataloguedSurfaces": 31,
+    "catalogEntries": 2029,
+    "reviewedSourceCandidates": 1995,
+    "remainingHeuristicCandidates": 1810,
+    "totalSourceCandidates": 3805
+  },
+  "certification": {
+    "isolatedFirebaseConfig": "firebase.test.json",
+    "emulatorProject": "demo-opsiqo-local",
+    "sanitizedLedger": "artifacts/v7-25-certification-ledger.json"
+  },
+  "certificationBoundary": "Source-complete/source-audited; dependency-backed Windows certification required before deployment-certified status."
+}

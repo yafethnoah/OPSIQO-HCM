@@ -1,0 +1,24 @@
+import type { IntegrationDashboard } from '@/domain/integration';
+export type IntegrationReadinessSignal={id:string;severity:'high'|'medium'|'info'|'good';title:string;detail:string};
+export interface IntegrationProductionReadiness{status:'production_ready'|'review_required'|'not_assessed';score:number|null;signals:IntegrationReadinessSignal[];evidenceCoverage:number;boundary:string}
+export function integrationProductionReadiness(data:IntegrationDashboard):IntegrationProductionReadiness{
+ const signals:IntegrationReadinessSignal[]=[];const connectors=data.connectors;const active=connectors.filter(c=>c.status==='active');
+ const coverageInputs=[connectors.length>0,data.contracts.length>0,data.runs.length>0,data.metrics.activeRuntimeProfiles>0];const evidenceCoverage=Math.round(coverageInputs.filter(Boolean).length/coverageInputs.length*100);
+ for(const c of active){
+  if(['degraded','failing'].includes(c.health))signals.push({id:`health-${c.id}`,severity:'high',title:`${c.code} runtime health requires review`,detail:`Recorded connector health is ${c.health}.`});
+  if(c.authMode!=='none'&&!c.secretRef)signals.push({id:`secret-${c.id}`,severity:'high',title:`${c.code} is missing a governed secret reference`,detail:'Authenticated connectors must use a server-side secret reference; inline credentials are prohibited.'});
+  if(c.baseUrl&&['rest_json','scim2'].includes(c.protocol)&&!/^https:\/\//i.test(c.baseUrl))signals.push({id:`tls-${c.id}`,severity:'high',title:`${c.code} endpoint is not HTTPS`,detail:'Production REST/SCIM endpoints must use HTTPS.'});
+  if(!c.idempotencyRequired)signals.push({id:`idempotency-${c.id}`,severity:'medium',title:`${c.code} does not require idempotency`,detail:'Production mutation/integration flows should protect against duplicate delivery.'});
+  if(!c.reconciliationRequired&&c.direction!=='outbound')signals.push({id:`reconciliation-${c.id}`,severity:'medium',title:`${c.code} does not require reconciliation`,detail:'Inbound/bidirectional production connectors should reconcile accepted evidence before domain promotion.'});
+ }
+ if(data.metrics.failedRuns24h>0)signals.push({id:'failed-runs',severity:'high',title:`${data.metrics.failedRuns24h} failed integration run(s) / 24h`,detail:'Recent execution failures must be reviewed before production readiness is treated as healthy.'});
+ if(data.metrics.openDeadLetters>0)signals.push({id:'dead-letters',severity:'high',title:`${data.metrics.openDeadLetters} open dead-letter item(s)`,detail:'Resolve or explicitly govern failed records before treating production integration evidence as healthy.'});
+ if(data.metrics.reconciliationVariances>0)signals.push({id:'reconciliation-variance',severity:'high',title:`${data.metrics.reconciliationVariances} reconciliation variance(s)`,detail:'Recorded source/target variance requires human review.'});
+ if(data.metrics.openRuntimeCircuits>0)signals.push({id:'open-circuits',severity:'high',title:`${data.metrics.openRuntimeCircuits} runtime circuit(s) open`,detail:'Open circuit-breaker evidence indicates runtime instability or repeated transport failure.'});
+ if(data.metrics.overdueRuntimeSchedules>0)signals.push({id:'overdue-schedules',severity:'medium',title:`${data.metrics.overdueRuntimeSchedules} schedule(s) overdue`,detail:'Scheduled integrations have missed their recorded execution window.'});
+ if(data.metrics.rejectedWebhookReceipts24h>0)signals.push({id:'rejected-webhooks',severity:'medium',title:`${data.metrics.rejectedWebhookReceipts24h} rejected webhook receipt(s) / 24h`,detail:'Review signature, timestamp, contract or payload-validation failures.'});
+ if(evidenceCoverage<50)signals.push({id:'coverage',severity:'info',title:'Production readiness evidence is incomplete',detail:'Configure governed connectors, approved contracts, runtime profiles and run evidence before drawing a production-readiness conclusion.'});
+ const blocking=signals.some(s=>s.severity==='high'),review=blocking||signals.some(s=>s.severity==='medium');const status=evidenceCoverage<50?'not_assessed':review?'review_required':'production_ready';
+ if(status==='production_ready')signals.unshift({id:'ready',severity:'good',title:'Configured integration evidence has no current production-readiness blocker',detail:'This reflects OPSIQO connector/runtime evidence only and is not a vendor, legal, privacy or external-system certification.'});
+ return{status,score:evidenceCoverage<50?null:data.metrics.readinessScore,signals,evidenceCoverage,boundary:'Production Integration Readiness uses configured OPSIQO connector, contract, runtime, dead-letter, reconciliation, circuit, schedule and webhook evidence. It never reads or displays credential values and does not certify an external vendor, legal compliance, privacy compliance or business correctness.'};
+}

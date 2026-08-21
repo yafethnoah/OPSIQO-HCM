@@ -1,20 +1,22 @@
 'use client';
-import { useEffect,useMemo,useState } from 'react';
+import { useEffect,useMemo,useRef,useState } from 'react';
 import { activeOrgId,apiFetch } from '@/lib/http/client';
 import type { ActorContext } from '@/domain/security';
 import type { CareerDashboard } from '@/domain/career';
 import { LoadingState } from '@/components/data-states';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 type Tab='overview'|'profile'|'opportunities'|'readiness'|'succession'|'talent'|'setup';
 export function CareerWorkspace(){
+ const surfaceRef=useRef<HTMLDivElement>(null);useLegacySurfaceTranslation('career',surfaceRef);
  const[data,setData]=useState<CareerDashboard|null>(null),[actor,setActor]=useState<ActorContext|null>(null),[tab,setTab]=useState<Tab>('overview'),[error,setError]=useState(''),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false);
  const load=async()=>{setError('');try{const[d,m]=await Promise.all([apiFetch<{data:CareerDashboard}>(`/api/organizations/${activeOrgId()}/career/dashboard`),apiFetch<{actor:ActorContext}>('/api/me')]);setData(d.data);setActor(m.actor);}catch(e){setError(e instanceof Error?e.message:'Unable to load career workspace.');}};
  useEffect(()=>{load();const h=()=>load();window.addEventListener('opsiqo:organization-changed',h);return()=>window.removeEventListener('opsiqo:organization-changed',h);},[]);
  async function call(path:string,init:RequestInit){setBusy(true);setError('');setMsg('');try{await apiFetch(path,init);setMsg('Saved successfully.');await load();}catch(e){setError(e instanceof Error?e.message:'Action failed.');}finally{setBusy(false);}}
- if(!data||!actor)return <div className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading career and succession intelligence…"/></div>;
+ if(!data||!actor)return <div ref={surfaceRef} className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading career and succession intelligence…"/></div>;
  const canSuccession=actor.permissions.includes('succession.read'),canManageSuccession=actor.permissions.includes('succession.manage'),canTalent=actor.permissions.includes('talent.calibrate'),tabs=(['overview','profile','opportunities','readiness',...(canSuccession?['succession' as Tab]:[]),...(canTalent?['talent' as Tab]:[]),...(actor.permissions.includes('career.manage')||canTalent?['setup' as Tab]:[])] as Tab[]);
  const name=(id:string)=>data.workerDirectory.find(w=>w.id===id)?.displayName||id,pos=(id:string)=>data.positionDirectory.find(p=>p.id===id)?.title||id;
- return <div className="stack">{error&&<div className="error">{error}</div>}{msg&&<div className="success">{msg}</div>}
+ return <div ref={surfaceRef} className="stack">{error&&<div className="error">{error}</div>}{msg&&<div className="success">{msg}</div>}
   <div className="learningHero"><div><div className="eyebrow">Phase 3 · Career & Succession Intelligence</div><h2>Evidence → readiness → mobility → succession</h2><p>Role-fit scores explain evidence. Human judgment remains mandatory for potential, nominations and succession decisions.</p></div><div className="performanceHeroScore"><span>Scope</span><strong>{data.scope}</strong><small>Generated {new Date(data.generatedAt).toLocaleString()}</small></div></div>
   <div className="tabBar">{tabs.map(t=><button key={t} className={tab===t?'tab active':'tab'} onClick={()=>setTab(t)}>{t[0]!.toUpperCase()+t.slice(1)}</button>)}</div>
   {tab==='overview'&&<Overview data={data} name={name} pos={pos}/>} {tab==='profile'&&<Profile data={data} actor={actor} busy={busy} call={call}/>} {tab==='opportunities'&&<Opportunities data={data} actor={actor} busy={busy} call={call}/>} {tab==='readiness'&&<Readiness data={data} name={name} busy={busy} call={call}/>} {tab==='succession'&&canSuccession&&<Succession data={data} name={name} pos={pos} canManage={canManageSuccession} canConfirm={canTalent} busy={busy} call={call}/>} {tab==='talent'&&canTalent&&<Talent data={data} name={name} busy={busy} call={call}/>} {tab==='setup'&&<Setup data={data} actor={actor} busy={busy} call={call}/>} 

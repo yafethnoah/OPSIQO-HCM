@@ -37,20 +37,7 @@ add('temporary restore cleanup', closure.includes('gcloud firestore databases de
 add('full production evidence sequence', ['review-lockfile.mjs', 'npm ci', 'npm audit', 'security:static-scan', 'gitleaks/gitleaks-action@v3', 'github/codeql-action/analyze@v4', 'supplychain:sbom', 'typecheck', 'npm test', 'test:rules', 'npm run build', 'ai:evaluate', 'ai:governance-check', 'preflight:production', 'uat:lifecycle', 'supplychain:provenance', 'production:evidence:generate', 'production:evidence:verify'].every((token) => closure.includes(token)), 'The closure workflow must execute all mandatory dependency/build/security/AI/UAT/evidence gates before final evidence verification.');
 
 const productionWorkflow = text('.github/workflows/production-promotion.yml');
-const productionCertificationRunner = text('RUN_OPSIQO_8_5_V7_9_2_PRODUCTION_CERTIFICATION.ps1');
-
-const productionCertificationDelegation =
-  productionWorkflow.includes('RUN_OPSIQO_8_5_V7_9_2_PRODUCTION_CERTIFICATION.ps1') &&
-  productionCertificationRunner.includes('npm run preflight:production');
-
-add(
-  'v3.6.1 production promotion workflow',
-  productionWorkflow.includes("OPSIQO_RELEASE_VERSION: '3.6.1'") &&
-    productionWorkflow.includes('OPSIQO_PRODUCTION_EVIDENCE_REF') &&
-    productionWorkflow.includes('review-lockfile.mjs') &&
-    productionCertificationDelegation,
-  'Production promotion must identify v3.6.1, require approved evidence references, review the lockfile, and delegate fail-closed production preflight to the production certification runner.',
-);
+add('v3.6.1 production promotion workflow', productionWorkflow.includes("OPSIQO_RELEASE_VERSION: '3.6.1'") && productionWorkflow.includes('OPSIQO_PRODUCTION_EVIDENCE_REF') && productionWorkflow.includes('npm run preflight:production') && productionWorkflow.includes('review-lockfile.mjs'), 'Production promotion must identify v3.6.1 and require approved evidence references.');
 const lockfileBootstrap = text('.github/workflows/lockfile-bootstrap.yml');
 add('reviewed lockfile bootstrap workflow', Boolean(lockfileBootstrap) && lockfileBootstrap.includes('GENERATE_LOCKFILE') && lockfileBootstrap.includes('review-lockfile.mjs') && lockfileBootstrap.includes('npm ci --ignore-scripts') && lockfileBootstrap.includes('actions/upload-artifact@v4') && !lockfileBootstrap.includes('git push'), 'Lockfile bootstrap must be explicit, dependency-reviewed and artifact-only; it must not auto-commit or push the generated lockfile.');
 add('dependency-free lockfile reviewer', existsSync('scripts/review-lockfile.mjs'), 'The lockfile review script must ship so generated lockfiles can be structurally reviewed before protected production closure.');

@@ -1,0 +1,32 @@
+{
+  "version": "7.32",
+  "boundary": "Human sign-off template only. Do not place passwords, tokens, private keys, cookies, API secrets, employee case content or other sensitive values in this file. Approval requires at least one evidence reference.",
+  "manualAccessibility": {
+    "approved": false,
+    "reviewedBy": "",
+    "reviewedAt": "",
+    "evidenceRefs": [],
+    "scope": ["keyboard-only representative journeys", "screen reader representative journeys", "contrast", "200% and 400% zoom/reflow", "error and validation recovery"]
+  },
+  "connectorUat": {
+    "approved": false,
+    "reviewedBy": "",
+    "reviewedAt": "",
+    "evidenceRefs": [],
+    "scope": ["approved sandbox/test-mode run", "reconciliation", "dead-letter handling", "idempotency", "credential reference governance"]
+  },
+  "releaseChangeApproval": {
+    "approved": false,
+    "reviewedBy": "",
+    "reviewedAt": "",
+    "changeReference": "",
+    "evidenceRefs": []
+  },
+  "productionDeployment": {
+    "approved": false,
+    "reviewedBy": "",
+    "reviewedAt": "",
+    "releaseReference": "",
+    "evidenceRefs": []
+  }
+}

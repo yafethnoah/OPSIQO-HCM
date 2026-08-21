@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useState, useRef, type CSSProperties } from "react";
+import { useLegacySurfaceTranslation } from "@/lib/opsiqo-one/legacy-surface-i18n";
 
 export type GovernedGanttStatus =
   | "not_started"
@@ -59,6 +60,8 @@ export function GovernedGantt({
   tasks: GovernedGanttTask[];
   now?: Date;
 }) {
+  const translationRoot = useRef<HTMLElement>(null);
+  useLegacySurfaceTranslation("governed_gantt", translationRoot);
   const [zoom, setZoom] = useState<Zoom>("week");
   const [status, setStatus] = useState<GovernedGanttStatus | "all">("all");
   const [owner, setOwner] = useState("all");
@@ -104,7 +107,7 @@ export function GovernedGantt({
   };
 
   return (
-    <section aria-labelledby="governed-gantt-title">
+    <section ref={translationRoot} aria-labelledby="governed-gantt-title">
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "end", marginBottom: 12 }}>
         <div>
           <h2 id="governed-gantt-title" style={{ marginBottom: 4 }}>Plan timeline</h2>

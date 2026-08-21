@@ -1,6 +1,7 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import { GovernedGantt, type GovernedGanttTask, type GovernedGanttStatus } from '@/components/governed-gantt';
 import { WORKFLOW_TRIGGER_OPTIONS } from '@/domain/workflow';
@@ -11,6 +12,7 @@ type StepRun = { id:string;workflowStepId:string;name:string;type:string;ownerRo
 type Run = {id:string;workflowId:string;workflowName?:string;status:string;progress:number;completedSteps:number;totalSteps:number;startedAt:string;sourceEventId?:string;steps:StepRun[]};
 
 export function WorkflowPanel() {
+  const translationRoot=useRef<HTMLDivElement>(null);useLegacySurfaceTranslation('workflows',translationRoot);
   const [data, setData] = useState<Workflow[]>([]);
   const [runs, setRuns] = useState<Run[]>([]);
   const [error, setError] = useState('');
@@ -88,6 +90,16 @@ export function WorkflowPanel() {
     }
   }
 
+  async function toggleWorkflow(id:string, enabled:boolean) {
+    setError(''); setStarted('');
+    try {
+      const orgId=activeOrgId();
+      await apiFetch(`/api/organizations/${orgId}/workflows/${id}`,{method:'POST',body:JSON.stringify({action:enabled?'disable':'enable'})});
+      setStarted(`Workflow ${enabled?'disabled':'enabled'} after governed review.`);
+      await load();
+    } catch(e) { setError(e instanceof Error?e.message:'Unable to update workflow status.'); }
+  }
+
   async function run(id:string) {
     setError(''); setStarted('');
     try {
@@ -106,9 +118,9 @@ export function WorkflowPanel() {
     }catch(e){setError(e instanceof Error?e.message:'Unable to update workflow step.');}
   }
 
-  return <div className="stack">
+  return <div className="stack" ref={translationRoot}>
     <form className="card stack automationDesigner" onSubmit={create} aria-busy={creating}>
-      <div><span className="eyebrow">Automation Designer 2.0</span><h2 className="sectionTitle">Create governed event automation</h2><p className="muted">Choose a trigger, optionally filter the event payload, then use a safe step template. Automated notifications may run without a person; task and approval steps still require their configured owners.</p></div>
+      <div className="toolbar"><div><span className="eyebrow">Automation Designer 2.0</span><h2 className="sectionTitle">Create governed event automation</h2><p className="muted">Choose a trigger, optionally filter the event payload, then use a safe step template. Automated notifications may run without a person; task and approval steps still require their configured owners.</p></div><a className="button secondary" href="/automation-marketplace">Automation Marketplace</a></div>
       <div className="formGrid">
         <label className="field"><span>Name</span><input required name="name" className="input" placeholder="High-priority HR service escalation" disabled={creating} /></label>
         <label className="field"><span>Description</span><input name="description" className="input" placeholder="Route selected events through governed review" disabled={creating} /></label>
@@ -121,7 +133,7 @@ export function WorkflowPanel() {
     </form>
     {error && <div className="error">{error}</div>}{started && <div className="notice">{started}</div>}
     <section className="card tableWrap"><h2 className="sectionTitle">Workflow definitions</h2><table><thead><tr><th>Workflow</th><th>Trigger</th><th>Conditions</th><th>Version</th><th>Steps</th><th>Status</th><th></th></tr></thead><tbody>
-      {data.map(w => <tr key={w.id}><td><strong>{w.name}</strong><div className="muted">{w.description || '—'}</div></td><td>{w.trigger}</td><td>{w.conditions?.length?`${w.conditionMode||'all'} · ${w.conditions.length}`:'—'}</td><td>v{w.version}</td><td>{w.steps.length}</td><td><span className="badge">{w.enabled ? 'enabled':'disabled'}</span></td><td><button className="button secondary" type="button" onClick={() => run(w.id)}>Run</button></td></tr>)}
+      {data.map(w => <tr key={w.id}><td><strong>{w.name}</strong><div className="muted">{w.description || '—'}</div></td><td>{w.trigger}</td><td>{w.conditions?.length?`${w.conditionMode||'all'} · ${w.conditions.length}`:'—'}</td><td>v{w.version}</td><td>{w.steps.length}</td><td><span className="badge">{w.enabled ? 'enabled':'disabled'}</span></td><td><div className="row wrap"><button className="button secondary" type="button" disabled={!w.enabled} onClick={() => run(w.id)}>Run</button><button className="button secondary" type="button" onClick={()=>toggleWorkflow(w.id,w.enabled)}>{w.enabled?'Disable':'Enable'}</button></div></td></tr>)}
       {!data.length && <tr><td colSpan={7} className="muted">No workflows yet.</td></tr>}
     </tbody></table></section>
 

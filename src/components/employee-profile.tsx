@@ -1,7 +1,8 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 type Position = { id:string; title:string; orgUnitId:string; availableHeadcount:number; availableFte:number; capacityState:string };
 type Unit = { id:string; name:string };
@@ -18,6 +19,8 @@ type Detail = {
 };
 
 export function EmployeeProfile({ workerId }: { workerId: string }) {
+  const translationRoot=useRef<HTMLDivElement>(null);
+  useLegacySurfaceTranslation('employee_profile',translationRoot);
   const [detail,setDetail]=useState<Detail|null>(null);
   const [positions,setPositions]=useState<Position[]>([]);
   const [units,setUnits]=useState<Unit[]>([]);
@@ -90,8 +93,8 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
     catch(e){setError(e instanceof Error?e.message:'Unable to update scheduled secondary assignment change.');}
   }
 
-  if(!detail)return <div className="card">{error?<span className="error">{error}</span>:<span className="muted">Loading employee profile…</span>}</div>;
-  return <div className="stack">
+  if(!detail)return <div ref={translationRoot} className="card">{error?<span className="error">{error}</span>:<span className="muted">Loading employee profile…</span>}</div>;
+  return <div ref={translationRoot} className="stack">
     {error&&<div className="error">{error}</div>}{message&&<div className="notice">{message}</div>}
     <div className="grid4">
       <div className="card"><div className="metricLabel">Employee</div><div className="profileName">{detail.worker.displayName}</div><div className="muted">{detail.worker.employeeNumber}</div></div>

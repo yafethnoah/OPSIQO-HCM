@@ -381,3 +381,90 @@ main:focus { outline: none; }
   .navFinder { padding-inline: 12px; }
   .navFinderInput { font-size: 16px; } /* avoid iOS zoom */
 }
+
+/* OPSIQO ONE v7.10 — outcome navigation, universal command center and intelligence foundation */
+.outcomeNav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:11px 12px 8px;border-bottom:1px solid rgba(92,166,220,.10)}
+.outcomeNavItem{display:grid;place-items:center;gap:3px;min-width:0;padding:7px 2px;border:1px solid transparent;border-radius:9px;color:#7898ad;font-size:9px;text-align:center}
+.outcomeNavItem>span{font-size:14px;line-height:1;color:#65cfe1}.outcomeNavItem strong{font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.outcomeNavItem:hover,.outcomeNavItem.active{background:rgba(0,229,255,.065);border-color:rgba(0,229,255,.18);color:#e9f9ff}
+.opsiqoCommand{position:sticky;top:0;z-index:35;width:min(1680px,100%);margin:0 auto 18px;border:1px solid #1e415b;border-radius:15px;background:rgba(5,14,24,.95);box-shadow:0 14px 40px rgba(0,0,0,.22);backdrop-filter:blur(16px)}
+.opsiqoCommandForm{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:9px;align-items:center;padding:9px}
+.opsiqoCommandMark{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(145deg,rgba(30,91,255,.24),rgba(0,229,255,.15));border:1px solid rgba(0,229,255,.22);color:#74edfa;font-size:17px}
+.opsiqoCommandInput{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#eef8ff;padding:9px 5px;font-size:15px}
+.opsiqoCommandInput::placeholder{color:#6d8ca3}.opsiqoCommandInput:focus{box-shadow:none}
+.opsiqoCommandSubmit{white-space:nowrap}.opsiqoCommandClose{display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:#8ca6b9;font-size:22px;cursor:pointer}.opsiqoCommandClose:hover{background:#102335;color:#fff}
+.opsiqoCommandPanel{border-top:1px solid #18364d;padding:12px 14px 14px;display:grid;gap:11px}
+.opsiqoCommandSuggestions{display:grid;gap:10px}.opsiqoCommandSuggestions>div:first-child{display:grid;gap:2px}.commandSuggestion{border:1px solid #25465d;background:#0a1927;color:#a8c7d8;border-radius:999px;padding:7px 10px;cursor:pointer;font-size:12px}.commandSuggestion:hover{border-color:#2b819b;color:#e5fbff}
+.commandResult{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:13px;border:1px solid #24485f;border-radius:12px;background:#081825}.commandResult.high{border-color:rgba(255,107,112,.35);background:rgba(255,107,112,.05)}.commandResultBody{display:grid;gap:7px;min-width:0}.commandResultBody>strong{font-size:15px;color:#edf9ff}.commandResultBody p{margin:0;line-height:1.5}.commandResultActions{display:flex;gap:7px;flex-wrap:wrap;flex:0 0 auto}.commandAiAnswer{padding:10px 11px;border-radius:10px;background:#0a1c2b;border-left:3px solid #00cfe8}.commandAiAnswer small{color:#7fa3b8}.commandBoundary{font-size:11px;color:#6f8da2}
+.actionLevel{display:inline-flex;align-items:center;width:max-content;padding:3px 7px;border-radius:999px;border:1px solid #31556c;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.08em;background:#0b1a27;color:#9bb8ca}.level-observe{border-color:#35516a!important}.level-recommend{border-color:#426b83!important}.level-prepare{border-color:#2d8596!important}.level-execute{border-color:#3f8d68!important}
+.oneHero{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;background:radial-gradient(circle at 85% 10%,rgba(0,229,255,.07),transparent 30%),linear-gradient(135deg,#091927,#07121e)}.oneHero h1{margin:.25rem 0 .4rem;font-size:clamp(25px,3vw,38px);letter-spacing:-.035em;color:#f0f8ff}.oneHero p{max-width:850px;line-height:1.55}
+.workBucketGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}.workBucket{display:grid;grid-template-columns:1fr auto;gap:4px 10px;text-align:left;padding:15px;border:1px solid #1d3c54;border-radius:13px;background:#081522;color:#ddecf5;cursor:pointer}.workBucket:hover,.workBucket.active{border-color:#2a819a;background:#0a1b29}.workBucket>span{font-weight:750}.workBucket>strong{font-size:24px;color:#f2fbff}.workBucket>small{grid-column:1/-1;color:#7290a5;line-height:1.4}
+.oneWorkList{display:grid;gap:8px}.oneWorkItem{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:13px 14px;border:1px solid #1b394f;border-radius:11px;background:#081522}.oneWorkItem:hover{border-color:#2a728d;background:#0a1a28}.oneWorkItem p{margin:5px 0 0}.oneWorkItem>span:last-child{font-size:23px;color:#5d849c}.oneWorkItem.critical,.oneWorkItem.high{border-left:3px solid #b94f58}.oneWorkItem.medium{border-left:3px solid #a97a39}.oneWorkItem.info{border-left:3px solid #2b7b98}
+.agentGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.agentCard{display:grid;align-content:start;gap:9px;padding:15px;border:1px solid #1d3b52;border-radius:13px;background:linear-gradient(180deg,#091724,#07121e)}.agentCard p{margin:0;color:#8eabba;line-height:1.5}.agentGlyph{display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:rgba(0,229,255,.09);color:#71ebfa}.agentCapabilities{display:flex;flex-wrap:wrap;gap:5px}.agentCapabilities span{padding:4px 7px;border-radius:999px;background:#0b1e2d;border:1px solid #1c4056;color:#7fa2b6;font-size:10px}.agentCard small{color:#5f859d}
+.graphPreview{display:grid;gap:6px;margin:14px 0}.graphEdge{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;align-items:center;padding:8px 10px;border-radius:9px;background:#07131f;border:1px solid #173249}.graphEdge span:last-child{text-align:right}.graphEdge strong{color:#5dcadd;font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.safetyLevelGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.safetyLevel{display:grid;gap:9px;padding:14px;border:1px solid #1d3d54;border-radius:12px;background:#081522}.safetyLevel>strong{color:#e6f3fb;line-height:1.45}.safetyLevel p{margin:0;color:#7897aa;line-height:1.45;font-size:12px}
+.hubGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.hubGroup>div{display:grid;gap:5px}.hubLink{display:flex;align-items:center;justify-content:space-between;padding:10px 11px;border-radius:9px;border:1px solid transparent;color:#a9c0cf}.hubLink:hover{background:#0a1a28;border-color:#1e4359;color:#ecf9ff}
+html[data-theme="light"] .opsiqoCommand{background:rgba(255,255,255,.96);border-color:var(--line);box-shadow:var(--shadow)}html[data-theme="light"] .opsiqoCommandInput{color:var(--text)!important;background:transparent!important}html[data-theme="light"] .commandResult,html[data-theme="light"] .commandAiAnswer,html[data-theme="light"] .workBucket,html[data-theme="light"] .oneWorkItem,html[data-theme="light"] .agentCard,html[data-theme="light"] .graphEdge,html[data-theme="light"] .safetyLevel{background:var(--surface)!important;border-color:var(--line)!important;color:var(--text)!important}html[data-theme="light"] .oneHero{background:linear-gradient(135deg,#fff,#f6fbfc)!important}html[data-theme="light"] .oneHero h1,html[data-theme="light"] .commandResultBody>strong{color:var(--text)!important}
+@media(max-width:1100px){.agentGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.safetyLevelGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.workBucketGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:820px){.opsiqoCommand{position:relative;top:auto;margin-bottom:14px}.outcomeNav{grid-template-columns:repeat(5,minmax(52px,1fr))}.oneHero{flex-direction:column}.agentGrid,.hubGrid{grid-template-columns:1fr}}
+@media(max-width:620px){.opsiqoCommandForm{grid-template-columns:auto minmax(0,1fr) auto}.opsiqoCommandSubmit{grid-column:2/4;width:100%}.opsiqoCommandClose{grid-row:1;grid-column:3}.commandResult{flex-direction:column}.commandResultActions{width:100%}.commandResultActions .button{flex:1;text-align:center}.workBucketGrid,.safetyLevelGrid{grid-template-columns:1fr}.graphEdge{grid-template-columns:1fr}.graphEdge span:last-child{text-align:left}.graphEdge strong::before{content:'→ '}}
+
+/* OPSIQO ONE v7.11 — Cortex orchestration, Concierge, Copilot, Radar and AI governance */
+.commandExplain{display:grid;gap:7px;padding:10px 11px;border:1px solid #1c4056;border-radius:10px;background:#071522}.commandExplain summary{cursor:pointer;font-weight:800;color:#dff7ff}.commandExplain small,.commandExplain .muted{color:#7897aa}.cortexMiniSteps{display:grid;gap:6px}.cortexMiniSteps>div{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:flex-start}.cortexMiniSteps span:last-child{font-size:12px;line-height:1.45;color:#9bb4c5}.smartFormPreview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.smartField{display:grid;gap:2px;padding:9px;border:1px solid #19384d;border-radius:9px;background:#081725}.smartField>span{font-size:10px;color:#6f90a6;text-transform:uppercase;letter-spacing:.06em}.smartField>strong{font-size:12px;color:#e4f4fb}.smartField>small{font-size:10px;color:#6f8da2}.smartField.missing{border-color:rgba(240,174,77,.35)}.smartField.prefilled{border-color:rgba(69,212,138,.26)}
+.analyticsAsk{align-items:center}.analyticsAsk .grow{flex:1 1 420px}.analyticsAnswer{display:grid;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.analyticsAnswer code{display:block;margin-top:5px;font-size:9px;color:#5f859d;overflow-wrap:anywhere}.compactHub{grid-template-columns:repeat(4,minmax(0,1fr))}.compactHub .agentCard{text-decoration:none;color:inherit}.compactHub .agentCard>span:last-child{color:#5dcadd;font-size:20px}.copilotChecklist{display:grid;gap:10px;margin:0;padding-inline-start:22px;color:#a8c0cf;line-height:1.5}.radarActions{margin-top:9px}.compactInput{min-width:120px;padding:7px 9px!important}
+html[data-theme="light"] .commandExplain,html[data-theme="light"] .smartField{background:var(--surface)!important;border-color:var(--line)!important;color:var(--text)!important}
+@media(max-width:1100px){.compactHub{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.smartFormPreview,.compactHub{grid-template-columns:1fr}.cortexMiniSteps>div{grid-template-columns:1fr}}
+
+/* OPSIQO ONE v7.14 — Launchpad, adaptive navigation, Daily Brief and privacy-safe connectivity */
+.connectivityBanner{width:min(1680px,100%);margin:0 auto 10px;padding:9px 12px;border:1px solid #31576f;border-radius:11px;display:flex;gap:10px;align-items:center;background:#0a1927;color:#a9c4d5;font-size:12px}.connectivityBanner strong{color:#eef9ff}.connectivityBanner.offline{border-color:rgba(255,137,107,.45);background:rgba(122,51,39,.18)}.connectivityBanner.lowData{border-color:rgba(240,174,77,.4)}
+.navItemWrap{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:3px}.navItemWrap .navItem{min-width:0}.navPin{border:0;background:transparent;color:#537589;cursor:pointer;font-size:13px;padding:5px;border-radius:7px}.navPin:hover,.navPin.active{color:#72e6f4;background:rgba(0,229,255,.06)}.navSuggested{border-bottom:1px solid rgba(87,171,210,.12);padding-bottom:7px;margin-bottom:6px}.navSuggested .navGroupStaticLabel{color:#72d9e7}
+.briefGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.launchpadStats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.launchpadStats>div{padding:12px;border:1px solid var(--line);border-radius:11px}.launchpadSafeguards{display:grid;gap:7px;padding:12px;border:1px solid #1e4056;border-radius:11px;background:#071522;color:#8fb0c3;font-size:12px;line-height:1.45}
+html[dir="rtl"] .opsiqoCommandInput{text-align:right}html[dir="rtl"] .oneWorkItem>span:last-child{transform:scaleX(-1)}
+html[data-theme="light"] .connectivityBanner,html[data-theme="light"] .launchpadSafeguards{background:var(--surface);color:var(--text);border-color:var(--line)}
+@media(max-width:820px){.briefGrid{grid-template-columns:1fr}.connectivityBanner{border-radius:10px}.launchpadStats{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:620px){.connectivityBanner{align-items:flex-start;flex-direction:column}.launchpadStats{grid-template-columns:1fr}.navPin{min-width:34px;min-height:34px}}
+.mobileOutcomeNav{display:none}
+@media(max-width:820px){.main{padding-bottom:84px}.mobileOutcomeNav{position:fixed;z-index:60;left:10px;right:10px;bottom:max(10px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;padding:6px;border:1px solid #20445b;border-radius:15px;background:rgba(5,14,24,.96);box-shadow:0 14px 40px rgba(0,0,0,.35);backdrop-filter:blur(14px)}.mobileOutcomeNav a{display:grid;place-items:center;gap:2px;min-height:48px;border-radius:10px;color:#7697ab;font-size:9px;text-align:center}.mobileOutcomeNav a>span{font-size:15px;color:#61d6e6}.mobileOutcomeNav a.active{background:rgba(0,229,255,.08);color:#edfaff}.mobileOutcomeNav strong{font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}html[data-theme="light"] .mobileOutcomeNav{background:rgba(255,255,255,.96);border-color:var(--line)}}
+
+/* OPSIQO ONE v7.16 — accessibility hardening */
+html[data-strong-focus="true"] :focus-visible{outline:3px solid #78e9f5!important;outline-offset:3px!important;box-shadow:0 0 0 2px rgba(0,0,0,.65)!important}
+html[data-theme="light"][data-strong-focus="true"] :focus-visible{outline-color:#005fcc!important;box-shadow:0 0 0 2px rgba(255,255,255,.95)!important}
+html[data-underline-links="true"] a:not(.button):not(.navItem):not(.outcomeNavItem):not(.mobileOutcomeNav a){text-decoration:underline;text-decoration-thickness:.1em;text-underline-offset:.18em}
+html[data-high-contrast="true"]{--text:#fff;--muted:#c5dce8;--line:#5d8098;--surface:#02070c;--surface-2:#061019;--accent:#6ff3ff}
+html[data-high-contrast="true"] body{background:#000;color:#fff}html[data-high-contrast="true"] .card,html[data-high-contrast="true"] .sidebar,html[data-high-contrast="true"] .opsiqoCommand,html[data-high-contrast="true"] .mobileOutcomeNav{background:#02070c!important;border-color:#6a899e!important}html[data-theme="light"][data-high-contrast="true"]{--text:#000;--muted:#26333b;--line:#53636d;--surface:#fff;--surface-2:#f7f7f7;--accent:#004f9f}html[data-theme="light"][data-high-contrast="true"] body{background:#fff;color:#000}
+button,a,input,select,textarea,summary,[role="button"]{scroll-margin-block:96px}.button,.navPin,.settingsNavItem,.outcomeNavItem,.mobileOutcomeNav a{min-block-size:44px}.input,input,select,textarea{min-block-size:44px}summary{min-block-size:32px;display:list-item;padding-block:4px}
+.routeAnnouncer{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+@media (forced-colors: active){.button,.card,.input,input,select,textarea,.sidebar,.mobileOutcomeNav{forced-color-adjust:auto;border:1px solid CanvasText}.badge,.actionLevel{border:1px solid CanvasText}.navItem.active,.outcomeNavItem.active,.mobileOutcomeNav a.active{outline:2px solid Highlight}}
+
+.scanEvidenceControl{display:grid;grid-template-columns:minmax(150px,1fr) auto;gap:6px;align-items:end;min-width:min(360px,100%)}.scanEvidenceControl>span{grid-column:1/-1;font-size:11px;color:var(--muted)}.scanEvidenceControl .input{min-width:0}.prehireDocumentControl{display:grid;gap:6px;min-width:min(420px,100%);padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}@media(max-width:620px){.scanEvidenceControl{grid-template-columns:1fr}.scanEvidenceControl>span{grid-column:auto}.prehireDocumentControl{min-width:100%}}
+
+/* OPSIQO V7.32 H17 authenticated accessibility closure */
+button,input:not([type="hidden"]),select,textarea,[role="button"],.navPin{min-inline-size:24px;min-block-size:24px}
+input[type="checkbox"],input[type="radio"]{inline-size:24px;block-size:24px;min-inline-size:24px;min-block-size:24px}
+.stack,.card,.grid2,.grid4,.metricGrid,.briefGrid,.settingsGrid,.mainInner,.oneHero,.oneWorkItem,.toolbar,.row,.pageHeader{min-width:0;max-width:100%}
+.stack>*,.grid2>*,.grid4>*,.metricGrid>*,.briefGrid>*,.settingsGrid>*{min-width:0}
+input,select,textarea{max-inline-size:100%}
+@media(max-width:820px){.row,.toolbar,.pageHeader,.oneWorkItem{flex-wrap:wrap}.oneHero>*{min-width:0;max-width:100%}.tableWrap{max-width:100%;min-width:0;overflow-x:auto}pre,code{max-width:100%;overflow-wrap:anywhere;word-break:break-word}}
+.card,.oneWorkItem,.notice,.performanceHero,.learningHero,.experienceHero{overflow-wrap:anywhere;min-width:0;max-width:100%}
+img,svg,canvas{max-inline-size:100%}
+@media(max-width:820px){.row>a[href],.toolbar>a[href],.card>a[href]{display:inline-flex;align-items:center;min-inline-size:24px;min-block-size:24px}.performanceHeroScore,.compactInput,.clockBreak{min-width:0;max-width:100%}}
+
+
+/* OPSIQO V7.32 H19 shell locale and target-size closure */
+.navItem{min-height:32px;min-width:24px}
+.navPin{width:32px;height:32px;min-width:32px;min-height:32px;display:inline-grid;place-items:center;padding:0}
+.navGroupLabel,.navCollapse,.outcomeNavItem,.mobileOutcomeNav a{min-height:32px;min-width:24px}
+@media(max-width:820px){
+  .sidebar a[href],.sidebar button{min-height:32px}
+  .main a[href]{min-width:24px;min-height:24px}
+}
+
+/* OPSIQO V7.32 H20 mobile navigation target closure */
+@media(max-width:820px){
+  .sidebar nav.navScroll{grid-template-columns:1fr;overflow-x:hidden}
+  .navScroll>.navGroup,.navGroupItems,.navItemWrap{min-width:0;width:100%}
+  .navItemWrap .navItem{min-width:24px;min-inline-size:24px;width:100%}
+}
+/* H21 residual authenticated accessibility closure: action-level selects remain usable at 320px. */
+.aiGovernanceActionSelect{min-width:96px!important;min-inline-size:96px!important}

@@ -1,0 +1,827 @@
+{
+  "version": "7.30",
+  "supportedLocales": [
+    "en",
+    "fr",
+    "es",
+    "ar"
+  ],
+  "scannedFiles": 184,
+  "cataloguedSurfaceCount": 51,
+  "catalogEntries": 2886,
+  "globalReviewedExactPoolSize": 2103,
+  "conflictedExactSourceCount": 54,
+  "directReviewedSourceCandidates": 2890,
+  "globalReuseReviewedCandidates": 246,
+  "reviewedSourceCandidates": 3136,
+  "legacyCandidateCountRemaining": 415,
+  "totalSourceCandidates": 3551,
+  "catalogCompleteness": "complete",
+  "incompleteCatalog": [],
+  "topBacklog": [
+    {
+      "file": "src/components/automation-control.tsx",
+      "totalCandidates": 25,
+      "reviewedCandidates": 7,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 7,
+      "remainingCandidates": 18
+    },
+    {
+      "file": "src/components/skills-passport-workspace.tsx",
+      "totalCandidates": 25,
+      "reviewedCandidates": 7,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 7,
+      "remainingCandidates": 18
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "totalCandidates": 17,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 17
+    },
+    {
+      "file": "src/components/manager-copilot-workspace.tsx",
+      "totalCandidates": 23,
+      "reviewedCandidates": 7,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 7,
+      "remainingCandidates": 16
+    },
+    {
+      "file": "src/components/manager-portal-workspace.tsx",
+      "totalCandidates": 22,
+      "reviewedCandidates": 6,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 6,
+      "remainingCandidates": 16
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "totalCandidates": 21,
+      "reviewedCandidates": 5,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 5,
+      "remainingCandidates": 16
+    },
+    {
+      "file": "src/components/program-portfolio-workspace.tsx",
+      "totalCandidates": 23,
+      "reviewedCandidates": 8,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 8,
+      "remainingCandidates": 15
+    },
+    {
+      "file": "src/components/talent-marketplace-workspace.tsx",
+      "totalCandidates": 17,
+      "reviewedCandidates": 2,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 2,
+      "remainingCandidates": 15
+    },
+    {
+      "file": "src/components/people-table.tsx",
+      "totalCandidates": 24,
+      "reviewedCandidates": 10,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 10,
+      "remainingCandidates": 14
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "totalCandidates": 68,
+      "reviewedCandidates": 55,
+      "directReviewedCandidates": 55,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 13
+    },
+    {
+      "file": "src/components/opsiqo-command-bar.tsx",
+      "totalCandidates": 15,
+      "reviewedCandidates": 2,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 2,
+      "remainingCandidates": 13
+    },
+    {
+      "file": "src/components/lifecycle-command-center.tsx",
+      "totalCandidates": 14,
+      "reviewedCandidates": 2,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 2,
+      "remainingCandidates": 12
+    },
+    {
+      "file": "src/components/organization-launchpad-workspace.tsx",
+      "totalCandidates": 13,
+      "reviewedCandidates": 1,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 1,
+      "remainingCandidates": 12
+    },
+    {
+      "file": "src/components/employee-concierge-workspace.tsx",
+      "totalCandidates": 17,
+      "reviewedCandidates": 6,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 6,
+      "remainingCandidates": 11
+    },
+    {
+      "file": "src/components/privacy-governance-center.tsx",
+      "totalCandidates": 128,
+      "reviewedCandidates": 118,
+      "directReviewedCandidates": 114,
+      "globalReuseReviewedCandidates": 4,
+      "remainingCandidates": 10
+    },
+    {
+      "file": "src/components/recruiting-workspace.tsx",
+      "totalCandidates": 75,
+      "reviewedCandidates": 65,
+      "directReviewedCandidates": 55,
+      "globalReuseReviewedCandidates": 10,
+      "remainingCandidates": 10
+    },
+    {
+      "file": "src/components/manager-team.tsx",
+      "totalCandidates": 16,
+      "reviewedCandidates": 6,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 6,
+      "remainingCandidates": 10
+    },
+    {
+      "file": "src/components/operations-orchestrator-workspace.tsx",
+      "totalCandidates": 11,
+      "reviewedCandidates": 1,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 1,
+      "remainingCandidates": 10
+    },
+    {
+      "file": "src/components/prehire-portal.tsx",
+      "totalCandidates": 10,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 10
+    },
+    {
+      "file": "src/components/grant-workforce-workspace.tsx",
+      "totalCandidates": 18,
+      "reviewedCandidates": 9,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 9,
+      "remainingCandidates": 9
+    },
+    {
+      "file": "src/components/my-work-workspace.tsx",
+      "totalCandidates": 12,
+      "reviewedCandidates": 3,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 3,
+      "remainingCandidates": 9
+    },
+    {
+      "file": "src/components/organizational-memory-workspace.tsx",
+      "totalCandidates": 12,
+      "reviewedCandidates": 3,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 3,
+      "remainingCandidates": 9
+    },
+    {
+      "file": "src/components/evidence-center-summary.tsx",
+      "totalCandidates": 10,
+      "reviewedCandidates": 1,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 1,
+      "remainingCandidates": 9
+    },
+    {
+      "file": "src/components/operations-cockpit-workspace.tsx",
+      "totalCandidates": 10,
+      "reviewedCandidates": 1,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 1,
+      "remainingCandidates": 9
+    },
+    {
+      "file": "src/components/integration-runtime-center.tsx",
+      "totalCandidates": 63,
+      "reviewedCandidates": 55,
+      "directReviewedCandidates": 54,
+      "globalReuseReviewedCandidates": 1,
+      "remainingCandidates": 8
+    },
+    {
+      "file": "src/components/superapp-workspace.tsx",
+      "totalCandidates": 12,
+      "reviewedCandidates": 5,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 5,
+      "remainingCandidates": 7
+    },
+    {
+      "file": "src/components/automation-marketplace-workspace.tsx",
+      "totalCandidates": 9,
+      "reviewedCandidates": 2,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 2,
+      "remainingCandidates": 7
+    },
+    {
+      "file": "src/components/phase1-dashboard.tsx",
+      "totalCandidates": 8,
+      "reviewedCandidates": 1,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 1,
+      "remainingCandidates": 7
+    },
+    {
+      "file": "src/components/employee-import-panel.tsx",
+      "totalCandidates": 13,
+      "reviewedCandidates": 7,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 7,
+      "remainingCandidates": 6
+    },
+    {
+      "file": "src/components/security-operations-center.tsx",
+      "totalCandidates": 88,
+      "reviewedCandidates": 83,
+      "directReviewedCandidates": 81,
+      "globalReuseReviewedCandidates": 2,
+      "remainingCandidates": 5
+    },
+    {
+      "file": "src/components/daily-brief-workspace.tsx",
+      "totalCandidates": 6,
+      "reviewedCandidates": 1,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 1,
+      "remainingCandidates": 5
+    },
+    {
+      "file": "src/components/experience-readiness-workspace.tsx",
+      "totalCandidates": 5,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 5
+    },
+    {
+      "file": "src/components/organization-switcher.tsx",
+      "totalCandidates": 5,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 5
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "totalCandidates": 117,
+      "reviewedCandidates": 113,
+      "directReviewedCandidates": 110,
+      "globalReuseReviewedCandidates": 3,
+      "remainingCandidates": 4
+    },
+    {
+      "file": "src/components/unified-workforce-workspace.tsx",
+      "totalCandidates": 10,
+      "reviewedCandidates": 6,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 6,
+      "remainingCandidates": 4
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "totalCandidates": 5,
+      "reviewedCandidates": 1,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 1,
+      "remainingCandidates": 4
+    },
+    {
+      "file": "src/components/session-card.tsx",
+      "totalCandidates": 5,
+      "reviewedCandidates": 1,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 1,
+      "remainingCandidates": 4
+    },
+    {
+      "file": "src/components/audit-table.tsx",
+      "totalCandidates": 7,
+      "reviewedCandidates": 4,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 4,
+      "remainingCandidates": 3
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "totalCandidates": 6,
+      "reviewedCandidates": 3,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 3,
+      "remainingCandidates": 3
+    },
+    {
+      "file": "src/app/settings/page.tsx",
+      "totalCandidates": 3,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 3
+    },
+    {
+      "file": "src/components/accept-invite.tsx",
+      "totalCandidates": 3,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 3
+    },
+    {
+      "file": "src/components/nav.tsx",
+      "totalCandidates": 3,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 3
+    },
+    {
+      "file": "src/components/resume-intake-assistant.tsx",
+      "totalCandidates": 3,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 3
+    },
+    {
+      "file": "src/components/security-posture.tsx",
+      "totalCandidates": 3,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 3
+    },
+    {
+      "file": "src/components/platform-reliability-center.tsx",
+      "totalCandidates": 113,
+      "reviewedCandidates": 111,
+      "directReviewedCandidates": 109,
+      "globalReuseReviewedCandidates": 2,
+      "remainingCandidates": 2
+    },
+    {
+      "file": "src/components/settings-workspace.tsx",
+      "totalCandidates": 27,
+      "reviewedCandidates": 25,
+      "directReviewedCandidates": 25,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 2
+    },
+    {
+      "file": "src/components/app-shell.tsx",
+      "totalCandidates": 2,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 2
+    },
+    {
+      "file": "src/components/job-description-assistant.tsx",
+      "totalCandidates": 2,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 2
+    },
+    {
+      "file": "src/components/more-hub-workspace.tsx",
+      "totalCandidates": 2,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 2
+    },
+    {
+      "file": "src/components/page-header.tsx",
+      "totalCandidates": 2,
+      "reviewedCandidates": 0,
+      "directReviewedCandidates": 0,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 2
+    }
+  ],
+  "candidateExamples": [
+    {
+      "file": "src/app/accept-invite/page.tsx",
+      "sample": "Invitation link is incomplete."
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Forgot password"
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Self-service recovery follows the organization access policy."
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Self-service password reset is disabled. Contact an organization administrator."
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Back to sign in"
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Registration creates a Firebase identity only. Organization membership remains invitation/JIT governed."
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Open registration is not enabled for this organization."
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Already registered? Sign in"
+    },
+    {
+      "file": "src/app/settings/page.tsx",
+      "sample": "Platform"
+    },
+    {
+      "file": "src/app/settings/page.tsx",
+      "sample": "Settings"
+    },
+    {
+      "file": "src/app/settings/page.tsx",
+      "sample": "Account, appearance, access, organization defaults, notifications, imports, security and diagnostics."
+    },
+    {
+      "file": "src/app/setup/page.tsx",
+      "sample": "OPSIQO_ALLOW_FIRST_ORG_BOOTSTRAP"
+    },
+    {
+      "file": "src/app/workforce-intelligence/page.tsx",
+      "sample": "Privacy boundary:"
+    },
+    {
+      "file": "src/components/accept-invite.tsx",
+      "sample": "For security, the signed-in Firebase account email must exactly match the email that received this invitation."
+    },
+    {
+      "file": "src/components/accept-invite.tsx",
+      "sample": "Accept invitation"
+    },
+    {
+      "file": "src/components/accept-invite.tsx",
+      "sample": "Sign in first →"
+    },
+    {
+      "file": "src/components/app-shell.tsx",
+      "sample": "Skip to main content"
+    },
+    {
+      "file": "src/components/app-shell.tsx",
+      "sample": "Skip to main content"
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "sample": "• Evidence metadata is immutable-by-default and chained through append-only SHA-256 ledger entries."
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "sample": "• Audit samples preserve population and selection digests plus a reproducible selection seed."
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "sample": "• Legal holds block evidence expiry; integrity mismatches quarantine evidence instead of silently repairing it."
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "sample": "Create assurance report snapshot"
+    },
+    {
+      "file": "src/components/audit-table.tsx",
+      "sample": "Filter"
+    },
+    {
+      "file": "src/components/audit-table.tsx",
+      "sample": "Export CSV"
+    },
+    {
+      "file": "src/components/audit-table.tsx",
+      "sample": "Actor"
+    },
+    {
+      "file": "src/components/auth-brand.tsx",
+      "sample": "Forward motion. Built for teams that move."
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Automation control plane"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Production scheduler"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Schedule the secret-protected"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "/api/internal/automation"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Automation coverage"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Automated capabilities"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Human-governed boundaries"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Latest automation lane execution"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Lane"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Duration"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Run the automation cycle to see lane-level execution evidence."
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Recent automation runs"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Started"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Initiator"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Invitations"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Events / workflows"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "Notifications"
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "sample": "No automation runs recorded."
+    },
+    {
+      "file": "src/components/automation-marketplace-workspace.tsx",
+      "sample": "OPSIQO Flow · Automation Marketplace"
+    },
+    {
+      "file": "src/components/automation-marketplace-workspace.tsx",
+      "sample": "Install governed operating-model starters, then review before activation"
+    },
+    {
+      "file": "src/components/automation-marketplace-workspace.tsx",
+      "sample": "Review workflows"
+    },
+    {
+      "file": "src/components/automation-marketplace-workspace.tsx",
+      "sample": "installed"
+    },
+    {
+      "file": "src/components/automation-marketplace-workspace.tsx",
+      "sample": "Boundary:"
+    },
+    {
+      "file": "src/components/automation-marketplace-workspace.tsx",
+      "sample": "Review installed workflows"
+    },
+    {
+      "file": "src/components/automation-marketplace-workspace.tsx",
+      "sample": "Marketplace governance."
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Calculating Career GPS"
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Using configured role requirements and authorized evidence only."
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "OPSIQO Cortex · Career GPS"
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Edit career profile"
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Choose a profile target or currently represented internal opportunity."
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Select target"
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Set a career target"
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Readiness evidence"
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Skill coverage"
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Verified target-role skill evidence"
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Configured readiness sources available"
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Roadmap"
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Target-role gaps"
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "No missing skill evidence is represented for the selected target, or readiness evidence is not configured."
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Learning options"
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "sample": "Human career decisions remain human."
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "internal"
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "confidential"
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "highly_confidential"
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "acknowledged"
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "Select a policy to inspect version history, content hash and lifecycle controls."
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "document"
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "policy acknowledgement"
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "Select when policy acknowledgement"
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "document created"
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "document expiry"
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "employment end"
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "manual"
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "sample": "Legal / business basis note"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "Documents · governed intake"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "Contract Import"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "1. Import contract"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "PDF, DOCX, TXT, RTF or Markdown · maximum 10 MB. The source is treated as untrusted evidence."
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "Documents & compliance →"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "Choose contract"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "2. Verify extraction"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "evidence confidence"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "Parser:"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "SHA-256:"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "Extracted fields:"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "Scan:"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "Review warnings"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "3. Match & confirm"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "Controlled platform prefill"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "Existing employee match"
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "sample": "No employee selected / new or unmatched contract"
+    },
+    {
+      "file": "src/components/daily-brief-workspace.tsx",
+      "sample": "No verified due-soon items in the current queue."
+    },
+    {
+      "file": "src/components/daily-brief-workspace.tsx",
+      "sample": "No additional evidence-backed insight is needed right now."
+    },
+    {
+      "file": "src/components/daily-brief-workspace.tsx",
+      "sample": "Proactive intelligence"
+    }
+  ],
+  "generatedAt": "2026-08-20T04:07:49.839Z",
+  "boundary": "Reviewed means either the exact source string is present in its V7.30 surface catalog with explicit French, Spanish and Arabic translations, or the same exact source has one unambiguous approved FR/ES/AR translation across the reviewed catalog. Exact-source conflicts are never globally reused. Obvious JSX/code fragments are excluded. This inventory is not a linguistic-quality, dynamic-content or formal accessibility-completeness claim."
+}

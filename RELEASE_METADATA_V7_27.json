@@ -1,0 +1,28 @@
+{
+  "product": "OPSIQO ONE",
+  "hcmVersion": "8.5",
+  "release": "7.27",
+  "releaseName": "Final Certification & Translation Closure",
+  "date": "2026-08-19",
+  "overallProgressPercent": 99,
+  "safeExecuteAllowlist": ["notifications.mark_visible_read"],
+  "translation": {
+    "supportedLocales": ["en", "fr", "es", "ar"],
+    "cataloguedSurfaces": 40,
+    "catalogEntries": 2498,
+    "reviewedSourceCandidates": 2479,
+    "remainingHeuristicCandidates": 1082,
+    "totalSourceCandidates": 3561
+  },
+  "certification": {
+    "isolatedFirebaseConfig": "firebase.test.json",
+    "emulatorProject": "demo-opsiqo-local",
+    "sanitizedLedger": "artifacts/v7-27-certification-ledger.json",
+    "bootstrapLedger": "%TEMP%/opsiqo-v7-27-certification-ledger.json",
+    "restoresCallerEnvironment": true,
+    "safeFailureSummary": "scripts/opsiqo85-v7-27-certification-summary.mjs",
+    "publicBrowserPort": 31730,
+    "authenticatedBrowserPort": 31731
+  },
+  "certificationBoundary": "Source-complete/source-audited; dependency-backed Windows certification and manual accessibility/connector sign-off are required before deployment-certified status."
+}

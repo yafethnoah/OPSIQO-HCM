@@ -14,4 +14,5 @@ export const prehireProfileSchema = z.object({
 export const staffTaskActionSchema = z.object({ action:z.enum(['start','complete','waive','reopen']), note:z.string().max(1500).optional() });
 export const candidateTaskActionSchema = z.object({ action:z.enum(['complete','acknowledge']), confirmation:z.boolean().default(false) }).refine(v=>v.confirmation,{message:'Explicit confirmation is required.'});
 export const caseActionSchema = z.object({ action:z.enum(['rotate_access','revoke_access','cancel','activate']), reason:z.string().max(1000).optional() });
+export const prehireDocumentActionSchema = z.object({ action:z.enum(['set_scan_clean','set_scan_blocked']), scanEvidenceRef:z.string().trim().max(1000).optional() });
 export const policyCreateSchema = z.object({ title:z.string().min(2).max(180), version:z.string().min(1).max(40), content:z.string().min(20).max(50000), onboardingRequired:z.boolean().default(true), effectiveDate:isoDate });

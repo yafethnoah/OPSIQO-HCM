@@ -343,3 +343,14 @@ export async function processWorkflowNotificationSteps(orgId:string,limit=200){
  }
  return summary;
 }
+
+export async function setWorkflowEnabled(actor: ActorContext, workflowId: string, enabled: boolean) {
+  const db=adminDb(),ref=db.doc(`organizations/${actor.orgId}/workflowDefinitions/${workflowId}`),snap=await ref.get();
+  if(!snap.exists) throw new ApiError(404,'Workflow not found.','workflow_not_found');
+  const before=snap.data() as WorkflowDefinition;
+  if(before.enabled===enabled) return before;
+  const after={...before,enabled,updatedAt:now()};
+  const audit=buildAudit(actor,{action:enabled?'workflow.enable':'workflow.disable',entityType:'workflowDefinition',entityId:workflowId,before,after});
+  const batch=db.batch();batch.set(ref,{enabled,updatedAt:after.updatedAt},{merge:true});batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);await batch.commit();
+  return after;
+}

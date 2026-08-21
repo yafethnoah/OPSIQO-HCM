@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import type { ActorContext } from '@/domain/security';
 import type { PerformanceDashboard, PerformanceReview } from '@/domain/performance';
@@ -10,16 +11,16 @@ const isoDay=()=>new Date().toISOString().slice(0,10);
 const plusDays=(n:number)=>new Date(Date.now()+n*86400000).toISOString().slice(0,10);
 const scoreItems=[{key:'results',label:'Results & delivery'},{key:'collaboration',label:'Collaboration'},{key:'growth',label:'Learning & growth'}];
 
-export function PerformanceWorkspace(){
+export function PerformanceWorkspace(){const translationRoot=useRef<HTMLDivElement>(null);useLegacySurfaceTranslation('performance',translationRoot);
  const[data,setData]=useState<PerformanceDashboard|null>(null);const[actor,setActor]=useState<ActorContext|null>(null);const[tab,setTab]=useState<Tab>('overview');const[error,setError]=useState('');const[msg,setMsg]=useState('');const[busy,setBusy]=useState(false);const[selectedReview,setSelectedReview]=useState<string>('');
  const canManage=actor?.permissions.includes('performance.manage');const canCalibrate=actor?.permissions.includes('performance.calibrate');const canPip=(actor?.permissions.includes('performance.pip')||actor?.permissions.includes('performance.pip.team'));
  const load=async()=>{setError('');try{const[r,m]=await Promise.all([apiFetch<{data:PerformanceDashboard}>(`/api/organizations/${activeOrgId()}/performance/dashboard`),apiFetch<{actor:ActorContext}>('/api/me')]);setData(r.data);setActor(m.actor);}catch(e){setError(e instanceof Error?e.message:'Unable to load performance workspace.');}};
  useEffect(()=>{load();const h=()=>load();window.addEventListener('opsiqo:organization-changed',h);return()=>window.removeEventListener('opsiqo:organization-changed',h);},[]);
  const name=(id?:string)=>data?.workerDirectory.find(w=>w.id===id)?.displayName||id||'—';
  async function call(path:string,init:RequestInit){setBusy(true);setError('');setMsg('');try{await apiFetch(path,init);setMsg('Saved successfully.');await load();}catch(e){setError(e instanceof Error?e.message:'Action failed.');}finally{setBusy(false);}}
- if(!data||!actor)return <div className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading governed performance intelligence…"/></div>;
+ if(!data||!actor)return <div ref={translationRoot} className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading governed performance intelligence…"/></div>;
  const active=data.activeCycle;
- return <div className="stack">{error&&<div className="error">{error}</div>}{msg&&<div className="success">{msg}</div>}
+ return <div ref={translationRoot} className="stack">{error&&<div className="error">{error}</div>}{msg&&<div className="success">{msg}</div>}
   <div className="performanceHero"><div><div className="eyebrow">Phase 3 · Talent Performance</div><h2>{active?.name||'No active performance cycle'}</h2><p>{active?`${active.periodStart} → ${active.periodEnd} · ${active.status.replaceAll('_',' ')}`:'HR can create the next performance cycle from Setup.'}</p></div><div className="performanceHeroScore"><span>Scope</span><strong>{data.scope}</strong><small>Generated {new Date(data.generatedAt).toLocaleString()}</small></div></div>
   <div className="tabBar">{(['overview','goals','reviews','checkins','feedback','development','pips','setup'] as Tab[]).map(t=><button key={t} className={tab===t?'tab active':'tab'} onClick={()=>setTab(t)}>{t==='pips'?'PIPs':t[0]!.toUpperCase()+t.slice(1)}</button>)}</div>
   {tab==='overview'&&<Overview data={data} name={name}/>} 

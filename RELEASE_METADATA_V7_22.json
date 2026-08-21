@@ -1,0 +1,31 @@
+{
+  "release": "OPSIQO ONE v7.22 \u00b7 HCM v8.5",
+  "codename": "Integration Readiness Policy Workflow Knowledge",
+  "date": "2026-08-19",
+  "sourceAudit": {
+    "passed": 80,
+    "failed": 0
+  },
+  "translation": {
+    "surfaces": 19,
+    "catalogEntries": 864,
+    "reviewedExactCandidates": 877,
+    "heuristicRemaining": 2923
+  },
+  "authenticatedAccessibilityRoutes": 22,
+  "safeExecuteAllowlistCount": 1,
+  "deploymentCertified": false,
+  "certificationBoundary": "Dependency-backed Windows/CI validation required before deployment certification.",
+  "sourceIntegrity": {
+    "tsTsxFiles": 1100,
+    "tsTsxParseErrors": 0,
+    "jsMjsCjsFiles": 60,
+    "jsSyntaxErrors": 0,
+    "jsonFiles": 40,
+    "jsonParseErrors": 0,
+    "yamlFiles": 10,
+    "yamlParseErrors": 0,
+    "cleanRelease": "PASS",
+    "sourceManifestEntries": 1460
+  }
+}

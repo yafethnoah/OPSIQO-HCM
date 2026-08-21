@@ -1,19 +1,22 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { AuthBrand } from '@/components/auth-brand';
 import { LoadingState } from '@/components/data-states';
 import { firebaseAuth } from '@/lib/firebase/client';
 import { apiFetch, setActiveOrgId } from '@/lib/http/client';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 type ExistingOrg = { orgId:string; name:string; role:string; status:string };
 type SetupResult = { data:{ orgId:string; organization:{ name:string } } };
 
 export default function SetupPage() {
   const router = useRouter();
+  const surfaceRef=useRef<HTMLDivElement>(null);
+  useLegacySurfaceTranslation('setup',surfaceRef);
   const [checking, setChecking] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
   const [email, setEmail] = useState('');
@@ -24,7 +27,7 @@ export default function SetupPage() {
     setSignedIn(Boolean(user));
     setEmail(user?.email || '');
     if (!user) { setChecking(false); return; }
-    apiFetch<{data:ExistingOrg[]}>('/api/me/organizations', { orgContext:'omit' })
+    apiFetch<{data:ExistingOrg[]}>('/api/me/organizations')
       .then((result) => {
         const existing = result.data[0];
         if (existing) {
@@ -43,7 +46,6 @@ export default function SetupPage() {
     try {
       const result = await apiFetch<SetupResult>('/api/setup', {
         method:'POST',
-        orgContext:'omit',
         body:JSON.stringify({ organizationName:form.get('organizationName'), firstName:form.get('firstName'), lastName:form.get('lastName') }),
       });
       setActiveOrgId(result.data.orgId);
@@ -54,7 +56,7 @@ export default function SetupPage() {
     } finally { setSubmitting(false); }
   }
 
-  return <div className="authShell">
+  return <div ref={surfaceRef} className="authShell">
     <section className="authBrandPanel">
       <AuthBrand eyebrow="Organization foundation"/>
       <div className="authTrustGrid">

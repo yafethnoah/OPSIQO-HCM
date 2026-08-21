@@ -1,0 +1,723 @@
+{
+  "version": "7.27",
+  "supportedLocales": [
+    "en",
+    "fr",
+    "es",
+    "ar"
+  ],
+  "scannedFiles": 184,
+  "cataloguedSurfaceCount": 40,
+  "catalogEntries": 2498,
+  "reviewedSourceCandidates": 2479,
+  "legacyCandidateCountRemaining": 1082,
+  "totalSourceCandidates": 3561,
+  "catalogCompleteness": "complete",
+  "incompleteCatalog": [],
+  "topBacklog": [
+    {
+      "file": "src/components/import-center-workspace.tsx",
+      "totalCandidates": 68,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 68
+    },
+    {
+      "file": "src/components/performance-workspace.tsx",
+      "totalCandidates": 125,
+      "reviewedCandidates": 74,
+      "remainingCandidates": 51
+    },
+    {
+      "file": "src/components/org-design-center.tsx",
+      "totalCandidates": 48,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 48
+    },
+    {
+      "file": "src/components/intelligence-hub-workspace.tsx",
+      "totalCandidates": 45,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 45
+    },
+    {
+      "file": "src/components/strategy-center.tsx",
+      "totalCandidates": 35,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 35
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "totalCandidates": 33,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 33
+    },
+    {
+      "file": "src/components/organization-panel.tsx",
+      "totalCandidates": 32,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 32
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "totalCandidates": 31,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 31
+    },
+    {
+      "file": "src/components/governed-gantt.tsx",
+      "totalCandidates": 31,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 31
+    },
+    {
+      "file": "src/components/invitation-panel.tsx",
+      "totalCandidates": 30,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 30
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "totalCandidates": 29,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 29
+    },
+    {
+      "file": "src/components/program-workforce-workspace.tsx",
+      "totalCandidates": 28,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 28
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "totalCandidates": 25,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 25
+    },
+    {
+      "file": "src/components/people-table.tsx",
+      "totalCandidates": 25,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 25
+    },
+    {
+      "file": "src/components/skills-passport-workspace.tsx",
+      "totalCandidates": 25,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 25
+    },
+    {
+      "file": "src/components/manager-copilot-workspace.tsx",
+      "totalCandidates": 23,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 23
+    },
+    {
+      "file": "src/components/program-portfolio-workspace.tsx",
+      "totalCandidates": 23,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 23
+    },
+    {
+      "file": "src/components/manager-portal-workspace.tsx",
+      "totalCandidates": 22,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 22
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "totalCandidates": 21,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 21
+    },
+    {
+      "file": "src/components/compensation-workspace.tsx",
+      "totalCandidates": 103,
+      "reviewedCandidates": 83,
+      "remainingCandidates": 20
+    },
+    {
+      "file": "src/components/recruiting-workspace.tsx",
+      "totalCandidates": 75,
+      "reviewedCandidates": 55,
+      "remainingCandidates": 20
+    },
+    {
+      "file": "src/components/experience-workspace.tsx",
+      "totalCandidates": 63,
+      "reviewedCandidates": 43,
+      "remainingCandidates": 20
+    },
+    {
+      "file": "src/components/grant-workforce-workspace.tsx",
+      "totalCandidates": 18,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 18
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "totalCandidates": 17,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 17
+    },
+    {
+      "file": "src/components/employee-concierge-workspace.tsx",
+      "totalCandidates": 17,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 17
+    },
+    {
+      "file": "src/components/talent-marketplace-workspace.tsx",
+      "totalCandidates": 17,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 17
+    },
+    {
+      "file": "src/components/manager-team.tsx",
+      "totalCandidates": 16,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 16
+    },
+    {
+      "file": "src/components/lifecycle-command-center.tsx",
+      "totalCandidates": 15,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 15
+    },
+    {
+      "file": "src/components/opsiqo-command-bar.tsx",
+      "totalCandidates": 15,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 15
+    },
+    {
+      "file": "src/components/privacy-governance-center.tsx",
+      "totalCandidates": 128,
+      "reviewedCandidates": 114,
+      "remainingCandidates": 14
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "totalCandidates": 68,
+      "reviewedCandidates": 55,
+      "remainingCandidates": 13
+    },
+    {
+      "file": "src/components/employee-import-panel.tsx",
+      "totalCandidates": 13,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 13
+    },
+    {
+      "file": "src/components/organization-launchpad-workspace.tsx",
+      "totalCandidates": 13,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 13
+    },
+    {
+      "file": "src/components/my-work-workspace.tsx",
+      "totalCandidates": 12,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 12
+    },
+    {
+      "file": "src/components/organizational-memory-workspace.tsx",
+      "totalCandidates": 12,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 12
+    },
+    {
+      "file": "src/components/superapp-workspace.tsx",
+      "totalCandidates": 12,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 12
+    },
+    {
+      "file": "src/components/operations-orchestrator-workspace.tsx",
+      "totalCandidates": 11,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 11
+    },
+    {
+      "file": "src/components/unified-workforce-workspace.tsx",
+      "totalCandidates": 11,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 11
+    },
+    {
+      "file": "src/components/automation-marketplace-workspace.tsx",
+      "totalCandidates": 10,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 10
+    },
+    {
+      "file": "src/components/evidence-center-summary.tsx",
+      "totalCandidates": 10,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 10
+    },
+    {
+      "file": "src/components/operations-cockpit-workspace.tsx",
+      "totalCandidates": 10,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 10
+    },
+    {
+      "file": "src/components/prehire-portal.tsx",
+      "totalCandidates": 10,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 10
+    },
+    {
+      "file": "src/components/integration-runtime-center.tsx",
+      "totalCandidates": 63,
+      "reviewedCandidates": 54,
+      "remainingCandidates": 9
+    },
+    {
+      "file": "src/components/phase1-dashboard.tsx",
+      "totalCandidates": 8,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 8
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "totalCandidates": 118,
+      "reviewedCandidates": 111,
+      "remainingCandidates": 7
+    },
+    {
+      "file": "src/components/security-operations-center.tsx",
+      "totalCandidates": 88,
+      "reviewedCandidates": 81,
+      "remainingCandidates": 7
+    },
+    {
+      "file": "src/components/audit-table.tsx",
+      "totalCandidates": 7,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 7
+    },
+    {
+      "file": "src/components/daily-brief-workspace.tsx",
+      "totalCandidates": 7,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 7
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "totalCandidates": 6,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 6
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "totalCandidates": 5,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 5
+    }
+  ],
+  "candidateExamples": [
+    {
+      "file": "src/app/accept-invite/page.tsx",
+      "sample": "Invitation link is incomplete."
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Forgot password"
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Self-service recovery follows the organization access policy."
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Self-service password reset is disabled. Contact an organization administrator."
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Email"
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Back to sign in"
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Register account"
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Registration creates a Firebase identity only. Organization membership remains invitation/JIT governed."
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Open registration is not enabled for this organization."
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Email"
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Password"
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Already registered? Sign in"
+    },
+    {
+      "file": "src/app/settings/page.tsx",
+      "sample": "Platform"
+    },
+    {
+      "file": "src/app/settings/page.tsx",
+      "sample": "Settings"
+    },
+    {
+      "file": "src/app/settings/page.tsx",
+      "sample": "Account, appearance, access, organization defaults, notifications, imports, security and diagnostics."
+    },
+    {
+      "file": "src/app/setup/page.tsx",
+      "sample": "OPSIQO_ALLOW_FIRST_ORG_BOOTSTRAP"
+    },
+    {
+      "file": "src/app/workforce-intelligence/page.tsx",
+      "sample": "Privacy boundary:"
+    },
+    {
+      "file": "src/components/accept-invite.tsx",
+      "sample": "For security, the signed-in Firebase account email must exactly match the email that received this invitation."
+    },
+    {
+      "file": "src/components/accept-invite.tsx",
+      "sample": "Accept invitation"
+    },
+    {
+      "file": "src/components/accept-invite.tsx",
+      "sample": "Sign in first →"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Multi-factor authentication required"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Set up MFA"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "OPSIQO Cortex · Agent Builder"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Create specialized agents without creating a new security boundary"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "AI Governance"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "New custom agent"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Name"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Maximum action level"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Observe"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Recommend"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Prepare"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Purpose"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Instructions"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Capabilities · one per line"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Routing keywords · comma separated"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Evidence permission gates"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Hard ceiling:"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Custom agent lifecycle"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Agent"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Authority"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Evidence gates"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Status"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Governed action"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "hard cap: prepare"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Submit review"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Activate"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Retire"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "No custom agents have been created."
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Agent governance."
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "apiFetch"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Multi-factor authentication required"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Set up MFA"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "OPSIQO Guard · AI Governance Center"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Control what every Cortex agent may do"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Organization settings can tighten an agent below its hard safety cap, never expand it beyond the code-defined boundary."
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Agent Builder"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Privacy & AI Assurance"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Loading agent governance"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Reading effective policy without exposing model credentials or sensitive evidence."
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Agent"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Organization level"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Hard cap"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Shadow mode"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Status"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "order[l]"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Shadow"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Safe Execute readiness"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "V7.18 keeps Execute expansion evidence-gated rather than adding authority because an action merely looks convenient."
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "enabled"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "implementation pass"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "browser UAT required"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "hold for UAT"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Safety invariants"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Observe"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Permission-scoped reads only."
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Recommend"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Evidence-backed suggestions; human decides."
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Prepare"
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Drafts and plans stop at review/confirmation."
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "sample": "Execute"
+    },
+    {
+      "file": "src/components/app-shell.tsx",
+      "sample": "Skip to main content"
+    },
+    {
+      "file": "src/components/app-shell.tsx",
+      "sample": "Skip to main content"
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "sample": "Promise"
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "sample": "• Evidence metadata is immutable-by-default and chained through append-only SHA-256 ledger entries."
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "sample": "• Audit samples preserve population and selection digests plus a reproducible selection seed."
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "sample": "• Legal holds block evidence expiry; integrity mismatches quarantine evidence instead of silently repairing it."
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "sample": "Supersede"
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "sample": "Create assurance report snapshot"
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "sample": "Create snapshot"
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "sample": "ATS Resume & Cover Letter Studio"
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "sample": "ATS v2"
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "sample": "Application"
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "sample": "Select an application"
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "sample": "Start with a candidate application."
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "sample": "Use the Resume Intake Assistant in"
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "sample": "Add candidate application"
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "sample": "Resume review"
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "sample": "Upload a newer resume or leave the file blank to review the resume text already stored for this candidate."
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "sample": "Cover letter"
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "sample": "Professional"
+    }
+  ],
+  "generatedAt": "2026-08-20T03:22:28.191Z",
+  "boundary": "Reviewed means the exact source string is present in the V7.27 surface catalog with explicit French, Spanish and Arabic translations. Obvious JSX/code fragments are excluded from the visible-string backlog. This source inventory is not a linguistic-quality or browser-completeness claim; dynamic content, date/number formatting, validation responses and accessibility labels still require browser review."
+}
