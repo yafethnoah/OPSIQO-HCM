@@ -1571,6 +1571,16 @@
         "fr": "Créer l'employé",
         "es": "Crear empleado",
         "ar": "إنشاء الموظف"
+      },
+      "Employee number": {
+        "fr": "Numéro d’employé",
+        "es": "Número de empleado",
+        "ar": "رقم الموظف"
+      },
+      "Assigned automatically on hire": {
+        "fr": "Attribué automatiquement lors de l’embauche",
+        "es": "Asignado automáticamente al contratar",
+        "ar": "يُعيَّن تلقائيًا عند التوظيف"
       }
     }
   },
@@ -3856,6 +3866,16 @@
         "fr": "Mettre en quarantaine",
         "es": "Poner en cuarentena",
         "ar": "عزل"
+      },
+      "Employee number": {
+        "fr": "Numéro d’employé",
+        "es": "Número de empleado",
+        "ar": "رقم الموظف"
+      },
+      "Assigned automatically at activation": {
+        "fr": "Attribué automatiquement lors de l’activation",
+        "es": "Asignado automáticamente al activar",
+        "ar": "يُعيَّن تلقائيًا عند التفعيل"
       }
     }
   },
@@ -15431,6 +15451,16 @@
         "fr": "Résultats paginés par le serveur",
         "es": "Resultados paginados por el servidor",
         "ar": "نتائج مُقسمة إلى صفحات بواسطة الخادم"
+      },
+      "Employee number": {
+        "fr": "Numéro d’employé",
+        "es": "Número de empleado",
+        "ar": "رقم الموظف"
+      },
+      "Assigned automatically on save": {
+        "fr": "Attribué automatiquement lors de l’enregistrement",
+        "es": "Asignado automáticamente al guardar",
+        "ar": "يُعيَّن تلقائيًا عند الحفظ"
       }
     }
   },

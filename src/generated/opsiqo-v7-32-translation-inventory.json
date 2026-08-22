@@ -8,14 +8,14 @@
   ],
   "scannedFiles": 184,
   "cataloguedSurfaceCount": 65,
-  "catalogEntries": 3288,
-  "globalReviewedExactPoolSize": 2497,
+  "catalogEntries": 3294,
+  "globalReviewedExactPoolSize": 2501,
   "conflictedExactSourceCount": 55,
-  "directReviewedSourceCandidates": 3073,
+  "directReviewedSourceCandidates": 3070,
   "globalReuseReviewedCandidates": 455,
-  "reviewedSourceCandidates": 3528,
+  "reviewedSourceCandidates": 3525,
   "legacyCandidateCountRemaining": 0,
-  "totalSourceCandidates": 3528,
+  "totalSourceCandidates": 3525,
   "catalogCompleteness": "complete",
   "incompleteCatalog": [],
   "topBacklog": [
@@ -140,14 +140,6 @@
       "remainingCandidates": 0
     },
     {
-      "file": "src/components/recruiting-workspace.tsx",
-      "totalCandidates": 75,
-      "reviewedCandidates": 75,
-      "directReviewedCandidates": 55,
-      "globalReuseReviewedCandidates": 20,
-      "remainingCandidates": 0
-    },
-    {
       "file": "src/components/ai-copilot-workspace.tsx",
       "totalCandidates": 74,
       "reviewedCandidates": 74,
@@ -193,6 +185,14 @@
       "reviewedCandidates": 70,
       "directReviewedCandidates": 70,
       "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/recruiting-workspace.tsx",
+      "totalCandidates": 69,
+      "reviewedCandidates": 69,
+      "directReviewedCandidates": 49,
+      "globalReuseReviewedCandidates": 20,
       "remainingCandidates": 0
     },
     {
@@ -276,19 +276,19 @@
       "remainingCandidates": 0
     },
     {
+      "file": "src/components/onboarding-workspace.tsx",
+      "totalCandidates": 39,
+      "reviewedCandidates": 39,
+      "directReviewedCandidates": 37,
+      "globalReuseReviewedCandidates": 2,
+      "remainingCandidates": 0
+    },
+    {
       "file": "src/components/scenario-lab-workspace.tsx",
       "totalCandidates": 39,
       "reviewedCandidates": 39,
       "directReviewedCandidates": 39,
       "globalReuseReviewedCandidates": 0,
-      "remainingCandidates": 0
-    },
-    {
-      "file": "src/components/onboarding-workspace.tsx",
-      "totalCandidates": 38,
-      "reviewedCandidates": 38,
-      "directReviewedCandidates": 36,
-      "globalReuseReviewedCandidates": 2,
       "remainingCandidates": 0
     },
     {
@@ -380,6 +380,14 @@
       "remainingCandidates": 0
     },
     {
+      "file": "src/components/people-table.tsx",
+      "totalCandidates": 26,
+      "reviewedCandidates": 26,
+      "directReviewedCandidates": 16,
+      "globalReuseReviewedCandidates": 10,
+      "remainingCandidates": 0
+    },
+    {
       "file": "src/components/skills-passport-workspace.tsx",
       "totalCandidates": 25,
       "reviewedCandidates": 25,
@@ -404,14 +412,6 @@
       "remainingCandidates": 0
     },
     {
-      "file": "src/components/people-table.tsx",
-      "totalCandidates": 24,
-      "reviewedCandidates": 24,
-      "directReviewedCandidates": 14,
-      "globalReuseReviewedCandidates": 10,
-      "remainingCandidates": 0
-    },
-    {
       "file": "src/components/manager-copilot-workspace.tsx",
       "totalCandidates": 23,
       "reviewedCandidates": 23,
@@ -421,6 +421,6 @@
     }
   ],
   "candidateExamples": [],
-  "generatedAt": "2026-08-20T19:07:25.176Z",
+  "generatedAt": "2026-08-22T02:06:44.724Z",
   "boundary": "Reviewed means either the exact source string is present in its V7.32 surface catalog with explicit French, Spanish and Arabic translations, or the same exact source has one unambiguous approved FR/ES/AR translation across the reviewed catalog. Exact-source conflicts are never globally reused. Explicit technical identifiers and obvious JSX/code fragments are excluded from the UI localization backlog. This inventory is not a linguistic-quality, dynamic-content or formal accessibility-completeness claim."
 }
