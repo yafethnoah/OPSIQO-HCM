@@ -9,7 +9,7 @@ export const employeeCreateSchema = z.object({
   workEmail: z.string().email(),
   personalEmail: z.string().email().optional(),
   phone: z.string().max(40).optional(),
-  employeeNumber: z.string().min(1).max(40),
+  employeeNumber: z.string().trim().min(1).max(40).optional(),
   employmentType: z.enum(['permanent', 'temporary', 'contractor', 'intern', 'volunteer']),
   hireDate: isoDate,
   positionId: z.string().optional(),

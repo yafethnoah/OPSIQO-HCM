@@ -31,3 +31,7 @@ export function apiRequestErrorFromPayload(status: number, payload: unknown, fal
 export function isMfaRequiredError(error: unknown): error is ApiRequestError {
   return error instanceof ApiRequestError && error.status === 403 && error.code === 'mfa_required';
 }
+
+export function isSessionExpiredError(error: unknown): error is ApiRequestError {
+  return error instanceof ApiRequestError && error.status === 401 && error.code === 'session_expired';
+}

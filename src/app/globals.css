@@ -468,3 +468,17 @@ img,svg,canvas{max-inline-size:100%}
 }
 /* H21 residual authenticated accessibility closure: action-level selects remain usable at 320px. */
 .aiGovernanceActionSelect{min-width:96px!important;min-inline-size:96px!important}
+
+/* OPSIQO V7.32 H24 runtime locale / RTL */
+html[dir="rtl"] body { direction: rtl; }
+html[dir="rtl"] .shell,
+html[dir="rtl"] .main,
+html[dir="rtl"] .sidebar,
+html[dir="rtl"] .card,
+html[dir="rtl"] .field { direction: rtl; }
+html[dir="rtl"] th,
+html[dir="rtl"] td { text-align: right; }
+html[dir="rtl"] input,
+html[dir="rtl"] select,
+html[dir="rtl"] textarea { text-align: start; }
+html[dir="rtl"] .notice { border-left: 0; border-right: 4px solid var(--accent); }

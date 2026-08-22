@@ -33,7 +33,7 @@ export interface OnboardingCase {
   managerWorkerId: string;
   candidateDisplayName: string;
   candidateEmail: string;
-  employeeNumber: string;
+  employeeNumber?: string;
   workEmail: string;
   employmentType: 'permanent' | 'temporary' | 'contractor' | 'intern' | 'volunteer';
   startDate: string;

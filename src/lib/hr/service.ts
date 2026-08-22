@@ -12,7 +12,7 @@ import type {
   WorkerStatus,
   WorkerTimelineEvent,
 } from '@/domain/hr';
-import { FieldValue, type Transaction } from 'firebase-admin/firestore';
+import { FieldValue, type DocumentReference, type Transaction } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
 import { buildAudit } from '@/lib/audit/service';
@@ -205,6 +205,7 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
   if ((input.positionId && !input.orgUnitId) || (!input.positionId && input.orgUnitId)) {
     throw new ApiError(400, 'positionId and orgUnitId must be supplied together.', 'invalid_assignment');
   }
+
   const db = adminDb();
   const personId = randomUUID();
   const workerId = randomUUID();
@@ -224,22 +225,6 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
     updatedAt: timestamp,
   };
 
-  const worker: Worker = {
-    id: workerId,
-    personId,
-    employeeNumber: input.employeeNumber,
-    displayName: input.preferredName || `${input.legalFirstName} ${input.legalLastName}`,
-    displayNameLower: (input.preferredName || `${input.legalFirstName} ${input.legalLastName}`).trim().toLowerCase(),
-    employeeNumberLower: input.employeeNumber.trim().toLowerCase(),
-    workEmail: input.workEmail,
-    workEmailLower: input.workEmail.trim().toLowerCase(),
-    status: 'active',
-    primaryAssignmentId: assignmentId,
-    hireDate: input.hireDate,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
-
   const employment: Employment = {
     id: employmentId,
     workerId,
@@ -251,21 +236,47 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
     updatedAt: timestamp,
   };
 
-  const audit = buildAudit(actor, {
-    action: 'employee.create',
-    entityType: 'worker',
-    entityId: workerId,
-    after: { worker, employment, assignmentId },
-  });
+  let worker!: Worker;
 
   await db.runTransaction(async (tx) => {
-    const normalizedNumber = input.employeeNumber.trim().toLowerCase();
     const normalizedEmail = input.workEmail.trim().toLowerCase();
-    const indexRef = db.doc(`organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(normalizedNumber)}`);
     const emailIndexRef = db.doc(`organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(normalizedEmail)}`);
-    const [indexSnap, emailIndexSnap] = await Promise.all([tx.get(indexRef), tx.get(emailIndexRef)]);
-    if (indexSnap.exists) throw new ApiError(409, 'Employee number already exists.', 'duplicate_employee_number');
+    const emailIndexSnap = await tx.get(emailIndexRef);
     if (emailIndexSnap.exists) throw new ApiError(409, 'Work email already exists.', 'duplicate_work_email');
+
+    let employeeNumber = String(input.employeeNumber || '').trim();
+    let numberIndexRef: DocumentReference;
+    let counterRef: DocumentReference | undefined;
+    let nextCounterValue: number | undefined;
+
+    if (employeeNumber) {
+      const normalizedNumber = employeeNumber.toLowerCase();
+      numberIndexRef = db.doc(`organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(normalizedNumber)}`);
+      const numberIndexSnap = await tx.get(numberIndexRef);
+      if (numberIndexSnap.exists) throw new ApiError(409, 'Employee number already exists.', 'duplicate_employee_number');
+    } else {
+      counterRef = db.doc(`organizations/${actor.orgId}/counters/employeeNumber`);
+      const counterSnap = await tx.get(counterRef);
+      const rawCounter = Number(counterSnap.data()?.value || 0);
+      let sequence = Number.isFinite(rawCounter) && rawCounter >= 0 ? Math.floor(rawCounter) : 0;
+      let allocated = false;
+
+      for (let attempt = 0; attempt < 1000; attempt += 1) {
+        sequence += 1;
+        const candidate = `EMP-${String(sequence).padStart(6, '0')}`;
+        const candidateRef = db.doc(`organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(candidate.toLowerCase())}`);
+        const candidateSnap = await tx.get(candidateRef);
+        if (!candidateSnap.exists) {
+          employeeNumber = candidate;
+          numberIndexRef = candidateRef;
+          nextCounterValue = sequence;
+          allocated = true;
+          break;
+        }
+      }
+
+      if (!allocated) throw new ApiError(503, 'Unable to allocate an employee number.', 'employee_number_exhausted');
+    }
 
     await assertManagerChain(tx, actor, workerId, input.managerWorkerId);
     if (input.positionId) {
@@ -273,11 +284,38 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
       if (position.orgUnitId !== input.orgUnitId) throw new ApiError(409, 'Position does not belong to the selected organization unit.', 'position_org_mismatch');
     }
 
+    worker = {
+      id: workerId,
+      personId,
+      employeeNumber,
+      displayName: input.preferredName || `${input.legalFirstName} ${input.legalLastName}`,
+      displayNameLower: (input.preferredName || `${input.legalFirstName} ${input.legalLastName}`).trim().toLowerCase(),
+      employeeNumberLower: employeeNumber.toLowerCase(),
+      workEmail: input.workEmail,
+      workEmailLower: normalizedEmail,
+      status: 'active',
+      primaryAssignmentId: assignmentId,
+      hireDate: input.hireDate,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    const audit = buildAudit(actor, {
+      action: 'employee.create',
+      entityType: 'worker',
+      entityId: workerId,
+      after: { worker, employment, assignmentId },
+    });
+
+    if (counterRef && nextCounterValue !== undefined) {
+      tx.set(counterRef, { value: nextCounterValue, updatedAt: timestamp }, { merge: true });
+    }
+
     tx.create(db.doc(`organizations/${actor.orgId}/people/${personId}`), person);
     tx.create(db.doc(`organizations/${actor.orgId}/workers/${workerId}`), worker);
     tx.create(db.doc(`organizations/${actor.orgId}/workerDirectory/${workerId}`), workerDirectoryEntry(worker));
     tx.create(db.doc(`organizations/${actor.orgId}/employments/${employmentId}`), employment);
-    tx.create(indexRef, { employeeNumber: input.employeeNumber, workerId, createdAt: timestamp });
+    tx.create(numberIndexRef!, { employeeNumber, workerId, createdAt: timestamp });
     tx.create(emailIndexRef, { workEmail: normalizedEmail, workerId, createdAt: timestamp });
 
     if (assignmentId && input.positionId && input.orgUnitId) {

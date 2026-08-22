@@ -2,7 +2,7 @@ import { z } from 'zod';
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const employmentType = z.enum(['permanent','temporary','contractor','intern','volunteer']);
 export const createPrehireSchema = z.object({
-  offerId:z.string().min(1), employeeNumber:z.string().min(1).max(40), workEmail:z.string().email(), employmentType,
+  offerId:z.string().min(1), employeeNumber:z.string().trim().min(1).max(40).optional(), workEmail:z.string().email(), employmentType,
   accessDays:z.number().int().min(3).max(60).default(30),
 });
 export const prehireProfileSchema = z.object({

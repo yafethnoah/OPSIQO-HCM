@@ -8,6 +8,8 @@ import { ConnectivityBanner } from '@/components/connectivity-banner';
 import { MobileOutcomeNav } from '@/components/mobile-outcome-nav';
 import { RouteAnnouncer } from '@/components/route-announcer';
 import { useGlobalReviewedTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
+import { useRuntimeLocaleSync } from '@/lib/opsiqo-one/runtime-locale';
+import { useSessionExpiryRedirect } from '@/lib/auth/session-expiry-client';
 
 const PUBLIC_BOOTSTRAP_ROUTES = new Set([
   '/signin',
@@ -29,6 +31,8 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
   useGlobalReviewedTranslation();
   const pathname = usePathname();
   const publicBootstrap = isPublicBootstrapRoute(pathname);
+  useRuntimeLocaleSync(!publicBootstrap);
+  useSessionExpiryRedirect(!publicBootstrap);
 
   if (publicBootstrap) {
     return (

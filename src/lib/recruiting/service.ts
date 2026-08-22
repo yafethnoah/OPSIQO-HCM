@@ -205,7 +205,7 @@ export async function hireCandidate(actor: ActorContext, raw: unknown) {
     const existingWorker = workerSnap.data() as { employeeNumber?:string; personId?:string } | undefined;
     const personSnap = existingWorker?.personId ? await db.doc(`organizations/${actor.orgId}/people/${existingWorker.personId}`).get() : null;
     const personalEmail = String(personSnap?.data()?.personalEmail || '').toLowerCase();
-    if (existingWorker?.employeeNumber?.toLowerCase() !== input.employeeNumber.toLowerCase() || personalEmail !== (input.personalEmail || candidate.email).toLowerCase()) throw new ApiError(409, 'Work email is already assigned to another employee.', 'work_email_conflict');
+    if ((input.employeeNumber && existingWorker?.employeeNumber?.toLowerCase() !== input.employeeNumber.toLowerCase()) || personalEmail !== (input.personalEmail || candidate.email).toLowerCase()) throw new ApiError(409, 'Work email is already assigned to another employee.', 'work_email_conflict');
   } else {
     const created = await createEmployee(actor, { legalFirstName: input.legalFirstName || candidate.firstName, legalLastName: input.legalLastName || candidate.lastName, preferredName: input.preferredName, workEmail: input.workEmail, personalEmail: input.personalEmail || candidate.email, phone: input.phone || candidate.phone, employeeNumber: input.employeeNumber, employmentType: input.employmentType, hireDate: input.hireDate, positionId: requisition.positionId, orgUnitId: requisition.orgUnitId, managerWorkerId: requisition.hiringManagerWorkerId }); workerId = created.worker.id;
   }

@@ -126,7 +126,11 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
   }
 
   if (!response.ok) {
-    throw apiRequestErrorFromPayload(response.status, payload, `Request failed (${response.status})`);
+    const requestError = apiRequestErrorFromPayload(response.status, payload, `Request failed (${response.status})`);
+    if (typeof window !== 'undefined' && requestError.status === 401 && requestError.code === 'session_expired') {
+      window.dispatchEvent(new CustomEvent('opsiqo:session-expired', { detail: { message: requestError.message } }));
+    }
+    throw requestError;
   }
 
   return payload as T;
