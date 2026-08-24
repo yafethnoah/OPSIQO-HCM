@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, type RefObject } from 'react';
 import catalog from './legacy-surface-translations-v7-32.json';
+import { runtimeUiTranslation } from './runtime-ui-i18n';
 import { currentShellLocale, useShellLocale, type ShellLocale } from './shell-i18n';
 
 type SurfaceId = keyof typeof catalog;
@@ -29,12 +30,14 @@ function globalTranslation(source:string):Translated|undefined{const value=globa
 function translated(surfaceId:SurfaceId, source:string, locale:ShellLocale):string{
   if(locale==='en') return source;
   const local=(catalog[surfaceId].translations as Record<string,Translated>)[source];
-  const approved=local||globalTranslation(source);
-  return approved?.[locale] || source;
+  if(local?.[locale]) return local[locale];
+  const runtime=runtimeUiTranslation(source,locale);
+  if(runtime) return runtime;
+  return globalTranslation(source)?.[locale] || source;
 }
 function translatedGlobally(source:string,locale:ShellLocale):string{
   if(locale==='en')return source;
-  return globalTranslation(source)?.[locale]||source;
+  return runtimeUiTranslation(source,locale)||globalTranslation(source)?.[locale]||source;
 }
 function replaceTrimmed(_source:string,replacement:string,current:string){
   const start=current.length-current.trimStart().length,end=current.length-current.trimEnd().length;

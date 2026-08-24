@@ -1,0 +1,1992 @@
+{
+  "Enterprise HCM Command Center": {
+    "fr": "Centre de commandement HCM d’entreprise",
+    "es": "Centro de mando HCM empresarial",
+    "ar": "مركز قيادة رأس المال البشري للمؤسسة"
+  },
+  "Cross-domain workforce risk, governance actions, data quality, platform SLOs, production release gates and Board-level HCM assurance.": {
+    "fr": "Risques de main-d’œuvre interdomaines, actions de gouvernance, qualité des données, SLO de la plateforme, jalons de mise en production et assurance HCM au niveau du conseil.",
+    "es": "Riesgos de la fuerza laboral entre dominios, acciones de gobernanza, calidad de datos, SLO de la plataforma, puertas de liberación a producción y aseguramiento HCM a nivel del consejo.",
+    "ar": "مخاطر القوى العاملة عبر المجالات، وإجراءات الحوكمة، وجودة البيانات، ومستويات خدمة المنصة، وبوابات الإصدار للإنتاج، وضمان رأس المال البشري على مستوى مجلس الإدارة."
+  },
+  "Enterprise actions are orchestration records only. They cannot directly change individual employment records or decisions.": {
+    "fr": "Les actions d’entreprise sont uniquement des enregistrements d’orchestration. Elles ne peuvent pas modifier directement les dossiers ou décisions d’emploi individuels.",
+    "es": "Las acciones empresariales son solo registros de orquestación. No pueden modificar directamente registros ni decisiones laborales individuales.",
+    "ar": "إجراءات المؤسسة هي سجلات تنسيق فقط، ولا يمكنها تغيير سجلات التوظيف الفردية أو القرارات مباشرةً."
+  },
+  "A production assessment remains blocked unless every mandatory dependency-aware gate is recorded as passed, runtime readiness is green, and a traceable CI evidence URL/reference is supplied.": {
+    "fr": "L’évaluation de production reste bloquée tant que chaque jalon obligatoire tenant compte des dépendances n’est pas réussi, que la disponibilité d’exécution n’est pas au vert et qu’une URL/référence de preuve CI traçable n’est pas fournie.",
+    "es": "La evaluación de producción permanece bloqueada hasta que todas las puertas obligatorias sensibles a dependencias estén aprobadas, la preparación de ejecución esté en verde y se proporcione una URL/referencia de evidencia CI trazable.",
+    "ar": "يبقى تقييم الإنتاج محظوراً ما لم تُسجَّل جميع البوابات الإلزامية المعتمدة على التبعيات كناجحة، وتكون جاهزية التشغيل خضراء، ويتم توفير رابط أو مرجع قابل للتتبع لأدلة CI."
+  },
+  "Restoring access and command-center permissions…": {
+    "fr": "Restauration de l’accès et des autorisations du centre de commandement…",
+    "es": "Restaurando el acceso y los permisos del centro de mando…",
+    "ar": "جارٍ استعادة الوصول وصلاحيات مركز القيادة…"
+  },
+  "Loading evidence, readiness and enterprise risk intelligence…": {
+    "fr": "Chargement des preuves, de la préparation et des renseignements sur les risques d’entreprise…",
+    "es": "Cargando evidencia, preparación e inteligencia de riesgos empresariales…",
+    "ar": "جارٍ تحميل الأدلة والجاهزية وذكاء مخاطر المؤسسة…"
+  },
+  "Enterprise HCM Index": {
+    "fr": "Indice HCM d’entreprise",
+    "es": "Índice HCM empresarial",
+    "ar": "مؤشر رأس المال البشري للمؤسسة"
+  },
+  "Readiness level": {
+    "fr": "Niveau de préparation",
+    "es": "Nivel de preparación",
+    "ar": "مستوى الجاهزية"
+  },
+  "Assessed domains": {
+    "fr": "Domaines évalués",
+    "es": "Dominios evaluados",
+    "ar": "المجالات المقيمة"
+  },
+  "Insufficient evidence": {
+    "fr": "Preuves insuffisantes",
+    "es": "Evidencia insuficiente",
+    "ar": "أدلة غير كافية"
+  },
+  "High/critical domains": {
+    "fr": "Domaines élevés/critiques",
+    "es": "Dominios altos/críticos",
+    "ar": "المجالات العالية/الحرجة"
+  },
+  "Open enterprise actions": {
+    "fr": "Actions d’entreprise ouvertes",
+    "es": "Acciones empresariales abiertas",
+    "ar": "إجراءات المؤسسة المفتوحة"
+  },
+  "Production gate": {
+    "fr": "Jalon de production",
+    "es": "Puerta de producción",
+    "ar": "بوابة الإنتاج"
+  },
+  "Source domain": {
+    "fr": "Domaine source",
+    "es": "Dominio de origen",
+    "ar": "المجال المصدر"
+  },
+  "Source route": {
+    "fr": "Route source",
+    "es": "Ruta de origen",
+    "ar": "المسار المصدر"
+  },
+  "Success measure": {
+    "fr": "Mesure de réussite",
+    "es": "Medida de éxito",
+    "ar": "مقياس النجاح"
+  },
+  "First task": {
+    "fr": "Première tâche",
+    "es": "Primera tarea",
+    "ar": "المهمة الأولى"
+  },
+  "Current lifecycle quality": {
+    "fr": "Qualité actuelle du cycle de vie",
+    "es": "Calidad actual del ciclo de vida",
+    "ar": "جودة دورة الحياة الحالية"
+  },
+  "Snapshots": {
+    "fr": "Instantanés",
+    "es": "Instantáneas",
+    "ar": "لقطات"
+  },
+  "Release version": {
+    "fr": "Version de publication",
+    "es": "Versión de lanzamiento",
+    "ar": "إصدار النسخة"
+  },
+  "Dependency install": {
+    "fr": "Installation des dépendances",
+    "es": "Instalación de dependencias",
+    "ar": "تثبيت التبعيات"
+  },
+  "Typecheck": {
+    "fr": "Vérification des types",
+    "es": "Comprobación de tipos",
+    "ar": "فحص الأنواع"
+  },
+  "Tests": {
+    "fr": "Tests",
+    "es": "Pruebas",
+    "ar": "الاختبارات"
+  },
+  "Rules tests": {
+    "fr": "Tests des règles",
+    "es": "Pruebas de reglas",
+    "ar": "اختبارات القواعد"
+  },
+  "Build": {
+    "fr": "Compilation",
+    "es": "Compilación",
+    "ar": "البناء"
+  },
+  "AI governance": {
+    "fr": "Gouvernance de l’IA",
+    "es": "Gobernanza de IA",
+    "ar": "حوكمة الذكاء الاصطناعي"
+  },
+  "Lifecycle UAT": {
+    "fr": "UAT du cycle de vie",
+    "es": "UAT del ciclo de vida",
+    "ar": "اختبار قبول دورة الحياة"
+  },
+  "CI evidence URL (required for production)": {
+    "fr": "URL de preuve CI (requise pour la production)",
+    "es": "URL de evidencia CI (obligatoria para producción)",
+    "ar": "رابط أدلة CI (مطلوب للإنتاج)"
+  },
+  "Reporting date": {
+    "fr": "Date de rapport",
+    "es": "Fecha del informe",
+    "ar": "تاريخ التقرير"
+  },
+  "Commentary": {
+    "fr": "Commentaire",
+    "es": "Comentario",
+    "ar": "تعليق"
+  },
+  "Production availability": {
+    "fr": "Disponibilité de production",
+    "es": "Disponibilidad de producción",
+    "ar": "توفر الإنتاج"
+  },
+  "Unable to load access profile.": {
+    "fr": "Impossible de charger le profil d’accès.",
+    "es": "No se pudo cargar el perfil de acceso.",
+    "ar": "تعذر تحميل ملف الوصول."
+  },
+  "Unable to load Enterprise HCM Command Center.": {
+    "fr": "Impossible de charger le Centre de commandement HCM d’entreprise.",
+    "es": "No se pudo cargar el Centro de mando HCM empresarial.",
+    "ar": "تعذر تحميل مركز قيادة رأس المال البشري للمؤسسة."
+  },
+  "Command Center action failed.": {
+    "fr": "L’action du Centre de commandement a échoué.",
+    "es": "La acción del Centro de mando falló.",
+    "ar": "فشل إجراء مركز القيادة."
+  },
+  "My Account": {
+    "fr": "Mon compte",
+    "es": "Mi cuenta",
+    "ar": "حسابي"
+  },
+  "Appearance": {
+    "fr": "Apparence",
+    "es": "Apariencia",
+    "ar": "المظهر"
+  },
+  "Authentication & Access": {
+    "fr": "Authentification et accès",
+    "es": "Autenticación y acceso",
+    "ar": "المصادقة والوصول"
+  },
+  "Organization & Region": {
+    "fr": "Organisation et région",
+    "es": "Organización y región",
+    "ar": "المؤسسة والمنطقة"
+  },
+  "Notifications": {
+    "fr": "Notifications",
+    "es": "Notificaciones",
+    "ar": "الإشعارات"
+  },
+  "Data & Import": {
+    "fr": "Données et importation",
+    "es": "Datos e importación",
+    "ar": "البيانات والاستيراد"
+  },
+  "Integrations": {
+    "fr": "Intégrations",
+    "es": "Integraciones",
+    "ar": "التكاملات"
+  },
+  "AI & Automation": {
+    "fr": "IA et automatisation",
+    "es": "IA y automatización",
+    "ar": "الذكاء الاصطناعي والأتمتة"
+  },
+  "Security & Privacy": {
+    "fr": "Sécurité et confidentialité",
+    "es": "Seguridad y privacidad",
+    "ar": "الأمن والخصوصية"
+  },
+  "System": {
+    "fr": "Système",
+    "es": "Sistema",
+    "ar": "النظام"
+  },
+  "Settings sections": {
+    "fr": "Sections des paramètres",
+    "es": "Secciones de configuración",
+    "ar": "أقسام الإعدادات"
+  },
+  "User ID": {
+    "fr": "ID utilisateur",
+    "es": "ID de usuario",
+    "ar": "معرف المستخدم"
+  },
+  "Provider": {
+    "fr": "Fournisseur",
+    "es": "Proveedor",
+    "ar": "الموفر"
+  },
+  "Email verification": {
+    "fr": "Vérification du courriel",
+    "es": "Verificación del correo",
+    "ar": "التحقق من البريد الإلكتروني"
+  },
+  "Loading platform access policy…": {
+    "fr": "Chargement de la politique d’accès à la plateforme…",
+    "es": "Cargando la política de acceso a la plataforma…",
+    "ar": "جارٍ تحميل سياسة الوصول إلى المنصة…"
+  },
+  "Registration mode": {
+    "fr": "Mode d’inscription",
+    "es": "Modo de registro",
+    "ar": "وضع التسجيل"
+  },
+  "MFA policy": {
+    "fr": "Politique MFA",
+    "es": "Política de MFA",
+    "ar": "سياسة المصادقة متعددة العوامل"
+  },
+  "Allow email/password sign-in": {
+    "fr": "Autoriser la connexion par courriel/mot de passe",
+    "es": "Permitir inicio de sesión con correo/contraseña",
+    "ar": "السماح بتسجيل الدخول بالبريد الإلكتروني/كلمة المرور"
+  },
+  "Allow self-service password reset": {
+    "fr": "Autoriser la réinitialisation libre-service du mot de passe",
+    "es": "Permitir restablecimiento de contraseña de autoservicio",
+    "ar": "السماح بإعادة تعيين كلمة المرور ذاتياً"
+  },
+  "Enable guest entry point": {
+    "fr": "Activer le point d’entrée invité",
+    "es": "Habilitar acceso de invitado",
+    "ar": "تمكين نقطة دخول الضيف"
+  },
+  "Sign in": {
+    "fr": "Se connecter",
+    "es": "Iniciar sesión",
+    "ar": "تسجيل الدخول"
+  },
+  "Password, configured SSO or governed guest entry": {
+    "fr": "Mot de passe, SSO configuré ou accès invité gouverné",
+    "es": "Contraseña, SSO configurado o acceso de invitado gobernado",
+    "ar": "كلمة مرور أو SSO مُعدّ أو دخول ضيف خاضع للحوكمة"
+  },
+  "Register": {
+    "fr": "S’inscrire",
+    "es": "Registrarse",
+    "ar": "التسجيل"
+  },
+  "Only when open registration is enabled": {
+    "fr": "Uniquement lorsque l’inscription ouverte est activée",
+    "es": "Solo cuando el registro abierto está habilitado",
+    "ar": "فقط عند تمكين التسجيل المفتوح"
+  },
+  "Self-service recovery when allowed": {
+    "fr": "Récupération libre-service lorsqu’elle est autorisée",
+    "es": "Recuperación de autoservicio cuando esté permitida",
+    "ar": "استعادة ذاتية عند السماح بها"
+  },
+  "Identity & SSO": {
+    "fr": "Identité et SSO",
+    "es": "Identidad y SSO",
+    "ar": "الهوية وتسجيل الدخول الموحد"
+  },
+  "Federation, JIT and access review": {
+    "fr": "Fédération, JIT et revue des accès",
+    "es": "Federación, JIT y revisión de acceso",
+    "ar": "الاتحاد وJIT ومراجعة الوصول"
+  },
+  "Organization structure": {
+    "fr": "Structure organisationnelle",
+    "es": "Estructura organizativa",
+    "ar": "هيكل المؤسسة"
+  },
+  "Units, positions and capacity": {
+    "fr": "Unités, postes et capacité",
+    "es": "Unidades, puestos y capacidad",
+    "ar": "الوحدات والمناصب والسعة"
+  },
+  "Users & roles": {
+    "fr": "Utilisateurs et rôles",
+    "es": "Usuarios y roles",
+    "ar": "المستخدمون والأدوار"
+  },
+  "Membership and secure invitations": {
+    "fr": "Adhésions et invitations sécurisées",
+    "es": "Membresía e invitaciones seguras",
+    "ar": "العضوية والدعوات الآمنة"
+  },
+  "Federation and JIT policy": {
+    "fr": "Politique de fédération et JIT",
+    "es": "Política de federación y JIT",
+    "ar": "سياسة الاتحاد وJIT"
+  },
+  "Notification administration requires notifications.manage.": {
+    "fr": "L’administration des notifications exige notifications.manage.",
+    "es": "La administración de notificaciones requiere notifications.manage.",
+    "ar": "تتطلب إدارة الإشعارات صلاحية notifications.manage."
+  },
+  "Unified Import Center": {
+    "fr": "Centre d’importation unifié",
+    "es": "Centro de importación unificado",
+    "ar": "مركز الاستيراد الموحد"
+  },
+  "Employees, policies, procedures, contracts, forms and HR library": {
+    "fr": "Employés, politiques, procédures, contrats, formulaires et bibliothèque RH",
+    "es": "Empleados, políticas, procedimientos, contratos, formularios y biblioteca de RR. HH.",
+    "ar": "الموظفون والسياسات والإجراءات والعقود والنماذج ومكتبة الموارد البشرية"
+  },
+  "Evidence-backed employment contract extraction": {
+    "fr": "Extraction de contrats de travail fondée sur les preuves",
+    "es": "Extracción de contratos laborales respaldada por evidencia",
+    "ar": "استخراج عقود العمل المدعوم بالأدلة"
+  },
+  "Controlled records, retention and acknowledgements": {
+    "fr": "Dossiers contrôlés, conservation et accusés de réception",
+    "es": "Registros controlados, retención y acuses",
+    "ar": "السجلات الخاضعة للضبط والاحتفاظ والإقرارات"
+  },
+  "External integrations": {
+    "fr": "Intégrations externes",
+    "es": "Integraciones externas",
+    "ar": "التكاملات الخارجية"
+  },
+  "Configured providers and governed data contracts": {
+    "fr": "Fournisseurs configurés et contrats de données gouvernés",
+    "es": "Proveedores configurados y contratos de datos gobernados",
+    "ar": "الموفرون المُعدّون وعقود البيانات الخاضعة للحوكمة"
+  },
+  "Integration Center": {
+    "fr": "Centre d’intégration",
+    "es": "Centro de integración",
+    "ar": "مركز التكامل"
+  },
+  "Connectors, data contracts, staging, dead letters and reconciliation": {
+    "fr": "Connecteurs, contrats de données, préparation, lettres mortes et rapprochement",
+    "es": "Conectores, contratos de datos, preparación, mensajes fallidos y conciliación",
+    "ar": "الموصلات وعقود البيانات والتجهيز والرسائل الفاشلة والتسوية"
+  },
+  "Import Center": {
+    "fr": "Centre d’importation",
+    "es": "Centro de importación",
+    "ar": "مركز الاستيراد"
+  },
+  "File, HRIS export and HR library migration": {
+    "fr": "Fichier, export HRIS et migration de bibliothèque RH",
+    "es": "Archivo, exportación HRIS y migración de biblioteca de RR. HH.",
+    "ar": "الملفات وتصدير HRIS وترحيل مكتبة الموارد البشرية"
+  },
+  "Identity providers": {
+    "fr": "Fournisseurs d’identité",
+    "es": "Proveedores de identidad",
+    "ar": "موفرو الهوية"
+  },
+  "OIDC/SAML, JIT and federation policy": {
+    "fr": "OIDC/SAML, JIT et politique de fédération",
+    "es": "OIDC/SAML, JIT y política de federación",
+    "ar": "OIDC/SAML وJIT وسياسة الاتحاد"
+  },
+  "Integration health": {
+    "fr": "Santé des intégrations",
+    "es": "Salud de integraciones",
+    "ar": "سلامة التكاملات"
+  },
+  "Operational evidence, availability and diagnostics": {
+    "fr": "Preuves opérationnelles, disponibilité et diagnostics",
+    "es": "Evidencia operativa, disponibilidad y diagnósticos",
+    "ar": "الأدلة التشغيلية والتوفر والتشخيص"
+  },
+  "AI HR Copilot": {
+    "fr": "Copilote RH IA",
+    "es": "Copiloto de RR. HH. con IA",
+    "ar": "مساعد الموارد البشرية بالذكاء الاصطناعي"
+  },
+  "Governed evidence, models, prompts and action-plan drafts": {
+    "fr": "Preuves, modèles, invites et brouillons de plans d’action gouvernés",
+    "es": "Evidencia, modelos, instrucciones y borradores de planes de acción gobernados",
+    "ar": "الأدلة والنماذج والمطالبات ومسودات خطط العمل الخاضعة للحوكمة"
+  },
+  "Operations Orchestrator": {
+    "fr": "Orchestrateur des opérations",
+    "es": "Orquestador de operaciones",
+    "ar": "منسق العمليات"
+  },
+  "Multi-step governed HR execution and reconciliation": {
+    "fr": "Exécution RH gouvernée en plusieurs étapes et rapprochement",
+    "es": "Ejecución de RR. HH. gobernada en varios pasos y conciliación",
+    "ar": "تنفيذ الموارد البشرية متعدد الخطوات والخاضع للحوكمة والتسوية"
+  },
+  "Workflow Engine": {
+    "fr": "Moteur de flux de travail",
+    "es": "Motor de flujos de trabajo",
+    "ar": "محرك سير العمل"
+  },
+  "Rules, steps, approvals, Gantt and persisted progress": {
+    "fr": "Règles, étapes, approbations, Gantt et progression persistée",
+    "es": "Reglas, pasos, aprobaciones, Gantt y progreso persistido",
+    "ar": "القواعد والخطوات والموافقات ومخطط غانت والتقدم المحفوظ"
+  },
+  "Automation": {
+    "fr": "Automatisation",
+    "es": "Automatización",
+    "ar": "الأتمتة"
+  },
+  "Scheduled jobs and operational controls": {
+    "fr": "Tâches planifiées et contrôles opérationnels",
+    "es": "Tareas programadas y controles operativos",
+    "ar": "المهام المجدولة والضوابط التشغيلية"
+  },
+  "Security Admin": {
+    "fr": "Administration de la sécurité",
+    "es": "Administración de seguridad",
+    "ar": "إدارة الأمن"
+  },
+  "Privileged controls": {
+    "fr": "Contrôles privilégiés",
+    "es": "Controles privilegiados",
+    "ar": "الضوابط ذات الصلاحيات العالية"
+  },
+  "Security Operations": {
+    "fr": "Opérations de sécurité",
+    "es": "Operaciones de seguridad",
+    "ar": "عمليات الأمن"
+  },
+  "Events and posture evidence": {
+    "fr": "Événements et preuves de posture",
+    "es": "Eventos y evidencia de postura",
+    "ar": "الأحداث وأدلة الوضع الأمني"
+  },
+  "Privacy and AI governance": {
+    "fr": "Confidentialité et gouvernance de l’IA",
+    "es": "Privacidad y gobernanza de IA",
+    "ar": "الخصوصية وحوكمة الذكاء الاصطناعي"
+  },
+  "Audit Trail": {
+    "fr": "Piste d’audit",
+    "es": "Pista de auditoría",
+    "ar": "سجل التدقيق"
+  },
+  "Authoritative administrative evidence": {
+    "fr": "Preuves administratives faisant autorité",
+    "es": "Evidencia administrativa autorizada",
+    "ar": "الأدلة الإدارية الموثوقة"
+  },
+  "Audit & Assurance": {
+    "fr": "Audit et assurance",
+    "es": "Auditoría y aseguramiento",
+    "ar": "التدقيق والضمان"
+  },
+  "Control evidence workflows": {
+    "fr": "Flux de preuves de contrôle",
+    "es": "Flujos de evidencia de control",
+    "ar": "مسارات عمل أدلة الضوابط"
+  },
+  "Product release": {
+    "fr": "Publication du produit",
+    "es": "Lanzamiento del producto",
+    "ar": "إصدار المنتج"
+  },
+  "Certification baseline": {
+    "fr": "Référence de certification",
+    "es": "Línea base de certificación",
+    "ar": "خط أساس الاعتماد"
+  },
+  "Deployment provenance": {
+    "fr": "Provenance du déploiement",
+    "es": "Procedencia del despliegue",
+    "ar": "مصدر النشر"
+  },
+  "Active organization": {
+    "fr": "Organisation active",
+    "es": "Organización activa",
+    "ar": "المؤسسة النشطة"
+  },
+  "Client mode": {
+    "fr": "Mode client",
+    "es": "Modo cliente",
+    "ar": "وضع العميل"
+  },
+  "Firebase project": {
+    "fr": "Projet Firebase",
+    "es": "Proyecto Firebase",
+    "ar": "مشروع Firebase"
+  },
+  "Platform Reliability": {
+    "fr": "Fiabilité de la plateforme",
+    "es": "Fiabilidad de la plataforma",
+    "ar": "موثوقية المنصة"
+  },
+  "Service health, SLO and operational evidence": {
+    "fr": "Santé des services, SLO et preuves opérationnelles",
+    "es": "Salud del servicio, SLO y evidencia operativa",
+    "ar": "سلامة الخدمة ومستويات الخدمة والأدلة التشغيلية"
+  },
+  "Operations Cockpit": {
+    "fr": "Poste de pilotage des opérations",
+    "es": "Cabina de operaciones",
+    "ar": "لوحة قيادة العمليات"
+  },
+  "Cross-domain queues and reconciliation": {
+    "fr": "Files interdomaines et rapprochement",
+    "es": "Colas entre dominios y conciliación",
+    "ar": "طوابير العمل عبر المجالات والتسوية"
+  },
+  "Scheduled operational jobs": {
+    "fr": "Tâches opérationnelles planifiées",
+    "es": "Tareas operativas programadas",
+    "ar": "المهام التشغيلية المجدولة"
+  },
+  "Unable to load settings.": {
+    "fr": "Impossible de charger les paramètres.",
+    "es": "No se pudo cargar la configuración.",
+    "ar": "تعذر تحميل الإعدادات."
+  },
+  "Unable to save platform settings.": {
+    "fr": "Impossible d’enregistrer les paramètres de la plateforme.",
+    "es": "No se pudieron guardar los ajustes de la plataforma.",
+    "ar": "تعذر حفظ إعدادات المنصة."
+  },
+  "Unable to save notification settings.": {
+    "fr": "Impossible d’enregistrer les paramètres de notification.",
+    "es": "No se pudieron guardar los ajustes de notificaciones.",
+    "ar": "تعذر حفظ إعدادات الإشعارات."
+  },
+  "Unable to send password reset email.": {
+    "fr": "Impossible d’envoyer le courriel de réinitialisation du mot de passe.",
+    "es": "No se pudo enviar el correo de restablecimiento de contraseña.",
+    "ar": "تعذر إرسال بريد إعادة تعيين كلمة المرور."
+  },
+  "Unable to sign out.": {
+    "fr": "Impossible de se déconnecter.",
+    "es": "No se pudo cerrar sesión.",
+    "ar": "تعذر تسجيل الخروج."
+  },
+  "Theme and density are controlled by the organization. Accessibility preferences remain available.": {
+    "fr": "Le thème et la densité sont contrôlés par l’organisation. Les préférences d’accessibilité restent disponibles.",
+    "es": "El tema y la densidad están controlados por la organización. Las preferencias de accesibilidad siguen disponibles.",
+    "ar": "تتحكم المؤسسة في السمة والكثافة، بينما تبقى تفضيلات إمكانية الوصول متاحة."
+  },
+  "Accessibility preference saved; organization theme remains enforced.": {
+    "fr": "Préférence d’accessibilité enregistrée; le thème de l’organisation reste appliqué.",
+    "es": "Preferencia de accesibilidad guardada; el tema de la organización sigue aplicado.",
+    "ar": "تم حفظ تفضيل إمكانية الوصول؛ وتبقى سمة المؤسسة مفروضة."
+  },
+  "Appearance preference saved on this device.": {
+    "fr": "Préférence d’apparence enregistrée sur cet appareil.",
+    "es": "Preferencia de apariencia guardada en este dispositivo.",
+    "ar": "تم حفظ تفضيل المظهر على هذا الجهاز."
+  },
+  "Platform settings saved and audit-recorded.": {
+    "fr": "Paramètres de la plateforme enregistrés et consignés dans l’audit.",
+    "es": "Configuración de la plataforma guardada y registrada en auditoría.",
+    "ar": "تم حفظ إعدادات المنصة وتسجيلها في سجل التدقيق."
+  },
+  "Notification settings saved.": {
+    "fr": "Paramètres de notification enregistrés.",
+    "es": "Configuración de notificaciones guardada.",
+    "ar": "تم حفظ إعدادات الإشعارات."
+  },
+  "The signed-in account does not have an email address.": {
+    "fr": "Le compte connecté ne possède pas d’adresse courriel.",
+    "es": "La cuenta iniciada no tiene una dirección de correo.",
+    "ar": "الحساب المسجل دخوله لا يحتوي على عنوان بريد إلكتروني."
+  },
+  "Appearance/accessibility preferences reset.": {
+    "fr": "Préférences d’apparence/accessibilité réinitialisées.",
+    "es": "Preferencias de apariencia/accesibilidad restablecidas.",
+    "ar": "تمت إعادة تعيين تفضيلات المظهر/إمكانية الوصول."
+  },
+  "OPSIQO has not loaded account, platform, organization, integration, AI, or security settings because this session has not yet proved its required second factor.": {
+    "fr": "OPSIQO n’a pas chargé les paramètres du compte, de la plateforme, de l’organisation, des intégrations, de l’IA ou de la sécurité, car cette session n’a pas encore validé le deuxième facteur requis.",
+    "es": "OPSIQO no ha cargado la configuración de cuenta, plataforma, organización, integraciones, IA o seguridad porque esta sesión aún no ha demostrado el segundo factor requerido.",
+    "ar": "لم يقم OPSIQO بتحميل إعدادات الحساب أو المنصة أو المؤسسة أو التكامل أو الذكاء الاصطناعي أو الأمن لأن هذه الجلسة لم تثبت عامل التحقق الثاني المطلوب بعد."
+  },
+  "Guest access is always read-only and never inherits employee HR permissions. Open registration creates an identity only; organization membership remains invitation/JIT governed.": {
+    "fr": "L’accès invité est toujours en lecture seule et n’hérite jamais des autorisations RH des employés. L’inscription ouverte crée uniquement une identité; l’adhésion à l’organisation reste gouvernée par invitation/JIT.",
+    "es": "El acceso de invitado siempre es de solo lectura y nunca hereda permisos de RR. HH. de empleados. El registro abierto solo crea una identidad; la membresía de la organización sigue gobernada por invitación/JIT.",
+    "ar": "يكون وصول الضيف للقراءة فقط دائماً ولا يرث صلاحيات الموارد البشرية للموظفين. ينشئ التسجيل المفتوح هوية فقط، بينما تبقى عضوية المؤسسة خاضعة للدعوة/JIT."
+  },
+  "Locale, timezone and date settings are organization defaults. Module localization remains evidence-driven; the platform does not pretend a screen is translated when it is not.": {
+    "fr": "La langue, le fuseau horaire et le format de date sont des valeurs par défaut de l’organisation. La localisation des modules reste fondée sur les preuves; la plateforme ne prétend pas qu’un écran est traduit lorsqu’il ne l’est pas.",
+    "es": "El idioma, la zona horaria y el formato de fecha son valores predeterminados de la organización. La localización de módulos sigue basada en evidencia; la plataforma no afirma que una pantalla esté traducida cuando no lo está.",
+    "ar": "تُعد اللغة والمنطقة الزمنية وإعدادات التاريخ افتراضيات للمؤسسة. وتظل ترجمة الوحدات قائمة على الأدلة؛ ولا تدّعي المنصة أن الشاشة مترجمة عندما لا تكون كذلك."
+  },
+  "Configure only verified organization connectors. Google Drive and OneDrive/SharePoint remain Not configured until real OAuth/Graph credentials and approvals exist.": {
+    "fr": "Configurez uniquement des connecteurs d’organisation vérifiés. Google Drive et OneDrive/SharePoint restent non configurés jusqu’à ce que des identifiants OAuth/Graph et des approbations réels soient disponibles.",
+    "es": "Configure solo conectores de organización verificados. Google Drive y OneDrive/SharePoint permanecen sin configurar hasta que existan credenciales OAuth/Graph reales y aprobaciones.",
+    "ar": "قم بإعداد موصلات المؤسسة التي تم التحقق منها فقط. ويظل Google Drive وOneDrive/SharePoint غير مُعدَّين حتى تتوفر بيانات اعتماد OAuth/Graph فعلية والموافقات المطلوبة."
+  },
+  "AI may interpret, summarize and prepare governed plans. Permission checks, human confirmation and authoritative domain services remain the execution boundary for consequential HR actions.": {
+    "fr": "L’IA peut interpréter, résumer et préparer des plans gouvernés. Les contrôles d’autorisation, la confirmation humaine et les services de domaine faisant autorité restent la limite d’exécution des actions RH à conséquence.",
+    "es": "La IA puede interpretar, resumir y preparar planes gobernados. Las comprobaciones de permisos, la confirmación humana y los servicios de dominio autorizados siguen siendo el límite de ejecución para acciones de RR. HH. de impacto.",
+    "ar": "يمكن للذكاء الاصطناعي التفسير والتلخيص وإعداد خطط خاضعة للحوكمة. وتظل فحوص الصلاحيات والتأكيد البشري وخدمات المجال الموثوقة هي حدود التنفيذ لإجراءات الموارد البشرية ذات الأثر."
+  },
+  "Cortex coordinates specialized capabilities while OPSIQO Guard limits every action to governed evidence, permissions and human oversight.": {
+    "fr": "Cortex coordonne les capacités spécialisées tandis qu’OPSIQO Guard limite chaque action aux preuves gouvernées, aux autorisations et à la supervision humaine.",
+    "es": "Cortex coordina capacidades especializadas mientras OPSIQO Guard limita cada acción a evidencia gobernada, permisos y supervisión humana.",
+    "ar": "ينسق Cortex القدرات المتخصصة بينما يقيّد OPSIQO Guard كل إجراء بالأدلة الخاضعة للحوكمة والصلاحيات والإشراف البشري."
+  },
+  "Ask about governed aggregate headcount, FTE, employer-cost estimates, turnover, vacancies or verified skill gaps. No individual risk scoring is used.": {
+    "fr": "Interrogez les effectifs agrégés gouvernés, les ETP, les estimations de coûts employeur, le roulement, les postes vacants ou les écarts de compétences vérifiés. Aucun score de risque individuel n’est utilisé.",
+    "es": "Consulta sobre plantilla agregada gobernada, FTE, estimaciones de costos del empleador, rotación, vacantes o brechas de habilidades verificadas. No se utiliza puntuación de riesgo individual.",
+    "ar": "اسأل عن إجمالي عدد الموظفين الخاضع للحوكمة، وFTE، وتقديرات تكلفة صاحب العمل، ودوران الموظفين، والشواغر أو فجوات المهارات الموثقة. لا يتم استخدام أي تقييم مخاطر فردي."
+  },
+  "Compare turnover and vacancies": {
+    "fr": "Comparer le roulement et les postes vacants",
+    "es": "Comparar rotación y vacantes",
+    "ar": "مقارنة دوران الموظفين والشواغر"
+  },
+  "Unable to load Intelligence.": {
+    "fr": "Impossible de charger Intelligence.",
+    "es": "No se pudo cargar Inteligencia.",
+    "ar": "تعذر تحميل الذكاء."
+  },
+  "Unable to analyze workforce evidence.": {
+    "fr": "Impossible d’analyser les preuves de main-d’œuvre.",
+    "es": "No se pudo analizar la evidencia de la fuerza laboral.",
+    "ar": "تعذر تحليل أدلة القوى العاملة."
+  },
+  "Authoritative worker directory separated from private person data and employment records.": {
+    "fr": "Répertoire de travailleurs faisant autorité, séparé des données personnelles privées et des dossiers d’emploi.",
+    "es": "Directorio autorizado de trabajadores separado de los datos personales privados y los registros laborales.",
+    "ar": "دليل موثوق للعاملين منفصل عن البيانات الشخصية الخاصة وسجلات التوظيف."
+  },
+  "Import employees into People": {
+    "fr": "Importer des employés dans People",
+    "es": "Importar empleados a People",
+    "ar": "استيراد الموظفين إلى قسم الأشخاص"
+  },
+  "Employment type": {
+    "fr": "Type d’emploi",
+    "es": "Tipo de empleo",
+    "ar": "نوع التوظيف"
+  },
+  "Number": {
+    "fr": "Numéro",
+    "es": "Número",
+    "ar": "الرقم"
+  },
+  "Search people": {
+    "fr": "Rechercher des personnes",
+    "es": "Buscar personas",
+    "ar": "البحث عن الأشخاص"
+  },
+  "Search name, email, or #employee number": {
+    "fr": "Rechercher par nom, courriel ou numéro d’employé",
+    "es": "Buscar por nombre, correo o número de empleado",
+    "ar": "البحث بالاسم أو البريد الإلكتروني أو رقم الموظف"
+  },
+  "First name": {
+    "fr": "Prénom",
+    "es": "Nombre",
+    "ar": "الاسم الأول"
+  },
+  "Last name": {
+    "fr": "Nom de famille",
+    "es": "Apellido",
+    "ar": "اسم العائلة"
+  },
+  "Loading people…": {
+    "fr": "Chargement des personnes…",
+    "es": "Cargando personas…",
+    "ar": "جارٍ تحميل الأشخاص…"
+  },
+  "No people found": {
+    "fr": "Aucune personne trouvée",
+    "es": "No se encontraron personas",
+    "ar": "لم يتم العثور على أشخاص"
+  },
+  "Unable to load people.": {
+    "fr": "Impossible de charger les personnes.",
+    "es": "No se pudieron cargar las personas.",
+    "ar": "تعذر تحميل الأشخاص."
+  },
+  "Unable to create employee.": {
+    "fr": "Impossible de créer l’employé.",
+    "es": "No se pudo crear el empleado.",
+    "ar": "تعذر إنشاء الموظف."
+  },
+  "Employee number": {
+    "fr": "Numéro d’employé",
+    "es": "Número de empleado",
+    "ar": "رقم الموظف"
+  },
+  "Assigned automatically on save": {
+    "fr": "Attribué automatiquement lors de l’enregistrement",
+    "es": "Asignado automáticamente al guardar",
+    "ar": "يُعيَّن تلقائياً عند الحفظ"
+  },
+  "Assigned automatically during import": {
+    "fr": "Attribué automatiquement lors de l’importation",
+    "es": "Asignado automáticamente durante la importación",
+    "ar": "يُعيَّن تلقائياً أثناء الاستيراد"
+  },
+  "Auto-assigned": {
+    "fr": "Attribué automatiquement",
+    "es": "Asignado automáticamente",
+    "ar": "مُعيَّن تلقائياً"
+  },
+  "Work queue categories": {
+    "fr": "Catégories de file de travail",
+    "es": "Categorías de cola de trabajo",
+    "ar": "فئات قائمة العمل"
+  },
+  "Needs me": {
+    "fr": "Nécessite mon intervention",
+    "es": "Requiere mi intervención",
+    "ar": "يحتاج تدخلي"
+  },
+  "AI prepared": {
+    "fr": "Préparé par l’IA",
+    "es": "Preparado por IA",
+    "ar": "أعدّه الذكاء الاصطناعي"
+  },
+  "Unable to load My Work.": {
+    "fr": "Impossible de charger Mon travail.",
+    "es": "No se pudo cargar Mi trabajo.",
+    "ar": "تعذر تحميل عملي."
+  },
+  "Compensation & Total Rewards": {
+    "fr": "Rémunération et récompenses totales",
+    "es": "Compensación y recompensas totales",
+    "ar": "التعويضات والمكافآت الشاملة"
+  },
+  "Job architecture, salary bands, effective-dated pay, market positioning, compensation planning, pay-equity review and transparent total rewards.": {
+    "fr": "Architecture des emplois, bandes salariales, rémunération datée, positionnement marché, planification de la rémunération, examen de l’équité salariale et récompenses totales transparentes.",
+    "es": "Arquitectura de puestos, bandas salariales, remuneración con vigencia, posicionamiento de mercado, planificación de compensación, revisión de equidad salarial y recompensas totales transparentes.",
+    "ar": "هندسة الوظائف، ونطاقات الرواتب، والأجر المؤرخ بسريان فعّال، والتموضع السوقي، وتخطيط التعويضات، ومراجعة المساواة في الأجور، والمكافآت الشاملة الشفافة."
+  },
+  "Overview": {
+    "fr": "Vue d’ensemble",
+    "es": "Resumen",
+    "ar": "نظرة عامة"
+  },
+  "Employees": {
+    "fr": "Employés",
+    "es": "Empleados",
+    "ar": "الموظفون"
+  },
+  "Cycles": {
+    "fr": "Cycles",
+    "es": "Ciclos",
+    "ar": "الدورات"
+  },
+  "Rewards": {
+    "fr": "Récompenses",
+    "es": "Recompensas",
+    "ar": "المكافآت"
+  },
+  "Architecture": {
+    "fr": "Architecture",
+    "es": "Arquitectura",
+    "ar": "الهيكلية"
+  },
+  "Pay Equity": {
+    "fr": "Équité salariale",
+    "es": "Equidad salarial",
+    "ar": "المساواة في الأجور"
+  },
+  "Transparency": {
+    "fr": "Transparence",
+    "es": "Transparencia",
+    "ar": "الشفافية"
+  },
+  "Decision support is explainable and effective-dated. Pay-equity and transparency indicators require human legal/HR review.": {
+    "fr": "L’aide à la décision est explicable et datée. Les indicateurs d’équité salariale et de transparence exigent un examen humain juridique/RH.",
+    "es": "El apoyo a decisiones es explicable y con vigencia. Los indicadores de equidad salarial y transparencia requieren revisión humana legal/RR. HH.",
+    "ar": "دعم القرار قابل للتفسير ومؤرخ بسريان فعّال. وتتطلب مؤشرات المساواة في الأجور والشفافية مراجعة بشرية قانونية/من الموارد البشرية."
+  },
+  "Use for reviewed corrections, market/equity adjustments or initial data migration. Normal increases should use a compensation cycle.": {
+    "fr": "À utiliser pour les corrections examinées, les ajustements de marché/équité ou la migration initiale des données. Les augmentations normales doivent utiliser un cycle de rémunération.",
+    "es": "Úselo para correcciones revisadas, ajustes de mercado/equidad o migración inicial de datos. Los aumentos normales deben usar un ciclo de compensación.",
+    "ar": "يُستخدم للتصحيحات التي تمت مراجعتها، أو تعديلات السوق/العدالة، أو ترحيل البيانات الأولي. وينبغي أن تستخدم الزيادات العادية دورة تعويضات."
+  },
+  "Record job-class predominance and gender-neutral job-value evidence. Individual employee sex/gender is not used to infer job-class predominance.": {
+    "fr": "Consignez les preuves de prédominance des catégories d’emploi et de valeur du travail neutre sur le plan du genre. Le sexe/genre individuel d’un employé n’est pas utilisé pour déduire la prédominance d’une catégorie d’emploi.",
+    "es": "Registre evidencia de predominancia de clase de trabajo y valor laboral neutral respecto al género. El sexo/género individual del empleado no se usa para inferir predominancia de clase.",
+    "ar": "سجّل أدلة غلبة فئة الوظيفة وقيمة العمل المحايدة جندرياً. ولا يُستخدم جنس/نوع الموظف الفردي لاستنتاج غلبة فئة الوظيفة."
+  },
+  "Loading governed compensation intelligence…": {
+    "fr": "Chargement de l’intelligence de rémunération gouvernée…",
+    "es": "Cargando inteligencia de compensación gobernada…",
+    "ar": "جارٍ تحميل ذكاء التعويضات الخاضع للحوكمة…"
+  },
+  "Requisition ID": {
+    "fr": "ID de réquisition",
+    "es": "ID de requisición",
+    "ar": "معرف طلب التوظيف"
+  },
+  "Unable to load compensation workspace.": {
+    "fr": "Impossible de charger l’espace de rémunération.",
+    "es": "No se pudo cargar el espacio de compensación.",
+    "ar": "تعذر تحميل مساحة عمل التعويضات."
+  },
+  "Action failed.": {
+    "fr": "L’action a échoué.",
+    "es": "La acción falló.",
+    "ar": "فشل الإجراء."
+  },
+  "No completed evidence": {
+    "fr": "Aucune preuve complétée",
+    "es": "No hay evidencia completada",
+    "ar": "لا توجد أدلة مكتملة"
+  },
+  "Pay-position snapshot": {
+    "fr": "Instantané du positionnement salarial",
+    "es": "Instantánea de posicionamiento salarial",
+    "ar": "لقطة تموضع الأجر"
+  },
+  "Governance safeguards": {
+    "fr": "Mesures de protection de gouvernance",
+    "es": "Salvaguardas de gobernanza",
+    "ar": "ضمانات الحوكمة"
+  },
+  "Compensation positioning": {
+    "fr": "Positionnement de la rémunération",
+    "es": "Posicionamiento de compensación",
+    "ar": "تموضع التعويضات"
+  },
+  "Controlled off-cycle compensation record": {
+    "fr": "Enregistrement de rémunération hors cycle contrôlé",
+    "es": "Registro de compensación fuera de ciclo controlado",
+    "ar": "سجل تعويضات خارج الدورة خاضع للضبط"
+  },
+  "Job family": {
+    "fr": "Famille d’emplois",
+    "es": "Familia de puestos",
+    "ar": "عائلة الوظائف"
+  },
+  "Job level": {
+    "fr": "Niveau d’emploi",
+    "es": "Nivel de puesto",
+    "ar": "المستوى الوظيفي"
+  },
+  "Salary band": {
+    "fr": "Bande salariale",
+    "es": "Banda salarial",
+    "ar": "نطاق الراتب"
+  },
+  "Salary bands": {
+    "fr": "Bandes salariales",
+    "es": "Bandas salariales",
+    "ar": "نطاقات الرواتب"
+  },
+  "Total rewards inputs": {
+    "fr": "Données des récompenses totales",
+    "es": "Datos de recompensas totales",
+    "ar": "مدخلات المكافآت الشاملة"
+  },
+  "Statement preview": {
+    "fr": "Aperçu du relevé",
+    "es": "Vista previa del estado",
+    "ar": "معاينة البيان"
+  },
+  "Pay-equity job-class evidence": {
+    "fr": "Preuves de catégorie d’emploi pour l’équité salariale",
+    "es": "Evidencia de clase de puesto para equidad salarial",
+    "ar": "أدلة فئة الوظيفة للمساواة في الأجور"
+  },
+  "Job classes": {
+    "fr": "Catégories d’emplois",
+    "es": "Clases de puestos",
+    "ar": "فئات الوظائف"
+  },
+  "Review indicators": {
+    "fr": "Indicateurs de revue",
+    "es": "Indicadores de revisión",
+    "ar": "مؤشرات المراجعة"
+  },
+  "Configured reference policy": {
+    "fr": "Politique de référence configurée",
+    "es": "Política de referencia configurada",
+    "ar": "سياسة المرجع المُعدّة"
+  },
+  "Requisition compensation disclosure": {
+    "fr": "Divulgation de rémunération de la réquisition",
+    "es": "Divulgación de compensación de la requisición",
+    "ar": "إفصاح التعويض لطلب التوظيف"
+  },
+  "Organization unavailable": {
+    "fr": "Organisation indisponible",
+    "es": "Organización no disponible",
+    "ar": "المؤسسة غير متاحة"
+  },
+  "Set up / reconnect": {
+    "fr": "Configurer / reconnecter",
+    "es": "Configurar / reconectar",
+    "ar": "إعداد / إعادة الاتصال"
+  },
+  "Sign in required.": {
+    "fr": "Connexion requise.",
+    "es": "Se requiere iniciar sesión.",
+    "ar": "تسجيل الدخول مطلوب."
+  },
+  "Your session has expired. Sign in again.": {
+    "fr": "Votre session a expiré. Reconnectez-vous.",
+    "es": "Tu sesión ha expirado. Inicia sesión de nuevo.",
+    "ar": "انتهت صلاحية جلستك. سجّل الدخول مرة أخرى."
+  },
+  "Compensation records": {
+    "fr": "Dossiers de rémunération",
+    "es": "Registros de compensación",
+    "ar": "سجلات التعويضات"
+  },
+  "Outside salary band": {
+    "fr": "Hors bande salariale",
+    "es": "Fuera de banda salarial",
+    "ar": "خارج نطاق الراتب"
+  },
+  "No salary band mapping": {
+    "fr": "Aucune correspondance de bande salariale",
+    "es": "Sin asignación de banda salarial",
+    "ar": "لا يوجد ربط بنطاق راتب"
+  },
+  "Open recommendations": {
+    "fr": "Recommandations ouvertes",
+    "es": "Recomendaciones abiertas",
+    "ar": "التوصيات المفتوحة"
+  },
+  "Pay-equity review flags": {
+    "fr": "Indicateurs de revue d’équité salariale",
+    "es": "Indicadores de revisión de equidad salarial",
+    "ar": "إشارات مراجعة المساواة في الأجور"
+  },
+  "Posting disclosure reviews": {
+    "fr": "Revues de divulgation des offres",
+    "es": "Revisiones de divulgación de publicaciones",
+    "ar": "مراجعات إفصاح إعلانات الوظائف"
+  },
+  "Requires reviewed action, not automatic adjustment": {
+    "fr": "Nécessite une action examinée, pas un ajustement automatique",
+    "es": "Requiere una acción revisada, no un ajuste automático",
+    "ar": "يتطلب إجراءً تمت مراجعته، وليس تعديلاً تلقائياً"
+  },
+  "Current pay exists without mapped band": {
+    "fr": "Une rémunération actuelle existe sans bande associée",
+    "es": "Existe remuneración actual sin banda asignada",
+    "ar": "يوجد أجر حالي دون نطاق مرتبط"
+  },
+  "Screening indicators; not legal findings": {
+    "fr": "Indicateurs de dépistage; pas des conclusions juridiques",
+    "es": "Indicadores de detección; no son conclusiones legales",
+    "ar": "مؤشرات فحص؛ وليست استنتاجات قانونية"
+  },
+  "Current configured pay-transparency checks": {
+    "fr": "Contrôles de transparence salariale actuellement configurés",
+    "es": "Controles de transparencia salarial configurados actualmente",
+    "ar": "فحوص شفافية الأجور المُعدّة حالياً"
+  },
+  "Base pay": {
+    "fr": "Salaire de base",
+    "es": "Salario base",
+    "ar": "الأجر الأساسي"
+  },
+  "Target variable compensation": {
+    "fr": "Rémunération variable cible",
+    "es": "Compensación variable objetivo",
+    "ar": "التعويض المتغير المستهدف"
+  },
+  "Allowances": {
+    "fr": "Allocations",
+    "es": "Asignaciones",
+    "ar": "البدلات"
+  },
+  "Employer-paid benefits": {
+    "fr": "Avantages payés par l’employeur",
+    "es": "Beneficios pagados por el empleador",
+    "ar": "المزايا المدفوعة من صاحب العمل"
+  },
+  "Employer retirement contribution": {
+    "fr": "Cotisation de retraite de l’employeur",
+    "es": "Aporte de jubilación del empleador",
+    "ar": "مساهمة صاحب العمل للتقاعد"
+  },
+  "Other employer rewards": {
+    "fr": "Autres récompenses de l’employeur",
+    "es": "Otras recompensas del empleador",
+    "ar": "مكافآت أخرى من صاحب العمل"
+  },
+  "Total rewards is an estimated employer-cost/target-value statement, not guaranteed cash compensation and not a payroll or tax statement.": {
+    "fr": "Les récompenses totales sont une estimation du coût employeur/de la valeur cible, et non une rémunération en espèces garantie ni un relevé de paie ou fiscal.",
+    "es": "Las recompensas totales son una estimación del costo del empleador/valor objetivo, no una compensación en efectivo garantizada ni un estado de nómina o fiscal.",
+    "ar": "المكافآت الشاملة هي تقدير لتكلفة صاحب العمل/القيمة المستهدفة، وليست تعويضاً نقدياً مضموناً ولا بيان رواتب أو ضرائب."
+  },
+  "Compensation analytics, market positioning, pay-equity screening and transparency checks are decision-support tools only. They do not determine statutory compliance, entitlement, discrimination, payroll/tax treatment or legal liability.": {
+    "fr": "Les analyses de rémunération, le positionnement marché, le dépistage de l’équité salariale et les contrôles de transparence sont uniquement des outils d’aide à la décision. Ils ne déterminent pas la conformité légale, les droits, la discrimination, le traitement paie/fiscal ni la responsabilité juridique.",
+    "es": "El análisis de compensación, posicionamiento de mercado, evaluación de equidad salarial y controles de transparencia son solo herramientas de apoyo a decisiones. No determinan cumplimiento legal, derechos, discriminación, tratamiento de nómina/impuestos ni responsabilidad legal.",
+    "ar": "تحليلات التعويضات والتموضع السوقي وفحص المساواة في الأجور وفحوص الشفافية هي أدوات لدعم القرار فقط. ولا تحدد الامتثال النظامي أو الاستحقاق أو التمييز أو معالجة الرواتب/الضرائب أو المسؤولية القانونية."
+  },
+  "{n} worker(s) in scope": {
+    "fr": "{n} travailleur(s) dans le périmètre",
+    "es": "{n} trabajador(es) en el alcance",
+    "ar": "{n} موظف ضمن النطاق"
+  },
+  "{n} active compensation cycle(s)": {
+    "fr": "{n} cycle(s) de rémunération actif(s)",
+    "es": "{n} ciclo(s) de compensación activo(s)",
+    "ar": "{n} دورة تعويضات نشطة"
+  },
+  "{n} available": {
+    "fr": "{n} disponible(s)",
+    "es": "{n} disponible(s)",
+    "ar": "{n} متاح"
+  },
+  "{n} ready": {
+    "fr": "{n} prêt(s)",
+    "es": "{n} listo(s)",
+    "ar": "{n} جاهز"
+  },
+  "{n} blocked": {
+    "fr": "{n} bloqué(s)",
+    "es": "{n} bloqueado(s)",
+    "ar": "{n} محظور"
+  },
+  "Current compensation is required before a statement can be calculated.": {
+    "fr": "Une rémunération actuelle est requise avant de pouvoir calculer un relevé.",
+    "es": "Se requiere compensación actual antes de poder calcular un estado.",
+    "ar": "يلزم وجود تعويض حالي قبل احتساب البيان."
+  },
+  "No configured screening flags in the current evidence set.": {
+    "fr": "Aucun indicateur de dépistage configuré dans l’ensemble de preuves actuel.",
+    "es": "No hay indicadores de detección configurados en el conjunto de evidencia actual.",
+    "ar": "لا توجد إشارات فحص مُعدّة في مجموعة الأدلة الحالية."
+  },
+  "No configured flags": {
+    "fr": "Aucun indicateur configuré",
+    "es": "Sin indicadores configurados",
+    "ar": "لا توجد إشارات مُعدّة"
+  },
+  "used": {
+    "fr": "utilisée",
+    "es": "usada",
+    "ar": "مستخدم"
+  },
+  "not used": {
+    "fr": "non utilisée",
+    "es": "no usada",
+    "ar": "غير مستخدم"
+  },
+  "Scope": {
+    "fr": "Périmètre",
+    "es": "Alcance",
+    "ar": "النطاق"
+  },
+  "Employee Profile": {
+    "fr": "Profil de l’employé",
+    "es": "Perfil del empleado",
+    "ar": "ملف الموظف"
+  },
+  "Authoritative employee record, assignments, manager hierarchy and effective-dated history.": {
+    "fr": "Dossier d’employé faisant autorité, affectations, hiérarchie de gestion et historique daté.",
+    "es": "Registro autorizado del empleado, asignaciones, jerarquía de gerencia e historial con vigencia.",
+    "ar": "سجل الموظف الموثوق، والتكليفات، وتسلسل المديرين، والسجل المؤرخ بسريان فعّال."
+  },
+  "Recruiting": {
+    "fr": "Recrutement",
+    "es": "Reclutamiento",
+    "ar": "التوظيف"
+  },
+  "Approval-controlled requisitions, candidate CRM, structured interviews, offers, and hire conversion into Core HR.": {
+    "fr": "Réquisitions contrôlées par approbation, CRM candidats, entrevues structurées, offres et conversion des embauches vers le RH central.",
+    "es": "Requisiciones controladas por aprobación, CRM de candidatos, entrevistas estructuradas, ofertas y conversión de contrataciones a RR. HH. central.",
+    "ar": "طلبات توظيف خاضعة للموافقة، وإدارة علاقات المرشحين، ومقابلات منظمة، وعروض، وتحويل التعيين إلى الموارد البشرية الأساسية."
+  },
+  "HR Policy & Regulatory Change Management": {
+    "fr": "Gestion des politiques RH et des changements réglementaires",
+    "es": "Gestión de políticas de RR. HH. y cambios regulatorios",
+    "ar": "إدارة سياسات الموارد البشرية والتغييرات التنظيمية"
+  },
+  "Source monitoring, human triage, obligation mapping, policy impact, controlled revisions, re-attestation and legal-review evidence.": {
+    "fr": "Surveillance des sources, triage humain, cartographie des obligations, impact sur les politiques, révisions contrôlées, réattestation et preuves de revue juridique.",
+    "es": "Monitoreo de fuentes, triaje humano, mapeo de obligaciones, impacto en políticas, revisiones controladas, reatestación y evidencia de revisión legal.",
+    "ar": "مراقبة المصادر، والفرز البشري، وربط الالتزامات، وتأثير السياسات، والمراجعات المنضبطة، وإعادة الإقرار، وأدلة المراجعة القانونية."
+  },
+  "HR Diagnostic & Compliance Intelligence": {
+    "fr": "Diagnostic RH et intelligence de conformité",
+    "es": "Diagnóstico de RR. HH. e inteligencia de cumplimiento",
+    "ar": "تشخيص الموارد البشرية وذكاء الامتثال"
+  },
+  "Evidence-backed HR maturity, jurisdiction-aware control screening, risk findings and governed remediation.": {
+    "fr": "Maturité RH fondée sur les preuves, dépistage des contrôles sensible à la juridiction, constats de risques et remédiation gouvernée.",
+    "es": "Madurez de RR. HH. respaldada por evidencia, evaluación de controles según jurisdicción, hallazgos de riesgo y remediación gobernada.",
+    "ar": "نضج الموارد البشرية المدعوم بالأدلة، وفحص الضوابط الواعي بالولاية القضائية، ونتائج المخاطر، والمعالجة الخاضعة للحوكمة."
+  },
+  "Enterprise HR Governance & Control Center": {
+    "fr": "Centre de gouvernance et de contrôle RH d’entreprise",
+    "es": "Centro empresarial de gobernanza y control de RR. HH.",
+    "ar": "مركز حوكمة وضبط الموارد البشرية للمؤسسة"
+  },
+  "Control ownership, source review, attestations, exceptions, enterprise HR risk and independent oversight.": {
+    "fr": "Responsabilité des contrôles, revue des sources, attestations, exceptions, risques RH d’entreprise et surveillance indépendante.",
+    "es": "Propiedad de controles, revisión de fuentes, atestaciones, excepciones, riesgo empresarial de RR. HH. y supervisión independiente.",
+    "ar": "ملكية الضوابط، ومراجعة المصادر، والإقرارات، والاستثناءات، ومخاطر الموارد البشرية المؤسسية، والرقابة المستقلة."
+  },
+  "Platform Reliability & Supply Chain": {
+    "fr": "Fiabilité de la plateforme et chaîne d’approvisionnement",
+    "es": "Fiabilidad de la plataforma y cadena de suministro",
+    "ar": "موثوقية المنصة وسلسلة التوريد"
+  },
+  "Software supply-chain evidence, SBOM/provenance governance, backup/DR assurance, configuration drift, SLOs, platform incidents and recovery exercises.": {
+    "fr": "Preuves de chaîne d’approvisionnement logicielle, gouvernance SBOM/provenance, assurance sauvegarde/DR, dérive de configuration, SLO, incidents de plateforme et exercices de reprise.",
+    "es": "Evidencia de cadena de suministro de software, gobernanza SBOM/procedencia, aseguramiento de respaldo/DR, deriva de configuración, SLO, incidentes de plataforma y ejercicios de recuperación.",
+    "ar": "أدلة سلسلة توريد البرمجيات، وحوكمة SBOM/المصدر، وضمان النسخ الاحتياطي/التعافي من الكوارث، وانحراف الإعدادات، ومستويات الخدمة، وحوادث المنصة، وتمارين الاستعادة."
+  },
+  "Compliance Evidence, Audit & Assurance Center": {
+    "fr": "Centre des preuves de conformité, d’audit et d’assurance",
+    "es": "Centro de evidencia de cumplimiento, auditoría y aseguramiento",
+    "ar": "مركز أدلة الامتثال والتدقيق والضمان"
+  },
+  "Evidence integrity, control testing, audit sampling, evidence requests, findings/CAPA, compliance calendar and executive assurance reporting.": {
+    "fr": "Intégrité des preuves, tests de contrôle, échantillonnage d’audit, demandes de preuves, constats/CAPA, calendrier de conformité et rapports d’assurance exécutifs.",
+    "es": "Integridad de evidencia, pruebas de control, muestreo de auditoría, solicitudes de evidencia, hallazgos/CAPA, calendario de cumplimiento e informes ejecutivos de aseguramiento.",
+    "ar": "سلامة الأدلة، واختبار الضوابط، وأخذ عينات التدقيق، وطلبات الأدلة، والنتائج/CAPA، وتقويم الامتثال، وتقارير الضمان التنفيذية."
+  },
+  "Compliance & Evidence Center": {
+    "fr": "Centre de conformité et de preuves",
+    "es": "Centro de cumplimiento y evidencia",
+    "ar": "مركز الامتثال والأدلة"
+  },
+  "One permission-scoped evidence workspace over authoritative policies, records, imports, acknowledgements and compliance controls.": {
+    "fr": "Un espace de preuves unique, limité par les autorisations, couvrant politiques, dossiers, importations, accusés et contrôles de conformité faisant autorité.",
+    "es": "Un espacio único de evidencia limitado por permisos sobre políticas, registros, importaciones, acuses y controles de cumplimiento autorizados.",
+    "ar": "مساحة أدلة موحدة ومقيدة بالصلاحيات تغطي السياسات والسجلات والاستيرادات والإقرارات وضوابط الامتثال الموثوقة."
+  },
+  "Manager Self-Service": {
+    "fr": "Libre-service gestionnaire",
+    "es": "Autoservicio para gerentes",
+    "ar": "الخدمة الذاتية للمدير"
+  },
+  "Approvals, team actions, people risks and manager services in one governed workspace.": {
+    "fr": "Approbations, actions d’équipe, risques liés aux personnes et services gestionnaires dans un espace gouverné unique.",
+    "es": "Aprobaciones, acciones de equipo, riesgos de personas y servicios para gerentes en un espacio gobernado.",
+    "ar": "الموافقات وإجراءات الفريق ومخاطر الأفراد وخدمات المدير في مساحة عمل موحدة خاضعة للحوكمة."
+  },
+  "Employee Portal": {
+    "fr": "Portail employé",
+    "es": "Portal del empleado",
+    "ar": "بوابة الموظف"
+  },
+  "Your personal OPSIQO workspace for time off, HR services, documents, learning, performance, pay, career and workplace support.": {
+    "fr": "Votre espace OPSIQO personnel pour les congés, services RH, documents, apprentissage, performance, rémunération, carrière et soutien au travail.",
+    "es": "Tu espacio personal de OPSIQO para ausencias, servicios de RR. HH., documentos, aprendizaje, desempeño, remuneración, carrera y apoyo laboral.",
+    "ar": "مساحتك الشخصية في OPSIQO للإجازات وخدمات الموارد البشرية والوثائق والتعلم والأداء والأجر والمسار المهني ودعم مكان العمل."
+  },
+  "Employee Relations & Case Management": {
+    "fr": "Relations employés et gestion des dossiers",
+    "es": "Relaciones con empleados y gestión de casos",
+    "ar": "علاقات الموظفين وإدارة الحالات"
+  },
+  "Confidential intake, investigations, accommodations, actions, legal holds, and evidence-backed case governance.": {
+    "fr": "Accueil confidentiel, enquêtes, accommodements, actions, gels juridiques et gouvernance des dossiers fondée sur les preuves.",
+    "es": "Recepción confidencial, investigaciones, adaptaciones, acciones, retenciones legales y gobernanza de casos respaldada por evidencia.",
+    "ar": "استقبال سري، وتحقيقات، وتسهيلات، وإجراءات، وحجوزات قانونية، وحوكمة حالات مدعومة بالأدلة."
+  },
+  "Human Capital Strategy & Board Workforce Governance": {
+    "fr": "Stratégie du capital humain et gouvernance de la main-d’œuvre par le conseil",
+    "es": "Estrategia de capital humano y gobernanza de la fuerza laboral por el consejo",
+    "ar": "استراتيجية رأس المال البشري وحوكمة القوى العاملة لمجلس الإدارة"
+  },
+  "Strategic objectives, capability gaps, long-range scenarios, risk appetite, initiatives, benefits realization and Board workforce reporting.": {
+    "fr": "Objectifs stratégiques, écarts de capacité, scénarios à long terme, appétit au risque, initiatives, réalisation des bénéfices et rapports de main-d’œuvre au conseil.",
+    "es": "Objetivos estratégicos, brechas de capacidad, escenarios de largo plazo, apetito de riesgo, iniciativas, realización de beneficios e informes de fuerza laboral al consejo.",
+    "ar": "الأهداف الاستراتيجية، وفجوات القدرات، والسيناريوهات بعيدة المدى، وشهية المخاطر، والمبادرات، وتحقيق المنافع، وتقارير القوى العاملة لمجلس الإدارة."
+  },
+  "Governed workforce metrics, immutable historical snapshots, privacy-protected aggregates and reviewable forecast evidence.": {
+    "fr": "Mesures de main-d’œuvre gouvernées, instantanés historiques immuables, agrégats protégés par la confidentialité et preuves de prévision révisables.",
+    "es": "Métricas de fuerza laboral gobernadas, instantáneas históricas inmutables, agregados protegidos por privacidad y evidencia de pronóstico revisable.",
+    "ar": "مقاييس قوى عاملة خاضعة للحوكمة، ولقطات تاريخية غير قابلة للتغيير، وتجميعات محمية للخصوصية، وأدلة توقعات قابلة للمراجعة."
+  },
+  "Workforce Intelligence": {
+    "fr": "Intelligence de la main-d’œuvre",
+    "es": "Inteligencia de la fuerza laboral",
+    "ar": "ذكاء القوى العاملة"
+  },
+  "Evidence-lineaged aggregate workforce metrics with confidence and privacy safeguards.": {
+    "fr": "Mesures agrégées de main-d’œuvre avec traçabilité des preuves, confiance et protections de confidentialité.",
+    "es": "Métricas agregadas de fuerza laboral con linaje de evidencia, confianza y salvaguardas de privacidad.",
+    "ar": "مقاييس مجمعة للقوى العاملة مع سلسلة نسب للأدلة ومستوى ثقة وضمانات للخصوصية."
+  },
+  "Role-scoped operational alerts, workflow escalations and organization notification policy.": {
+    "fr": "Alertes opérationnelles limitées par rôle, escalades de flux et politique de notification de l’organisation.",
+    "es": "Alertas operativas limitadas por rol, escalaciones de flujo y política de notificaciones de la organización.",
+    "ar": "تنبيهات تشغيلية مقيدة بالدور، وتصعيدات سير العمل، وسياسة إشعارات المؤسسة."
+  },
+  "Members & Invitations": {
+    "fr": "Membres et invitations",
+    "es": "Miembros e invitaciones",
+    "ar": "الأعضاء والدعوات"
+  },
+  "Secure organization provisioning, role assignment and worker identity linking.": {
+    "fr": "Provisionnement sécurisé de l’organisation, attribution des rôles et liaison des identités de travailleurs.",
+    "es": "Aprovisionamiento seguro de la organización, asignación de roles y vinculación de identidad de trabajadores.",
+    "ar": "تهيئة آمنة للمؤسسة، وإسناد الأدوار، وربط هوية العامل."
+  },
+  "Import employees for member linking": {
+    "fr": "Importer des employés pour la liaison des membres",
+    "es": "Importar empleados para vincular miembros",
+    "ar": "استيراد الموظفين لربط الأعضاء"
+  },
+  "Organization foundation": {
+    "fr": "Fondation de l’organisation",
+    "es": "Base de la organización",
+    "ar": "أساس المؤسسة"
+  },
+  "Workforce Planning & Scenario Modelling": {
+    "fr": "Planification de la main-d’œuvre et modélisation de scénarios",
+    "es": "Planificación de fuerza laboral y modelado de escenarios",
+    "ar": "تخطيط القوى العاملة ونمذجة السيناريوهات"
+  },
+  "Evidence-based headcount, FTE, cost, demand, vacancy, skills and scenario modelling with explicit human assumptions and decision controls.": {
+    "fr": "Modélisation fondée sur les preuves des effectifs, ETP, coûts, demande, postes vacants, compétences et scénarios, avec hypothèses humaines explicites et contrôles de décision.",
+    "es": "Modelado basado en evidencia de plantilla, FTE, costos, demanda, vacantes, habilidades y escenarios, con supuestos humanos explícitos y controles de decisión.",
+    "ar": "نمذجة قائمة على الأدلة لعدد الموظفين وFTE والتكلفة والطلب والشواغر والمهارات والسيناريوهات، مع افتراضات بشرية صريحة وضوابط للقرار."
+  },
+  "Controlled execution, retry evidence, event dispatch and SLA observability.": {
+    "fr": "Exécution contrôlée, preuves de nouvelle tentative, distribution d’événements et observabilité des SLA.",
+    "es": "Ejecución controlada, evidencia de reintentos, despacho de eventos y observabilidad de SLA.",
+    "ar": "تنفيذ مضبوط، وأدلة إعادة المحاولة، وإرسال الأحداث، وقابلية مراقبة اتفاقيات مستوى الخدمة."
+  },
+  "Permission-scoped operational queues across workflows, lifecycle, compliance, imports, invitations and reconciliation.": {
+    "fr": "Files opérationnelles limitées par autorisation pour les flux, le cycle de vie, la conformité, les importations, les invitations et le rapprochement.",
+    "es": "Colas operativas limitadas por permisos en flujos, ciclo de vida, cumplimiento, importaciones, invitaciones y conciliación.",
+    "ar": "طوابير تشغيلية مقيدة بالصلاحيات عبر مسارات العمل ودورة الحياة والامتثال والاستيراد والدعوات والتسوية."
+  },
+  "Skills Intelligence & Learning": {
+    "fr": "Intelligence des compétences et apprentissage",
+    "es": "Inteligencia de habilidades y aprendizaje",
+    "ar": "ذكاء المهارات والتعلم"
+  },
+  "Verified skills, position requirements, gap analysis, learning paths, assessments, certificates and renewal governance.": {
+    "fr": "Compétences vérifiées, exigences de poste, analyse des écarts, parcours d’apprentissage, évaluations, certificats et gouvernance des renouvellements.",
+    "es": "Habilidades verificadas, requisitos de puesto, análisis de brechas, rutas de aprendizaje, evaluaciones, certificados y gobernanza de renovaciones.",
+    "ar": "مهارات موثقة، ومتطلبات المناصب، وتحليل الفجوات، ومسارات التعلم، والتقييمات، والشهادات، وحوكمة التجديد."
+  },
+  "Zero-trust access governance, privileged-access assurance, security incidents, break-glass controls, credential rotation and cyber-resilience evidence.": {
+    "fr": "Gouvernance d’accès zéro confiance, assurance des accès privilégiés, incidents de sécurité, contrôles d’urgence, rotation des identifiants et preuves de cyber-résilience.",
+    "es": "Gobernanza de acceso de confianza cero, aseguramiento de acceso privilegiado, incidentes de seguridad, controles de emergencia, rotación de credenciales y evidencia de ciberresiliencia.",
+    "ar": "حوكمة وصول بانعدام الثقة، وضمان الوصول ذي الصلاحيات العالية، وحوادث الأمن، وضوابط الطوارئ، وتدوير بيانات الاعتماد، وأدلة المرونة السيبرانية."
+  },
+  "Production identity, App Check, privileged-access and automation security posture.": {
+    "fr": "Identité de production, App Check, accès privilégié et posture de sécurité de l’automatisation.",
+    "es": "Identidad de producción, App Check, acceso privilegiado y postura de seguridad de automatización.",
+    "ar": "هوية الإنتاج، وApp Check، والوصول ذي الصلاحيات العالية، والوضع الأمني للأتمتة."
+  },
+  "Enterprise Integration Runtime & Data Exchange": {
+    "fr": "Exécution des intégrations d’entreprise et échange de données",
+    "es": "Ejecución de integraciones empresariales e intercambio de datos",
+    "ar": "تشغيل تكاملات المؤسسة وتبادل البيانات"
+  },
+  "Governed connectors, executable adapter profiles, signed webhooks, scheduled/delta sync, staging, reconciliation, replay controls and integration observability.": {
+    "fr": "Connecteurs gouvernés, profils d’adaptateurs exécutables, webhooks signés, synchronisation planifiée/delta, préparation, rapprochement, contrôles de relecture et observabilité des intégrations.",
+    "es": "Conectores gobernados, perfiles de adaptadores ejecutables, webhooks firmados, sincronización programada/delta, preparación, conciliación, controles de repetición y observabilidad de integraciones.",
+    "ar": "موصلات خاضعة للحوكمة، وملفات محولات قابلة للتنفيذ، وخطافات ويب موقعة، ومزامنة مجدولة/تفاضلية، وتجهيز، وتسوية، وضوابط إعادة التشغيل، ومراقبة التكامل."
+  },
+  "Career, Mobility & Succession": {
+    "fr": "Carrière, mobilité et relève",
+    "es": "Carrera, movilidad y sucesión",
+    "ar": "المسار المهني والتنقل والتعاقب"
+  },
+  "Evidence-based role readiness, internal opportunities, critical-position coverage, successor pools and human-calibrated talent review.": {
+    "fr": "Préparation aux rôles fondée sur les preuves, occasions internes, couverture des postes critiques, bassins de relève et revue des talents calibrée humainement.",
+    "es": "Preparación para roles basada en evidencia, oportunidades internas, cobertura de puestos críticos, grupos de sucesores y revisión de talento calibrada por personas.",
+    "ar": "جاهزية الأدوار القائمة على الأدلة، والفرص الداخلية، وتغطية المناصب الحرجة، ومجموعات الخلفاء، ومراجعة المواهب بمعايرة بشرية."
+  },
+  "Your own authoritative employee profile, assignment history and employment timeline.": {
+    "fr": "Votre propre profil d’employé faisant autorité, historique des affectations et chronologie d’emploi.",
+    "es": "Tu propio perfil autorizado de empleado, historial de asignaciones y línea de tiempo laboral.",
+    "ar": "ملفك الوظيفي الموثوق، وسجل التكليفات، والخط الزمني للتوظيف."
+  },
+  "Evidence-first HR intelligence with governed retrieval, citations, model/prompt audit, human approval and recommendation-to-action controls.": {
+    "fr": "Intelligence RH axée sur les preuves avec récupération gouvernée, citations, audit des modèles/invites, approbation humaine et contrôles de la recommandation à l’action.",
+    "es": "Inteligencia de RR. HH. centrada en evidencia con recuperación gobernada, citas, auditoría de modelo/instrucciones, aprobación humana y controles de recomendación a acción.",
+    "ar": "ذكاء موارد بشرية يضع الأدلة أولاً مع استرجاع خاضع للحوكمة، ومراجع، وتدقيق للنماذج/المطالبات، وموافقة بشرية، وضوابط من التوصية إلى الإجراء."
+  },
+  "Traceable, append-only evidence of sensitive HR and configuration actions.": {
+    "fr": "Preuves traçables et en ajout seulement des actions RH sensibles et de configuration.",
+    "es": "Evidencia trazable y de solo anexado de acciones sensibles de RR. HH. y configuración.",
+    "ar": "أدلة قابلة للتتبع وغير قابلة إلا للإضافة على إجراءات الموارد البشرية الحساسة وإجراءات الإعداد."
+  },
+  "Leave, Time & Attendance": {
+    "fr": "Congés, temps et présence",
+    "es": "Permisos, tiempo y asistencia",
+    "ar": "الإجازات والوقت والحضور"
+  },
+  "Configure entitlements, request and approve leave, record time, review overtime and rest exceptions, approve timesheets, and produce controlled payroll exports.": {
+    "fr": "Configurer les droits, demander et approuver les congés, enregistrer le temps, examiner les heures supplémentaires et exceptions de repos, approuver les feuilles de temps et produire des exports de paie contrôlés.",
+    "es": "Configurar derechos, solicitar y aprobar permisos, registrar tiempo, revisar horas extra y excepciones de descanso, aprobar hojas de tiempo y producir exportaciones de nómina controladas.",
+    "ar": "إعداد الاستحقاقات، وطلب الإجازات والموافقة عليها، وتسجيل الوقت، ومراجعة العمل الإضافي واستثناءات الراحة، واعتماد الجداول الزمنية، وإنتاج صادرات رواتب مضبوطة."
+  },
+  "Documents, Policies & Compliance": {
+    "fr": "Documents, politiques et conformité",
+    "es": "Documentos, políticas y cumplimiento",
+    "ar": "الوثائق والسياسات والامتثال"
+  },
+  "Versioned HR evidence, policy lifecycle, retention control and workforce compliance intelligence.": {
+    "fr": "Preuves RH versionnées, cycle de vie des politiques, contrôle de conservation et intelligence de conformité de la main-d’œuvre.",
+    "es": "Evidencia de RR. HH. versionada, ciclo de vida de políticas, control de retención e inteligencia de cumplimiento de la fuerza laboral.",
+    "ar": "أدلة موارد بشرية بإصدارات، ودورة حياة السياسات، وضبط الاحتفاظ، وذكاء امتثال القوى العاملة."
+  },
+  "Offboarding & Separation": {
+    "fr": "Départ et séparation",
+    "es": "Desvinculación y separación",
+    "ar": "إنهاء الخدمة والمغادرة"
+  },
+  "Control resignation, retirement, employer-initiated separation, legal review, offboarding tasks, access closure, final payroll/ROE handoffs, exit interviews, replacement decisions and employment closure.": {
+    "fr": "Contrôler la démission, la retraite, la séparation initiée par l’employeur, la revue juridique, les tâches de départ, la fermeture des accès, les transferts de paie finale/RE, les entrevues de sortie, les décisions de remplacement et la clôture d’emploi.",
+    "es": "Controlar renuncia, jubilación, separación iniciada por el empleador, revisión legal, tareas de salida, cierre de acceso, entregas de nómina final/ROE, entrevistas de salida, decisiones de reemplazo y cierre laboral.",
+    "ar": "ضبط الاستقالة والتقاعد وإنهاء الخدمة بمبادرة صاحب العمل والمراجعة القانونية ومهام المغادرة وإغلاق الوصول وتسليمات الرواتب النهائية/ROE ومقابلات الخروج وقرارات الاستبدال وإغلاق التوظيف."
+  },
+  "Preboarding & Onboarding": {
+    "fr": "Pré-embauche et intégration",
+    "es": "Preincorporación e incorporación",
+    "ar": "ما قبل الانضمام والتهيئة الوظيفية"
+  },
+  "Secure prehire collection, activation readiness, first-day preparation, and 30/60/90-day onboarding control.": {
+    "fr": "Collecte préembauche sécurisée, préparation à l’activation, préparation du premier jour et contrôle d’intégration à 30/60/90 jours.",
+    "es": "Recopilación segura previa a la contratación, preparación para activación, preparación del primer día y control de incorporación a 30/60/90 días.",
+    "ar": "جمع آمن لبيانات ما قبل التعيين، وجاهزية التفعيل، والاستعداد لليوم الأول، وضبط التهيئة خلال 30/60/90 يوماً."
+  },
+  "Workforce Resilience, Continuity & Crisis Center": {
+    "fr": "Centre de résilience, continuité et crise de la main-d’œuvre",
+    "es": "Centro de resiliencia, continuidad y crisis de la fuerza laboral",
+    "ar": "مركز مرونة القوى العاملة والاستمرارية والأزمات"
+  },
+  "Critical-role dependencies, workforce BIA, continuity plans, crisis staffing, recovery governance, exercises and executive resilience reporting.": {
+    "fr": "Dépendances des rôles critiques, BIA de la main-d’œuvre, plans de continuité, dotation de crise, gouvernance de reprise, exercices et rapports exécutifs de résilience.",
+    "es": "Dependencias de roles críticos, BIA de fuerza laboral, planes de continuidad, dotación de crisis, gobernanza de recuperación, ejercicios e informes ejecutivos de resiliencia.",
+    "ar": "تبعيات الأدوار الحرجة، وتحليل أثر الأعمال للقوى العاملة، وخطط الاستمرارية، وتوظيف الأزمات، وحوكمة التعافي، والتمارين، وتقارير المرونة التنفيذية."
+  },
+  "Lifecycle Command Center": {
+    "fr": "Centre de commandement du cycle de vie",
+    "es": "Centro de mando del ciclo de vida",
+    "ar": "مركز قيادة دورة الحياة"
+  },
+  "Cross-module workforce intelligence, lifecycle alerts, data-quality diagnostics and operational health.": {
+    "fr": "Intelligence de main-d’œuvre intermodules, alertes de cycle de vie, diagnostics de qualité des données et santé opérationnelle.",
+    "es": "Inteligencia de fuerza laboral entre módulos, alertas de ciclo de vida, diagnósticos de calidad de datos y salud operativa.",
+    "ar": "ذكاء قوى عاملة عبر الوحدات، وتنبيهات دورة الحياة، وتشخيص جودة البيانات، والسلامة التشغيلية."
+  },
+  "Governed federation, JIT access, role mapping, access reviews, SCIM provisioning, MFA/session assurance and identity reconciliation.": {
+    "fr": "Fédération gouvernée, accès JIT, mappage des rôles, revues d’accès, provisionnement SCIM, assurance MFA/session et rapprochement des identités.",
+    "es": "Federación gobernada, acceso JIT, mapeo de roles, revisiones de acceso, aprovisionamiento SCIM, aseguramiento MFA/sesión y conciliación de identidades.",
+    "ar": "اتحاد خاضع للحوكمة، ووصول JIT، وربط الأدوار، ومراجعات الوصول، وتهيئة SCIM، وضمان MFA/الجلسة، وتسوية الهوية."
+  },
+  "Data & Document Import Center": {
+    "fr": "Centre d’importation des données et documents",
+    "es": "Centro de importación de datos y documentos",
+    "ar": "مركز استيراد البيانات والوثائق"
+  },
+  "Bring workforce data and HR records into OPSIQO through validation, review, evidence and authoritative promotion.": {
+    "fr": "Importez les données de main-d’œuvre et dossiers RH dans OPSIQO grâce à la validation, la revue, les preuves et la promotion faisant autorité.",
+    "es": "Incorpora datos de fuerza laboral y registros de RR. HH. a OPSIQO mediante validación, revisión, evidencia y promoción autorizada.",
+    "ar": "أدخل بيانات القوى العاملة وسجلات الموارد البشرية إلى OPSIQO عبر التحقق والمراجعة والأدلة والترقية الموثوقة."
+  },
+  "Privacy, Data Governance & AI Assurance Center": {
+    "fr": "Centre de confidentialité, gouvernance des données et assurance IA",
+    "es": "Centro de privacidad, gobernanza de datos y aseguramiento de IA",
+    "ar": "مركز الخصوصية وحوكمة البيانات وضمان الذكاء الاصطناعي"
+  },
+  "Data inventory, processing records, retention, DPIA/AIA, privacy requests, incidents, processor risk, cross-border review and governed AI-use assurance.": {
+    "fr": "Inventaire des données, registres de traitement, conservation, DPIA/AIA, demandes de confidentialité, incidents, risque des sous-traitants, revue transfrontalière et assurance de l’usage gouverné de l’IA.",
+    "es": "Inventario de datos, registros de procesamiento, retención, DPIA/AIA, solicitudes de privacidad, incidentes, riesgo de procesadores, revisión transfronteriza y aseguramiento del uso gobernado de IA.",
+    "ar": "جرد البيانات، وسجلات المعالجة، والاحتفاظ، وDPIA/AIA، وطلبات الخصوصية، والحوادث، ومخاطر المعالجين، والمراجعة عبر الحدود، وضمان استخدام الذكاء الاصطناعي الخاضع للحوكمة."
+  },
+  "Health, Safety & Incident Management": {
+    "fr": "Santé, sécurité et gestion des incidents",
+    "es": "Salud, seguridad y gestión de incidentes",
+    "ar": "الصحة والسلامة وإدارة الحوادث"
+  },
+  "Incidents, hazards, investigations, corrective actions, return-to-work, inspections, and workplace H&S governance.": {
+    "fr": "Incidents, dangers, enquêtes, actions correctives, retour au travail, inspections et gouvernance SST du lieu de travail.",
+    "es": "Incidentes, peligros, investigaciones, acciones correctivas, regreso al trabajo, inspecciones y gobernanza de SST del lugar de trabajo.",
+    "ar": "الحوادث والمخاطر والتحقيقات والإجراءات التصحيحية والعودة إلى العمل والتفتيش وحوكمة الصحة والسلامة في مكان العمل."
+  },
+  "Performance & Goals": {
+    "fr": "Performance et objectifs",
+    "es": "Desempeño y objetivos",
+    "ar": "الأداء والأهداف"
+  },
+  "Goals, continuous check-ins, structured reviews, 360 feedback, calibration, development plans and controlled performance improvement.": {
+    "fr": "Objectifs, suivis continus, évaluations structurées, rétroaction 360, calibration, plans de développement et amélioration contrôlée de la performance.",
+    "es": "Objetivos, seguimientos continuos, revisiones estructuradas, retroalimentación 360, calibración, planes de desarrollo y mejora controlada del desempeño.",
+    "ar": "الأهداف والمتابعات المستمرة والمراجعات المنظمة والتغذية الراجعة 360 والمعايرة وخطط التطوير وتحسين الأداء المنضبط."
+  },
+  "Demo workspace": {
+    "fr": "Espace de démonstration",
+    "es": "Espacio de demostración",
+    "ar": "مساحة تجريبية"
+  },
+  "Secure workforce intelligence": {
+    "fr": "Intelligence sécurisée de la main-d’œuvre",
+    "es": "Inteligencia segura de la fuerza laboral",
+    "ar": "ذكاء آمن للقوى العاملة"
+  },
+  "HR Operations Orchestrator": {
+    "fr": "Orchestrateur des opérations RH",
+    "es": "Orquestador de operaciones de RR. HH.",
+    "ar": "منسق عمليات الموارد البشرية"
+  },
+  "Multi-step HR operations with permission checks, authoritative services, checkpoints, human control and reconciliation.": {
+    "fr": "Opérations RH en plusieurs étapes avec contrôles d’autorisation, services faisant autorité, points de contrôle, contrôle humain et rapprochement.",
+    "es": "Operaciones de RR. HH. de varios pasos con comprobaciones de permisos, servicios autorizados, puntos de control, control humano y conciliación.",
+    "ar": "عمليات موارد بشرية متعددة الخطوات مع فحوص الصلاحيات وخدمات موثوقة ونقاط تحقق وتحكم بشري وتسوية."
+  },
+  "Accept OPSIQO invitation": {
+    "fr": "Accepter l’invitation OPSIQO",
+    "es": "Aceptar invitación de OPSIQO",
+    "ar": "قبول دعوة OPSIQO"
+  },
+  "Secure organization membership provisioning.": {
+    "fr": "Provisionnement sécurisé de l’adhésion à l’organisation.",
+    "es": "Aprovisionamiento seguro de membresía de la organización.",
+    "ar": "تهيئة آمنة لعضوية المؤسسة."
+  },
+  "Organization & Positions": {
+    "fr": "Organisation et postes",
+    "es": "Organización y puestos",
+    "ar": "المؤسسة والمناصب"
+  },
+  "Position-led structure with effective workforce assignments instead of title-only org charts.": {
+    "fr": "Structure dirigée par les postes avec affectations effectives de main-d’œuvre plutôt que des organigrammes basés uniquement sur les titres.",
+    "es": "Estructura dirigida por puestos con asignaciones efectivas de fuerza laboral en lugar de organigramas basados solo en títulos.",
+    "ar": "هيكل قائم على المناصب مع تكليفات فعلية للقوى العاملة بدلاً من مخططات تنظيمية تعتمد على المسميات فقط."
+  },
+  "Event triggers, governed conditions, human checkpoints, automated notifications and auditable workflow execution.": {
+    "fr": "Déclencheurs d’événements, conditions gouvernées, points de contrôle humains, notifications automatisées et exécution de flux auditable.",
+    "es": "Disparadores de eventos, condiciones gobernadas, puntos de control humanos, notificaciones automatizadas y ejecución auditable de flujos.",
+    "ar": "مشغلات أحداث وشروط خاضعة للحوكمة ونقاط تحقق بشرية وإشعارات مؤتمتة وتنفيذ لسير العمل قابل للتدقيق."
+  },
+  "Employee Experience & HR Service Center": {
+    "fr": "Expérience employé et Centre de services RH",
+    "es": "Experiencia del empleado y Centro de servicios de RR. HH.",
+    "ar": "تجربة الموظف ومركز خدمات الموارد البشرية"
+  },
+  "Engagement surveys, recognition, employee ideas, HR service requests, knowledge articles, SLAs, and experience analytics.": {
+    "fr": "Sondages d’engagement, reconnaissance, idées des employés, demandes de services RH, articles de connaissances, SLA et analyses d’expérience.",
+    "es": "Encuestas de compromiso, reconocimiento, ideas de empleados, solicitudes de servicios de RR. HH., artículos de conocimiento, SLA y análisis de experiencia.",
+    "ar": "استبيانات المشاركة والتقدير وأفكار الموظفين وطلبات خدمات الموارد البشرية ومقالات المعرفة واتفاقيات مستوى الخدمة وتحليلات التجربة."
+  },
+  "Organizational Design & Operating Model Intelligence": {
+    "fr": "Conception organisationnelle et intelligence du modèle opérationnel",
+    "es": "Diseño organizacional e inteligencia del modelo operativo",
+    "ar": "التصميم التنظيمي وذكاء نموذج التشغيل"
+  },
+  "Spans and layers, role architecture, decision rights, operating-model scenarios, restructuring governance, effectiveness KPIs and Board reporting.": {
+    "fr": "Étendues et niveaux, architecture des rôles, droits de décision, scénarios de modèle opérationnel, gouvernance de restructuration, KPI d’efficacité et rapports au conseil.",
+    "es": "Tramos y niveles, arquitectura de roles, derechos de decisión, escenarios de modelo operativo, gobernanza de reestructuración, KPI de eficacia e informes al consejo.",
+    "ar": "نطاقات الإشراف والمستويات، وهندسة الأدوار، وحقوق القرار، وسيناريوهات نموذج التشغيل، وحوكمة إعادة الهيكلة، ومؤشرات الفعالية، وتقارير مجلس الإدارة."
+  },
+  "Import employees": {
+    "fr": "Importer des employés",
+    "es": "Importar empleados",
+    "ar": "استيراد الموظفين"
+  },
+  "Employee import file": {
+    "fr": "Fichier d’importation des employés",
+    "es": "Archivo de importación de empleados",
+    "ar": "ملف استيراد الموظفين"
+  },
+  "Choose employee import file": {
+    "fr": "Choisir le fichier d’importation des employés",
+    "es": "Elegir archivo de importación de empleados",
+    "ar": "اختيار ملف استيراد الموظفين"
+  },
+  "No file selected": {
+    "fr": "Aucun fichier sélectionné",
+    "es": "Ningún archivo seleccionado",
+    "ar": "لم يتم اختيار ملف"
+  },
+  "Employee number will be assigned automatically.": {
+    "fr": "Le numéro d’employé sera attribué automatiquement.",
+    "es": "El número de empleado se asignará automáticamente.",
+    "ar": "سيتم تعيين رقم الموظف تلقائياً."
+  },
+  "Resolve the identified cross-domain governance risk through evidence-backed, human-owned remediation.": {
+    "fr": "Résoudre le risque de gouvernance interdomaines identifié par une remédiation fondée sur les preuves et portée par une personne responsable.",
+    "es": "Resolver el riesgo de gobernanza entre dominios identificado mediante una remediación basada en evidencia y con responsabilidad humana.",
+    "ar": "معالجة مخاطر الحوكمة المحددة عبر المجالات من خلال تصحيح قائم على الأدلة ومسؤولية بشرية واضحة."
+  },
+  "Risk is reassessed in its source module and the governed evidence supports closure.": {
+    "fr": "Le risque est réévalué dans son module source et les preuves gouvernées étayent sa clôture.",
+    "es": "El riesgo se reevalúa en su módulo de origen y la evidencia gobernada respalda el cierre.",
+    "ar": "تُعاد مراجعة المخاطر في الوحدة المصدر وتدعم الأدلة الخاضعة للحوكمة إغلاقها."
+  },
+  "Review source evidence and document remediation outcome.": {
+    "fr": "Examiner les preuves sources et documenter le résultat de la remédiation.",
+    "es": "Revisar la evidencia de origen y documentar el resultado de la remediación.",
+    "ar": "راجع الأدلة المصدرية ووثّق نتيجة المعالجة."
+  },
+  "rolling 30 days": {
+    "fr": "30 derniers jours glissants",
+    "es": "últimos 30 días móviles",
+    "ar": "آخر 30 يوماً متحركاً"
+  },
+  "Approved production monitoring platform": {
+    "fr": "Plateforme approuvée de surveillance de production",
+    "es": "Plataforma aprobada de monitoreo de producción",
+    "ar": "منصة مراقبة الإنتاج المعتمدة"
+  },
+  "Production promotion remains blocked until all dependency-aware CI gates are independently evidenced as passed.": {
+    "fr": "La promotion en production reste bloquée jusqu’à ce que toutes les portes CI tenant compte des dépendances soient prouvées indépendamment comme réussies.",
+    "es": "La promoción a producción permanece bloqueada hasta que todas las puertas de CI sensibles a dependencias tengan evidencia independiente de aprobación.",
+    "ar": "يبقى الترويج إلى الإنتاج محظوراً حتى تتوفر أدلة مستقلة على اجتياز جميع بوابات CI المعتمدة على التبعيات."
+  },
+  "Board-level snapshot of aggregate HCM readiness, cross-domain risk, enterprise actions, data quality, platform SLOs and production release governance. Operational indicator only.": {
+    "fr": "Instantané destiné au conseil sur la préparation HCM agrégée, les risques interdomaines, les actions d’entreprise, la qualité des données, les SLO de plateforme et la gouvernance des mises en production. Indicateur opérationnel uniquement.",
+    "es": "Resumen para el consejo sobre preparación HCM agregada, riesgo entre dominios, acciones empresariales, calidad de datos, SLO de plataforma y gobernanza de liberación a producción. Solo indicador operativo.",
+    "ar": "لقطة على مستوى مجلس الإدارة لجهوزية رأس المال البشري المجمعة، ومخاطر المجالات، وإجراءات المؤسسة، وجودة البيانات، ومستويات خدمة المنصة، وحوكمة الإصدار للإنتاج. مؤشر تشغيلي فقط."
+  },
+  "Evidence": {
+    "fr": "Preuve",
+    "es": "Evidencia",
+    "ar": "الأدلة"
+  },
+  "Open": {
+    "fr": "Ouvert",
+    "es": "Abierto",
+    "ar": "مفتوح"
+  },
+  "Score": {
+    "fr": "Score",
+    "es": "Puntuación",
+    "ar": "الدرجة"
+  },
+  "From": {
+    "fr": "De",
+    "es": "Desde",
+    "ar": "من"
+  },
+  "To": {
+    "fr": "À",
+    "es": "Hasta",
+    "ar": "إلى"
+  },
+  "Action": {
+    "fr": "Action",
+    "es": "Acción",
+    "ar": "الإجراء"
+  },
+  "Due": {
+    "fr": "Échéance",
+    "es": "Vence",
+    "ar": "الاستحقاق"
+  },
+  "Approve": {
+    "fr": "Approuver",
+    "es": "Aprobar",
+    "ar": "اعتماد"
+  },
+  "Start": {
+    "fr": "Démarrer",
+    "es": "Iniciar",
+    "ar": "بدء"
+  },
+  "Critical": {
+    "fr": "Critique",
+    "es": "Crítico",
+    "ar": "حرج"
+  },
+  "High": {
+    "fr": "Élevé",
+    "es": "Alto",
+    "ar": "مرتفع"
+  },
+  "Breach": {
+    "fr": "Violation",
+    "es": "Incumplimiento",
+    "ar": "خرق"
+  },
+  "Create SLO": {
+    "fr": "Créer un SLO",
+    "es": "Crear SLO",
+    "ar": "إنشاء SLO"
+  },
+  "Release": {
+    "fr": "Version",
+    "es": "Liberación",
+    "ar": "الإصدار"
+  },
+  "Demo access": {
+    "fr": "Accès démo",
+    "es": "Acceso de demostración",
+    "ar": "وصول تجريبي"
+  },
+  "Authenticated": {
+    "fr": "Authentifié",
+    "es": "Autenticado",
+    "ar": "تمت المصادقة"
+  },
+  "Not available": {
+    "fr": "Non disponible",
+    "es": "No disponible",
+    "ar": "غير متاح"
+  },
+  "Not linked": {
+    "fr": "Non lié",
+    "es": "No vinculado",
+    "ar": "غير مرتبط"
+  },
+  "Not verified / unavailable": {
+    "fr": "Non vérifié / indisponible",
+    "es": "No verificado / no disponible",
+    "ar": "غير متحقق / غير متاح"
+  },
+  "Invitation only": {
+    "fr": "Sur invitation uniquement",
+    "es": "Solo por invitación",
+    "ar": "بالدعوة فقط"
+  },
+  "Open account registration; membership still governed": {
+    "fr": "Inscription de compte ouverte; l’adhésion reste gouvernée",
+    "es": "Registro de cuenta abierto; la membresía sigue gobernada",
+    "ar": "تسجيل الحساب مفتوح؛ وتبقى العضوية خاضعة للحوكمة"
+  },
+  "Registration disabled": {
+    "fr": "Inscription désactivée",
+    "es": "Registro deshabilitado",
+    "ar": "التسجيل معطل"
+  },
+  "Required for privileged roles": {
+    "fr": "Requis pour les rôles privilégiés",
+    "es": "Obligatorio para roles privilegiados",
+    "ar": "مطلوب للأدوار ذات الصلاحيات العالية"
+  },
+  "Required for all users": {
+    "fr": "Requis pour tous les utilisateurs",
+    "es": "Obligatorio para todos los usuarios",
+    "ar": "مطلوب لجميع المستخدمين"
+  },
+  "See /api/health for source commit and runtime revision": {
+    "fr": "Consultez /api/health pour le commit source et la révision d’exécution",
+    "es": "Consulta /api/health para el commit de origen y la revisión de ejecución",
+    "ar": "راجع /api/health لمعرفة التثبيت المصدري وإصدار التشغيل"
+  },
+  "Not configured in client environment": {
+    "fr": "Non configuré dans l’environnement client",
+    "es": "No configurado en el entorno del cliente",
+    "ar": "غير مُعدّ في بيئة العميل"
+  },
+  "Compare headcount, turnover and vacancies": {
+    "fr": "Comparer les effectifs, le roulement et les postes vacants",
+    "es": "Comparar plantilla, rotación y vacantes",
+    "ar": "قارن عدد الموظفين ودوران العمالة والشواغر"
+  },
+  "Human oversight retained": {
+    "fr": "Supervision humaine maintenue",
+    "es": "Se mantiene la supervisión humana",
+    "ar": "الإشراف البشري مستمر"
+  },
+  "bounded view": {
+    "fr": "vue délimitée",
+    "es": "vista limitada",
+    "ar": "عرض محدود"
+  },
+  "current view": {
+    "fr": "vue actuelle",
+    "es": "vista actual",
+    "ar": "العرض الحالي"
+  },
+  "The selected organization unit has no available position capacity. Create or open a position before assigning this employee.": {
+    "fr": "L’unité organisationnelle sélectionnée n’a aucune capacité de poste disponible. Créez ou ouvrez un poste avant d’affecter cet employé.",
+    "es": "La unidad organizativa seleccionada no tiene capacidad de puesto disponible. Crea o abre un puesto antes de asignar a este empleado.",
+    "ar": "لا توجد سعة منصب متاحة في الوحدة التنظيمية المحددة. أنشئ منصباً أو افتحه قبل تعيين هذا الموظف."
+  },
+  "Select both an organization unit and an available position, or leave both unassigned.": {
+    "fr": "Sélectionnez à la fois une unité organisationnelle et un poste disponible, ou laissez les deux non attribués.",
+    "es": "Selecciona una unidad organizativa y un puesto disponible, o deja ambos sin asignar.",
+    "ar": "حدد وحدة تنظيمية ومنصباً متاحاً معاً، أو اترك كليهما دون تعيين."
+  },
+  "Add employee": {
+    "fr": "Ajouter un employé",
+    "es": "Agregar empleado",
+    "ar": "إضافة موظف"
+  },
+  "Select an organization unit first": {
+    "fr": "Sélectionnez d’abord une unité organisationnelle",
+    "es": "Selecciona primero una unidad organizativa",
+    "ar": "حدد وحدة تنظيمية أولاً"
+  },
+  "No available positions": {
+    "fr": "Aucun poste disponible",
+    "es": "No hay puestos disponibles",
+    "ar": "لا توجد مناصب متاحة"
+  },
+  "Select an available position": {
+    "fr": "Sélectionnez un poste disponible",
+    "es": "Selecciona un puesto disponible",
+    "ar": "حدد منصباً متاحاً"
+  },
+  "Create authoritative worker record": {
+    "fr": "Créer le dossier de travailleur de référence",
+    "es": "Crear registro autorizado del trabajador",
+    "ar": "إنشاء سجل الموظف المعتمد"
+  },
+  "Create an employee or import governed workforce data.": {
+    "fr": "Créez un employé ou importez des données de main-d’œuvre gouvernées.",
+    "es": "Crea un empleado o importa datos de fuerza laboral gobernados.",
+    "ar": "أنشئ موظفاً أو استورد بيانات قوى عاملة خاضعة للحوكمة."
+  },
+  "Load next 50": {
+    "fr": "Charger les 50 suivants",
+    "es": "Cargar los siguientes 50",
+    "ar": "تحميل الـ 50 التالية"
+  },
+  "Upload workforce data and review the mapped employee records before OPSIQO writes to Core HR.": {
+    "fr": "Téléversez les données de main-d’œuvre et examinez les dossiers d’employés mappés avant qu’OPSIQO n’écrive dans le Core HR.",
+    "es": "Carga datos de la fuerza laboral y revisa los registros de empleados mapeados antes de que OPSIQO escriba en Core HR.",
+    "ar": "ارفع بيانات القوى العاملة وراجع سجلات الموظفين المطابقة قبل أن يكتب OPSIQO إلى الموارد البشرية الأساسية."
+  },
+  "governed mapping": {
+    "fr": "mappage gouverné",
+    "es": "mapeo gobernado",
+    "ar": "مطابقة خاضعة للحوكمة"
+  },
+  "Employee import preview failed.": {
+    "fr": "L’aperçu de l’importation des employés a échoué.",
+    "es": "Falló la vista previa de importación de empleados.",
+    "ar": "فشلت معاينة استيراد الموظفين."
+  },
+  "Employee import did not complete.": {
+    "fr": "L’importation des employés ne s’est pas terminée.",
+    "es": "La importación de empleados no se completó.",
+    "ar": "لم يكتمل استيراد الموظفين."
+  },
+  "Parsing & mapping…": {
+    "fr": "Analyse et mappage…",
+    "es": "Analizando y mapeando…",
+    "ar": "جارٍ التحليل والمطابقة…"
+  },
+  "Parse & create review preview": {
+    "fr": "Analyser et créer l’aperçu de revue",
+    "es": "Analizar y crear vista previa de revisión",
+    "ar": "تحليل وإنشاء معاينة للمراجعة"
+  },
+  "Existing employee": {
+    "fr": "Employé existant",
+    "es": "Empleado existente",
+    "ar": "موظف موجود"
+  },
+  "Creating employees…": {
+    "fr": "Création des employés…",
+    "es": "Creando empleados…",
+    "ar": "جارٍ إنشاء الموظفين…"
+  },
+  "Commit reviewed employee import": {
+    "fr": "Valider l’importation d’employés examinée",
+    "es": "Confirmar importación de empleados revisada",
+    "ar": "اعتماد استيراد الموظفين بعد المراجعة"
+  },
+  "Verified items requiring your attention": {
+    "fr": "Éléments vérifiés nécessitant votre attention",
+    "es": "Elementos verificados que requieren tu atención",
+    "ar": "عناصر متحققة تتطلب انتباهك"
+  },
+  "Approved or submitted work waiting on another step": {
+    "fr": "Travail approuvé ou soumis en attente d’une autre étape",
+    "es": "Trabajo aprobado o enviado en espera de otro paso",
+    "ar": "عمل معتمد أو مُرسل ينتظر خطوة أخرى"
+  },
+  "Governed AI plans prepared for review": {
+    "fr": "Plans d’IA gouvernés préparés pour examen",
+    "es": "Planes de IA gobernados preparados para revisión",
+    "ar": "خطط ذكاء اصطناعي خاضعة للحوكمة ومعدة للمراجعة"
+  },
+  "Recently completed or closed work": {
+    "fr": "Travail récemment terminé ou clôturé",
+    "es": "Trabajo completado o cerrado recientemente",
+    "ar": "عمل تم إنجازه أو إغلاقه مؤخراً"
+  },
+  "Saved successfully.": {
+    "fr": "Enregistré avec succès.",
+    "es": "Guardado correctamente.",
+    "ar": "تم الحفظ بنجاح."
+  },
+  "No current position": {
+    "fr": "Aucun poste actuel",
+    "es": "Sin puesto actual",
+    "ar": "لا يوجد منصب حالي"
+  },
+  "No band": {
+    "fr": "Aucune bande",
+    "es": "Sin banda",
+    "ar": "لا يوجد نطاق"
+  },
+  "Reviewed off-cycle compensation adjustment.": {
+    "fr": "Ajustement de rémunération hors cycle examiné.",
+    "es": "Ajuste de compensación fuera de ciclo revisado.",
+    "ar": "تمت مراجعة تعديل التعويض خارج الدورة."
+  },
+  "People & Culture": {
+    "fr": "Personnes et culture",
+    "es": "Personas y cultura",
+    "ar": "الأفراد والثقافة"
+  },
+  "2027 Annual Compensation Review": {
+    "fr": "Revue annuelle de la rémunération 2027",
+    "es": "Revisión anual de compensación 2027",
+    "ar": "مراجعة التعويضات السنوية 2027"
+  },
+  "Eligibility subject to approved compensation policy and documented exceptions.": {
+    "fr": "Admissibilité sous réserve de la politique de rémunération approuvée et des exceptions documentées.",
+    "es": "Elegibilidad sujeta a la política de compensación aprobada y a excepciones documentadas.",
+    "ar": "الأهلية خاضعة لسياسة التعويض المعتمدة والاستثناءات الموثقة."
+  },
+  "Manager recommendation based on documented contribution, internal positioning, approved budget and compensation policy. Performance evidence informs but does not automatically determine pay.": {
+    "fr": "Recommandation du gestionnaire fondée sur la contribution documentée, le positionnement interne, le budget approuvé et la politique de rémunération. Les preuves de performance éclairent la décision sans déterminer automatiquement la rémunération.",
+    "es": "Recomendación del gerente basada en contribución documentada, posicionamiento interno, presupuesto aprobado y política de compensación. La evidencia de desempeño informa, pero no determina automáticamente el pago.",
+    "ar": "توصية المدير مبنية على المساهمة الموثقة والتموضع الداخلي والميزانية المعتمدة وسياسة التعويض. تدعم أدلة الأداء القرار لكنها لا تحدد الأجر تلقائياً."
+  },
+  "performance review": {
+    "fr": "revue de performance",
+    "es": "revisión de desempeño",
+    "ar": "مراجعة الأداء"
+  },
+  "salary band position": {
+    "fr": "position dans la bande salariale",
+    "es": "posición en la banda salarial",
+    "ar": "الموقع ضمن نطاق الراتب"
+  },
+  "Reviewed against budget, salary structure, internal equity and supporting evidence.": {
+    "fr": "Examiné par rapport au budget, à la structure salariale, à l’équité interne et aux preuves justificatives.",
+    "es": "Revisado frente al presupuesto, la estructura salarial, la equidad interna y la evidencia de respaldo.",
+    "ar": "تمت المراجعة مقابل الميزانية وهيكل الرواتب والعدالة الداخلية والأدلة الداعمة."
+  },
+  "HR Coordinator": {
+    "fr": "Coordonnateur RH",
+    "es": "Coordinador de RR. HH.",
+    "ar": "منسق الموارد البشرية"
+  },
+  "Job-class classification and comparison require qualified Pay Equity Act review.": {
+    "fr": "La classification et la comparaison des catégories d’emploi nécessitent un examen qualifié au regard de la Loi sur l’équité salariale.",
+    "es": "La clasificación y comparación de clases de puestos requieren una revisión cualificada conforme a la Ley de Equidad Salarial.",
+    "ar": "يتطلب تصنيف فئات الوظائف ومقارنتها مراجعة مؤهلة بموجب قانون المساواة في الأجور."
+  },
+  "Method": {
+    "fr": "Méthode",
+    "es": "Método",
+    "ar": "المنهجية"
+  },
+  "Work email is invalid.": {
+    "fr": "L’adresse courriel professionnelle est invalide.",
+    "es": "El correo electrónico laboral no es válido.",
+    "ar": "البريد الإلكتروني للعمل غير صالح."
+  },
+  "Work email is optional.": {
+    "fr": "Le courriel professionnel est facultatif.",
+    "es": "El correo electrónico laboral es opcional.",
+    "ar": "البريد الإلكتروني للعمل اختياري."
+  },
+  "First name is required.": {
+    "fr": "Le prénom est requis.",
+    "es": "El nombre es obligatorio.",
+    "ar": "الاسم الأول مطلوب."
+  },
+  "Last name is required.": {
+    "fr": "Le nom de famille est requis.",
+    "es": "El apellido es obligatorio.",
+    "ar": "اسم العائلة مطلوب."
+  },
+  "A valid hire date is required.": {
+    "fr": "Une date d’embauche valide est requise.",
+    "es": "Se requiere una fecha de contratación válida.",
+    "ar": "تاريخ تعيين صالح مطلوب."
+  },
+  "Duplicate employee number.": {
+    "fr": "Numéro d’employé en double.",
+    "es": "Número de empleado duplicado.",
+    "ar": "رقم الموظف مكرر."
+  },
+  "Duplicate work email.": {
+    "fr": "Courriel professionnel en double.",
+    "es": "Correo electrónico laboral duplicado.",
+    "ar": "البريد الإلكتروني للعمل مكرر."
+  },
+  "Organization unit and position must both be supplied or both left blank.": {
+    "fr": "L’unité organisationnelle et le poste doivent être fournis ensemble ou laissés vides ensemble.",
+    "es": "La unidad organizativa y el puesto deben proporcionarse juntos o dejarse ambos en blanco.",
+    "ar": "يجب إدخال الوحدة التنظيمية والمنصب معاً أو تركهما معاً فارغين."
+  },
+  "Organization unit not found: {unit}": {
+    "fr": "Unité organisationnelle introuvable : {unit}",
+    "es": "Unidad organizativa no encontrada: {unit}",
+    "ar": "لم يتم العثور على الوحدة التنظيمية: {unit}"
+  },
+  "Position match is ambiguous.": {
+    "fr": "La correspondance du poste est ambiguë.",
+    "es": "La coincidencia del puesto es ambigua.",
+    "ar": "مطابقة المنصب غير محددة بشكل فريد."
+  },
+  "No available position found in {unit}: {position}": {
+    "fr": "Aucun poste disponible trouvé dans {unit} : {position}",
+    "es": "No se encontró un puesto disponible en {unit}: {position}",
+    "ar": "لم يتم العثور على منصب متاح في {unit}: {position}"
+  },
+  "Manager not found: {manager}": {
+    "fr": "Gestionnaire introuvable : {manager}",
+    "es": "Responsable no encontrado: {manager}",
+    "ar": "لم يتم العثور على المدير: {manager}"
+  },
+  "Manager match is ambiguous: {manager}": {
+    "fr": "La correspondance du gestionnaire est ambiguë : {manager}",
+    "es": "La coincidencia del responsable es ambigua: {manager}",
+    "ar": "مطابقة المدير غير محددة بشكل فريد: {manager}"
+  },
+  "Manager hierarchy contains a cycle.": {
+    "fr": "La hiérarchie de gestion contient une boucle.",
+    "es": "La jerarquía de responsables contiene un ciclo.",
+    "ar": "يتضمن التسلسل الإداري حلقة دائرية."
+  },
+  "{source} parsed with {parser}. No employee records have been written yet.": {
+    "fr": "{source} analysé avec {parser}. Aucun dossier employé n’a encore été écrit.",
+    "es": "{source} analizado con {parser}. Aún no se ha escrito ningún registro de empleado.",
+    "ar": "تم تحليل {source} باستخدام {parser}. لم تتم كتابة أي سجلات موظفين بعد."
+  },
+  "Authoritative employee import completed: {created}/{expected} created.": {
+    "fr": "Importation officielle des employés terminée : {created}/{expected} créés.",
+    "es": "Importación oficial de empleados completada: {created}/{expected} creados.",
+    "ar": "اكتمل استيراد الموظفين المعتمد: تم إنشاء {created}/{expected}."
+  },
+  "Review preview · {fileName}": {
+    "fr": "Aperçu de révision · {fileName}",
+    "es": "Vista previa de revisión · {fileName}",
+    "ar": "معاينة المراجعة · {fileName}"
+  },
+  "{count} ready": {
+    "fr": "{count} prêts",
+    "es": "{count} listos",
+    "ar": "{count} جاهز"
+  },
+  "{count} blocked": {
+    "fr": "{count} bloqués",
+    "es": "{count} bloqueados",
+    "ar": "{count} محظور"
+  },
+  "Source/parser notes": {
+    "fr": "Notes sur la source/l’analyseur",
+    "es": "Notas de fuente/analizador",
+    "ar": "ملاحظات المصدر/المحلل"
+  },
+  "Unresolved": {
+    "fr": "Non résolu",
+    "es": "Sin resolver",
+    "ar": "غير محلول"
+  },
+  "Ready": {
+    "fr": "Prêt",
+    "es": "Listo",
+    "ar": "جاهز"
+  },
+  "Correct every blocked row and create a new preview. OPSIQO does not silently skip invalid employees.": {
+    "fr": "Corrigez chaque ligne bloquée et créez un nouvel aperçu. OPSIQO n’ignore jamais silencieusement les employés invalides.",
+    "es": "Corrige cada fila bloqueada y crea una nueva vista previa. OPSIQO no omite silenciosamente empleados no válidos.",
+    "ar": "صحّح كل صف محظور وأنشئ معاينة جديدة. لا يتخطى OPSIQO الموظفين غير الصالحين بصمت."
+  }
+}

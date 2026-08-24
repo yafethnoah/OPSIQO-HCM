@@ -6,7 +6,7 @@ export const employeeCreateSchema = z.object({
   legalFirstName: z.string().min(1).max(100),
   legalLastName: z.string().min(1).max(100),
   preferredName: z.string().max(100).optional(),
-  workEmail: z.string().email(),
+  workEmail: z.preprocess((value) => typeof value === 'string' && value.trim() === '' ? undefined : value, z.string().email().optional()),
   personalEmail: z.string().email().optional(),
   phone: z.string().max(40).optional(),
   employeeNumber: z.string().trim().min(1).max(40).optional(),

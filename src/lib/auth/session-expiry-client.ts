@@ -5,6 +5,7 @@ import { signOut } from 'firebase/auth';
 import { firebaseAuth } from '@/lib/firebase/client';
 import { clearActiveOrgId } from '@/lib/http/client';
 
+const SESSION_EXPIRY_REDIRECT_KEY = 'opsiqo.sessionExpiryRedirecting';
 let redirectingForExpiredSession = false;
 
 export function useSessionExpiryRedirect(enabled = true) {
@@ -14,6 +15,7 @@ export function useSessionExpiryRedirect(enabled = true) {
     const onSessionExpired = () => {
       if (redirectingForExpiredSession) return;
       redirectingForExpiredSession = true;
+      try { window.sessionStorage.setItem(SESSION_EXPIRY_REDIRECT_KEY, '1'); } catch { /* storage may be unavailable */ }
 
       const returnTo = `${window.location.pathname}${window.location.search}`;
       clearActiveOrgId();

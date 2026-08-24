@@ -16793,5 +16793,15 @@
         "ar": "v7.32 · HCM v8.5"
       }
     }
+  },
+  "employeeImportPanelH25": {
+    "file": "src/components/employee-import-panel.tsx",
+    "translations": {
+      "Choose employee import file": {
+        "fr": "Choisir le fichier d’importation des employés",
+        "es": "Elegir archivo de importación de empleados",
+        "ar": "اختر ملف استيراد الموظفين"
+      }
+    }
   }
 }

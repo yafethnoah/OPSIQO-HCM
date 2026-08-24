@@ -218,7 +218,7 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
     legalFirstName: input.legalFirstName,
     legalLastName: input.legalLastName,
     preferredName: input.preferredName,
-    workEmail: input.workEmail,
+    ...(input.workEmail ? { workEmail: input.workEmail.trim().toLowerCase() } : {}),
     personalEmail: input.personalEmail,
     phone: input.phone,
     createdAt: timestamp,
@@ -239,10 +239,10 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
   let worker!: Worker;
 
   await db.runTransaction(async (tx) => {
-    const normalizedEmail = input.workEmail.trim().toLowerCase();
-    const emailIndexRef = db.doc(`organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(normalizedEmail)}`);
-    const emailIndexSnap = await tx.get(emailIndexRef);
-    if (emailIndexSnap.exists) throw new ApiError(409, 'Work email already exists.', 'duplicate_work_email');
+    const normalizedEmail = input.workEmail?.trim().toLowerCase() || '';
+    const emailIndexRef = normalizedEmail ? db.doc(`organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(normalizedEmail)}`) : undefined;
+    const emailIndexSnap = emailIndexRef ? await tx.get(emailIndexRef) : undefined;
+    if (emailIndexSnap?.exists) throw new ApiError(409, 'Work email already exists.', 'duplicate_work_email');
 
     let employeeNumber = String(input.employeeNumber || '').trim();
     let numberIndexRef: DocumentReference;
@@ -291,8 +291,8 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
       displayName: input.preferredName || `${input.legalFirstName} ${input.legalLastName}`,
       displayNameLower: (input.preferredName || `${input.legalFirstName} ${input.legalLastName}`).trim().toLowerCase(),
       employeeNumberLower: employeeNumber.toLowerCase(),
-      workEmail: input.workEmail,
-      workEmailLower: normalizedEmail,
+      workEmail: normalizedEmail,
+      ...(normalizedEmail ? { workEmailLower: normalizedEmail } : {}),
       status: 'active',
       primaryAssignmentId: assignmentId,
       hireDate: input.hireDate,
@@ -316,7 +316,7 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
     tx.create(db.doc(`organizations/${actor.orgId}/workerDirectory/${workerId}`), workerDirectoryEntry(worker));
     tx.create(db.doc(`organizations/${actor.orgId}/employments/${employmentId}`), employment);
     tx.create(numberIndexRef!, { employeeNumber, workerId, createdAt: timestamp });
-    tx.create(emailIndexRef, { workEmail: normalizedEmail, workerId, createdAt: timestamp });
+    if (emailIndexRef) tx.create(emailIndexRef, { workEmail: normalizedEmail, workerId, createdAt: timestamp });
 
     if (assignmentId && input.positionId && input.orgUnitId) {
       const assignment: Assignment = {

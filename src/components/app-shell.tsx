@@ -10,6 +10,8 @@ import { RouteAnnouncer } from '@/components/route-announcer';
 import { useGlobalReviewedTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 import { useRuntimeLocaleSync } from '@/lib/opsiqo-one/runtime-locale';
 import { useSessionExpiryRedirect } from '@/lib/auth/session-expiry-client';
+import { useAuthenticatedShellGuard } from '@/lib/auth/authenticated-shell-guard';
+import { useRuntimeLocalizationDiagnostics } from '@/lib/opsiqo-one/runtime-localization-diagnostics';
 
 const PUBLIC_BOOTSTRAP_ROUTES = new Set([
   '/signin',
@@ -33,6 +35,8 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
   const publicBootstrap = isPublicBootstrapRoute(pathname);
   useRuntimeLocaleSync(!publicBootstrap);
   useSessionExpiryRedirect(!publicBootstrap);
+  useAuthenticatedShellGuard(!publicBootstrap);
+  useRuntimeLocalizationDiagnostics(!publicBootstrap);
 
   if (publicBootstrap) {
     return (

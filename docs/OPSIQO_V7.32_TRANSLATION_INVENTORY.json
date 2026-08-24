@@ -7,15 +7,15 @@
     "ar"
   ],
   "scannedFiles": 184,
-  "cataloguedSurfaceCount": 65,
-  "catalogEntries": 3294,
-  "globalReviewedExactPoolSize": 2501,
+  "cataloguedSurfaceCount": 66,
+  "catalogEntries": 3295,
+  "globalReviewedExactPoolSize": 2502,
   "conflictedExactSourceCount": 55,
-  "directReviewedSourceCandidates": 3070,
+  "directReviewedSourceCandidates": 3071,
   "globalReuseReviewedCandidates": 455,
-  "reviewedSourceCandidates": 3525,
+  "reviewedSourceCandidates": 3526,
   "legacyCandidateCountRemaining": 0,
-  "totalSourceCandidates": 3525,
+  "totalSourceCandidates": 3526,
   "catalogCompleteness": "complete",
   "incompleteCatalog": [],
   "topBacklog": [
@@ -421,6 +421,6 @@
     }
   ],
   "candidateExamples": [],
-  "generatedAt": "2026-08-22T02:06:44.724Z",
+  "generatedAt": "2026-08-24T20:20:05.337Z",
   "boundary": "Reviewed means either the exact source string is present in its V7.32 surface catalog with explicit French, Spanish and Arabic translations, or the same exact source has one unambiguous approved FR/ES/AR translation across the reviewed catalog. Exact-source conflicts are never globally reused. Explicit technical identifiers and obvious JSX/code fragments are excluded from the UI localization backlog. This inventory is not a linguistic-quality, dynamic-content or formal accessibility-completeness claim."
 }
