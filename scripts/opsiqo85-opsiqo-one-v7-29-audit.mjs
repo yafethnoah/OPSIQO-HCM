@@ -3,11 +3,20 @@ const read=p=>fs.readFileSync(p,'utf8');const exists=p=>fs.existsSync(p);const c
 const catalog=JSON.parse(read('src/lib/opsiqo-one/legacy-surface-translations-v7-29.json'));const inv=JSON.parse(read('src/generated/opsiqo-v7-29-translation-inventory.json'));const metadata=JSON.parse(read('RELEASE_METADATA_V7_29.json'));
 const legacy=read('src/lib/opsiqo-one/legacy-surface-i18n.ts'),shell=read('src/components/app-shell.tsx'),nav=read('src/components/nav.tsx'),ready=read('src/lib/opsiqo-one/translation-readiness.ts'),inventory=read('scripts/opsiqo85-translation-inventory-v7-29.mjs');
 const runner=read('RUN_OPSIQO_ONE_V7_29_VALIDATION.ps1'),pre=read('scripts/opsiqo85-v7-29-certification-preflight.mjs'),summary=read('scripts/opsiqo85-v7-29-certification-summary.mjs'),deploy=read('scripts/opsiqo85-v7-29-deployment-readiness-summary.mjs'),attest=read('scripts/opsiqo85-v7-29-final-release-attestation.mjs'),template=read('PRODUCTION_SIGNOFF_TEMPLATE_V7_29.json');const pkg=JSON.parse(read('package.json'));const safe=read('src/lib/opsiqo-one/safe-execution.ts'),router=read('src/lib/opsiqo-one/command-router.ts'),cortex=read('src/lib/opsiqo-one/cortex.ts');
-add('Product badge is V7.29 or later',/v7\.(?:29|30|31|32) · HCM v8\.5/.test(nav));
+add('Product badge is V7.29 or later',/v7\.(?:29|30|31|32)\s*\u00B7\s*HCM v8\.5/.test(nav));
 add('Legacy i18n uses V7.29 or later catalog',/legacy-surface-translations-v7-(?:29|30|31|32)\.json/.test(legacy));
+const translatedStart=legacy.indexOf('function translated(');
+const translatedEnd=legacy.indexOf('function translatedGlobally',translatedStart);
+const translatedBody=translatedStart>=0&&translatedEnd>translatedStart?legacy.slice(translatedStart,translatedEnd):'';
+const localIndex=translatedBody.indexOf('const local=');
+const localReturnIndex=translatedBody.indexOf('if(local?.[locale]) return local[locale]');
+const runtimeIndex=translatedBody.indexOf('runtimeUiTranslation(source,locale)');
+const globalIndex=translatedBody.indexOf('globalTranslation(source)?.[locale]');
+const localPrecedenceLegacy=translatedBody.includes('const approved=local||globalTranslation(source)');
+const localPrecedenceCurrent=localIndex>=0&&localReturnIndex>localIndex&&runtimeIndex>localReturnIndex&&globalIndex>runtimeIndex;
 add('AppShell activates global reviewed translation reuse',shell.includes('useGlobalReviewedTranslation()'));
 for(const token of ['buildGlobalReviewedTranslations','sameTranslation','pool.set(source,null)','globalTranslation(source)','translatedGlobally','useGlobalReviewedTranslation'])add(`Global reviewed translation implements ${token}`,legacy.includes(token));
-add('Surface-local translation takes precedence over global reuse',legacy.includes('const approved=local||globalTranslation(source)'));
+add('Surface-local translation takes precedence over global reuse',localPrecedenceLegacy||localPrecedenceCurrent);
 add('Global translator skips surface-local governed subtrees',legacy.includes("closest('[data-opsiqo-legacy-surface]')"));
 add('Surface hook marks governed translation root',legacy.includes("data-opsiqo-legacy-surface"));
 add('V7.29 inventory uses global exact pool',inventory.includes('globalPool')&&inventory.includes('conflicted'));
@@ -56,4 +65,4 @@ for(const [name,script] of Object.entries({'audit':'opsiqo85:opsiqo-one-v7.29:au
 for(const file of ['RUN_OPSIQO_ONE_V7_29_VALIDATION.ps1','RUN_OPSIQO_ONE_V7_29_VALIDATION.cmd','START_HERE_OPSIQO_ONE_V7_29.md','OPSIQO_ONE_V7_29.md','CHANGE_MANIFEST_OPSIQO_ONE_V7_29.md','VALIDATION_REPORT_OPSIQO_ONE_V7_29.md','RELEASE_METADATA_V7_29.json','tests/opsiqo85/opsiqo-one-v7-29.test.ts'])add(`${file} exists`,exists(file));
 add('Root START_HERE points to V7.29 or later',/START_HERE_OPSIQO_ONE_V7_(?:29|30|31|32)\.md/.test(read('START_HERE.md')));
 add('NEXT_PHASE is production sign-off, not another feature wave',(read('NEXT_PHASE.md').includes('Production Sign-off')||read('NEXT_PHASE.md').includes('RUN_OPSIQO_ONE_V7_32_VALIDATION.ps1')));
-const passed=checks.filter(x=>x.passed).length,failed=checks.filter(x=>!x.passed);for(const c of checks)console.log(`${c.passed?'PASS':'FAIL'} ${c.name}${c.detail?` — ${c.detail}`:''}`);console.log(`\nOPSIQO ONE V7.29 audit: ${passed}/${checks.length} PASS`);if(failed.length){console.log('\nFailures:');for(const f of failed)console.log(`- ${f.name}${f.detail?`: ${f.detail}`:''}`);process.exit(1)}
+const passed=checks.filter(x=>x.passed).length,failed=checks.filter(x=>!x.passed);for(const c of checks)console.log(`${c.passed?'PASS':'FAIL'} ${c.name}${c.detail?` -- ${c.detail}`:''}`);console.log(`\nOPSIQO ONE V7.29 audit: ${passed}/${checks.length} PASS`);if(failed.length){console.log('\nFailures:');for(const f of failed)console.log(`- ${f.name}${f.detail?`: ${f.detail}`:''}`);process.exit(1)}

@@ -421,6 +421,6 @@
     }
   ],
   "candidateExamples": [],
-  "generatedAt": "2026-08-24T21:30:44.203Z",
+  "generatedAt": "2026-08-24T22:40:01.716Z",
   "boundary": "Reviewed means either the exact source string is present in its V7.32 surface catalog with explicit French, Spanish and Arabic translations, or the same exact source has one unambiguous approved FR/ES/AR translation across the reviewed catalog. Exact-source conflicts are never globally reused. Explicit technical identifiers and obvious JSX/code fragments are excluded from the UI localization backlog. This inventory is not a linguistic-quality, dynamic-content or formal accessibility-completeness claim."
 }

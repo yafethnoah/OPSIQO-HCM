@@ -34,3 +34,5 @@ H25 does not perform production deployment and does not weaken human approval, a
 - Email-dependent identity/career features fail with explicit guidance when an employee has no usable email.
 - Employee-import validation messages render separately so runtime localization can translate each message.
 - `src/lib/opsiqo-one/legacy-surface-translations-v7-32.json` includes the final H25 file-picker translation coverage.
+- Historical V7.29 translation-precedence audit accepts the stronger H25 resolver order: surface-local -> runtime template -> conflict-safe global reuse.
+- Historical V7.29 product-badge assertion uses an ASCII-safe Unicode escape for the middle dot to prevent Windows PowerShell 5.1 mojibake.

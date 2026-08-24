@@ -36,6 +36,8 @@ check('runtime translator supports placeholder templates', includes('src/lib/ops
 check('legacy surface translator imports runtime resolver', includes('src/lib/opsiqo-one/legacy-surface-i18n.ts', "runtimeUiTranslation"));
 check('surface translation resolution uses runtime resolver', includes('src/lib/opsiqo-one/legacy-surface-i18n.ts', 'runtimeUiTranslation(source,locale)') || includes('src/lib/opsiqo-one/legacy-surface-i18n.ts', 'runtimeUiTranslation(source, locale)'));
 check('global translation resolution uses runtime resolver', includes('src/lib/opsiqo-one/legacy-surface-i18n.ts', 'runtimeUiTranslation(source,locale)') || includes('src/lib/opsiqo-one/legacy-surface-i18n.ts', 'runtimeUiTranslation(source, locale)'));
+check('V7.29 historical audit accepts runtime-layer surface precedence', includes('scripts/opsiqo85-opsiqo-one-v7-29-audit.mjs', 'localPrecedenceLegacy||localPrecedenceCurrent'));
+check('V7.29 historical badge audit is ASCII-safe', includes('scripts/opsiqo85-opsiqo-one-v7-29-audit.mjs', '\\u00B7'));
 
 check('authenticated shell guard exists', exists('src/lib/auth/authenticated-shell-guard.ts'));
 check('app shell wires authenticated guard', includes('src/components/app-shell.tsx', 'useAuthenticatedShellGuard') && includes('src/components/app-shell.tsx', 'useAuthenticatedShellGuard(!publicBootstrap)'));
