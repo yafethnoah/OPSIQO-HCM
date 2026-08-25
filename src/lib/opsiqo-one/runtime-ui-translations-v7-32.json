@@ -1988,5 +1988,145 @@
     "fr": "Corrigez chaque ligne bloquée et créez un nouvel aperçu. OPSIQO n’ignore jamais silencieusement les employés invalides.",
     "es": "Corrige cada fila bloqueada y crea una nueva vista previa. OPSIQO no omite silenciosamente empleados no válidos.",
     "ar": "صحّح كل صف محظور وأنشئ معاينة جديدة. لا يتخطى OPSIQO الموظفين غير الصالحين بصمت."
+  },
+  "Ask OPSIQO or tell it what to do…": {
+    "fr": "Demandez à OPSIQO ou dites-lui quoi faire…",
+    "es": "Pregunte a OPSIQO o dígale qué hacer…",
+    "ar": "اسأل OPSIQO أو أخبره بما تريد تنفيذه…"
+  },
+  "Ask OPSIQO or tell it what to do...": {
+    "fr": "Demandez à OPSIQO ou dites-lui quoi faire...",
+    "es": "Pregunte a OPSIQO o dígale qué hacer...",
+    "ar": "اسأل OPSIQO أو أخبره بما تريد تنفيذه..."
+  },
+  "FIND": {
+    "fr": "RECHERCHER",
+    "es": "BUSCAR",
+    "ar": "بحث"
+  },
+  "Page, task or module…": {
+    "fr": "Page, tâche ou module…",
+    "es": "Página, tarea o módulo…",
+    "ar": "صفحة أو مهمة أو وحدة…"
+  },
+  "Page, task or module...": {
+    "fr": "Page, tâche ou module...",
+    "es": "Página, tarea o módulo...",
+    "ar": "صفحة أو مهمة أو وحدة…"
+  },
+  "Organization Launchpad": {
+    "fr": "Lancement de l’organisation",
+    "es": "Plataforma de lanzamiento de la organización",
+    "ar": "منصة إطلاق المؤسسة"
+  },
+  "AI Governance Center": {
+    "fr": "Centre de gouvernance de l’IA",
+    "es": "Centro de gobernanza de IA",
+    "ar": "مركز حوكمة الذكاء الاصطناعي"
+  },
+  "Collapse": {
+    "fr": "Réduire",
+    "es": "Contraer",
+    "ar": "طي"
+  },
+  "{organization} · org admin": {
+    "fr": "{organization} · administrateur organisation",
+    "es": "{organization} · administrador de organización",
+    "ar": "{organization} · مسؤول المؤسسة"
+  },
+  "Documents · governed intake": {
+    "fr": "Documents · réception gouvernée",
+    "es": "Documentos · ingreso gobernado",
+    "ar": "المستندات · استقبال محكوم"
+  },
+  "Contract Import": {
+    "fr": "Importation de contrat",
+    "es": "Importación de contrato",
+    "ar": "استيراد العقد"
+  },
+  "Import an employment contract, extract structured terms with source evidence, review every value, and create a controlled OPSIQO contract profile and module prefill proposal.": {
+    "fr": "Importez un contrat de travail, extrayez les clauses structurées avec leurs preuves source, examinez chaque valeur et créez un profil de contrat OPSIQO contrôlé ainsi qu’une proposition de préremplissage des modules.",
+    "es": "Importe un contrato laboral, extraiga términos estructurados con evidencia de origen, revise cada valor y cree un perfil de contrato OPSIQO controlado y una propuesta de precarga de módulos.",
+    "ar": "استورد عقد عمل، واستخرج البنود المنظمة مع أدلة المصدر، وراجع كل قيمة، وأنشئ ملف عقد محكوماً في OPSIQO واقتراح تعبئة مسبقة للوحدات."
+  },
+  "1. Import contract": {
+    "fr": "1. Importer le contrat",
+    "es": "1. Importar contrato",
+    "ar": "1. استيراد العقد"
+  },
+  "PDF, DOCX, TXT, RTF or Markdown · maximum 10 MB. The source is treated as untrusted evidence.": {
+    "fr": "PDF, DOCX, TXT, RTF ou Markdown · maximum 10 Mo. La source est traitée comme une preuve non fiable.",
+    "es": "PDF, DOCX, TXT, RTF o Markdown · máximo 10 MB. La fuente se trata como evidencia no confiable.",
+    "ar": "PDF أو DOCX أو TXT أو RTF أو Markdown · بحد أقصى 10 ميغابايت. يُعامل المصدر كدليل غير موثوق."
+  },
+  "Documents & compliance →": {
+    "fr": "Documents et conformité →",
+    "es": "Documentos y cumplimiento →",
+    "ar": "المستندات والامتثال ←"
+  },
+  "Choose contract": {
+    "fr": "Choisir le contrat",
+    "es": "Elegir contrato",
+    "ar": "اختيار العقد"
+  },
+  "or drag and drop the contract here": {
+    "fr": "ou glissez-déposez le contrat ici",
+    "es": "o arrastre y suelte el contrato aquí",
+    "ar": "أو اسحب العقد وأفلته هنا"
+  },
+  "Parse contract & prefill OPSIQO": {
+    "fr": "Analyser le contrat et préremplir OPSIQO",
+    "es": "Analizar contrato y precargar OPSIQO",
+    "ar": "تحليل العقد والتعبئة المسبقة في OPSIQO"
+  },
+  "Processing…": {
+    "fr": "Traitement…",
+    "es": "Procesando…",
+    "ar": "جارٍ التنفيذ…"
+  },
+  "Uploading source to governed intake…": {
+    "fr": "Téléversement de la source vers la réception gouvernée…",
+    "es": "Cargando la fuente al ingreso gobernado…",
+    "ar": "جارٍ رفع المصدر إلى الاستقبال المحكوم…"
+  },
+  "Extracting contract terms and source evidence…": {
+    "fr": "Extraction des clauses du contrat et des preuves source…",
+    "es": "Extrayendo términos del contrato y evidencia de origen…",
+    "ar": "جارٍ استخراج بنود العقد وأدلة المصدر…"
+  },
+  "Building review draft and employee match suggestions…": {
+    "fr": "Création du brouillon de révision et des suggestions de correspondance employé…",
+    "es": "Creando borrador de revisión y sugerencias de coincidencia de empleado…",
+    "ar": "جارٍ إنشاء مسودة المراجعة واقتراحات مطابقة الموظف…"
+  },
+  "Parsing complete. Review every populated field before confirmation.": {
+    "fr": "Analyse terminée. Vérifiez chaque champ renseigné avant confirmation.",
+    "es": "Análisis completado. Revise cada campo rellenado antes de confirmar.",
+    "ar": "اكتمل التحليل. راجع كل حقل مُعبأ قبل التأكيد."
+  },
+  "Contract parsing failed.": {
+    "fr": "L’analyse du contrat a échoué.",
+    "es": "Falló el análisis del contrato.",
+    "ar": "فشل تحليل العقد."
+  },
+  "Scanned PDF contract parsing requires an active governed AI model and ai.use permission. Text-based PDFs can use deterministic fallback extraction.": {
+    "fr": "L’analyse d’un contrat PDF numérisé nécessite un modèle d’IA gouverné actif et l’autorisation ai.use. Les PDF textuels peuvent utiliser l’extraction déterministe de secours.",
+    "es": "El análisis de un contrato PDF escaneado requiere un modelo de IA gobernado activo y permiso ai.use. Los PDF con texto pueden usar extracción determinista de respaldo.",
+    "ar": "يتطلب تحليل عقد PDF ممسوح ضوئياً نموذج ذكاء اصطناعي محكوماً ونشطاً وصلاحية ai.use. ويمكن لملفات PDF النصية استخدام الاستخراج الحتمي الاحتياطي."
+  },
+  "Write returned 503; reconcile authoritative state before retrying.": {
+    "fr": "L’écriture a renvoyé 503 ; rapprochez l’état de référence avant de réessayer.",
+    "es": "La escritura devolvió 503; concilie el estado autoritativo antes de volver a intentarlo.",
+    "ar": "أعادت عملية الكتابة الخطأ 503؛ طابق الحالة المرجعية قبل إعادة المحاولة."
+  },
+  "Organization unit \"{source}\" mapped to \"{target}\" by governed alias.": {
+    "fr": "L’unité organisationnelle « {source} » a été associée à « {target} » par un alias gouverné.",
+    "es": "La unidad organizativa \"{source}\" se asignó a \"{target}\" mediante un alias gobernado.",
+    "ar": "تمت مطابقة الوحدة التنظيمية \"{source}\" مع \"{target}\" باستخدام اسم بديل محكوم."
+  },
+  "Organization unit match is ambiguous: {unit}": {
+    "fr": "La correspondance de l’unité organisationnelle est ambiguë : {unit}",
+    "es": "La coincidencia de la unidad organizativa es ambigua: {unit}",
+    "ar": "مطابقة الوحدة التنظيمية غير محددة بشكل فريد: {unit}"
   }
 }
