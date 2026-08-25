@@ -12,10 +12,10 @@
   "globalReviewedExactPoolSize": 2502,
   "conflictedExactSourceCount": 55,
   "directReviewedSourceCandidates": 3071,
-  "globalReuseReviewedCandidates": 455,
-  "reviewedSourceCandidates": 3526,
+  "globalReuseReviewedCandidates": 447,
+  "reviewedSourceCandidates": 3518,
   "legacyCandidateCountRemaining": 0,
-  "totalSourceCandidates": 3526,
+  "totalSourceCandidates": 3518,
   "catalogCompleteness": "complete",
   "incompleteCatalog": [],
   "topBacklog": [
@@ -421,6 +421,6 @@
     }
   ],
   "candidateExamples": [],
-  "generatedAt": "2026-08-25T00:33:01.158Z",
+  "generatedAt": "2026-08-25T18:13:54.506Z",
   "boundary": "Reviewed means either the exact source string is present in its V7.32 surface catalog with explicit French, Spanish and Arabic translations, or the same exact source has one unambiguous approved FR/ES/AR translation across the reviewed catalog. Exact-source conflicts are never globally reused. Explicit technical identifiers and obvious JSX/code fragments are excluded from the UI localization backlog. This inventory is not a linguistic-quality, dynamic-content or formal accessibility-completeness claim."
 }

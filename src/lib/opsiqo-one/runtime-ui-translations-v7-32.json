@@ -2128,5 +2128,440 @@
     "fr": "La correspondance de l’unité organisationnelle est ambiguë : {unit}",
     "es": "La coincidencia de la unidad organizativa es ambigua: {unit}",
     "ar": "مطابقة الوحدة التنظيمية غير محددة بشكل فريد: {unit}"
+  },
+  "The five highest-priority verified items for today.": {
+    "fr": "Les cinq éléments vérifiés les plus prioritaires pour aujourd’hui.",
+    "es": "Los cinco elementos verificados de mayor prioridad para hoy.",
+    "ar": "أعلى خمسة عناصر مؤكدة أولوية لهذا اليوم."
+  },
+  "Open My Work": {
+    "fr": "Ouvrir Mon travail",
+    "es": "Abrir Mi trabajo",
+    "ar": "فتح «عملي»"
+  },
+  "Organization Administrator": {
+    "fr": "Administrateur de l’organisation",
+    "es": "Administrador de la organización",
+    "ar": "مسؤول المؤسسة"
+  },
+  "Compliance evidence requires assessment": {
+    "fr": "Les preuves de conformité doivent être évaluées",
+    "es": "La evidencia de cumplimiento requiere evaluación",
+    "ar": "أدلة الامتثال تتطلب تقييماً"
+  },
+  "Compliance evidence is not fully assessed": {
+    "fr": "Les preuves de conformité ne sont pas entièrement évaluées",
+    "es": "La evidencia de cumplimiento no está completamente evaluada",
+    "ar": "أدلة الامتثال لم يتم تقييمها بالكامل"
+  },
+  "Review requirements": {
+    "fr": "Examiner les exigences",
+    "es": "Revisar requisitos",
+    "ar": "مراجعة المتطلبات"
+  },
+  "Unable to load Compliance Radar.": {
+    "fr": "Impossible de charger le Radar de conformité.",
+    "es": "No se pudo cargar el Radar de cumplimiento.",
+    "ar": "تعذر تحميل رادار الامتثال."
+  },
+  "Scanning governed compliance evidence": {
+    "fr": "Analyse des preuves de conformité gouvernées",
+    "es": "Analizando evidencia de cumplimiento gobernada",
+    "ar": "جارٍ فحص أدلة الامتثال المحكومة"
+  },
+  "OPSIQO reports missing or expiring configured evidence without making legal conclusions.": {
+    "fr": "OPSIQO signale les preuves configurées manquantes ou arrivant à expiration sans tirer de conclusions juridiques.",
+    "es": "OPSIQO informa evidencia configurada faltante o próxima a vencer sin emitir conclusiones jurídicas.",
+    "ar": "يبلغ OPSIQO عن الأدلة المهيأة المفقودة أو القريبة من الانتهاء دون إصدار استنتاجات قانونية."
+  },
+  "OPSIQO Guard · Compliance Radar": {
+    "fr": "OPSIQO Guard · Radar de conformité",
+    "es": "OPSIQO Guard · Radar de cumplimiento",
+    "ar": "OPSIQO Guard · رادار الامتثال"
+  },
+  "Proactive evidence gaps, expiries and policy-review deadlines from the authoritative compliance service.": {
+    "fr": "Lacunes de preuve, expirations et échéances de révision des politiques provenant du service de conformité de référence.",
+    "es": "Brechas de evidencia, vencimientos y plazos de revisión de políticas del servicio autoritativo de cumplimiento.",
+    "ar": "فجوات الأدلة ومواعيد الانتهاء ومهل مراجعة السياسات من خدمة الامتثال المرجعية."
+  },
+  "Full compliance workspace": {
+    "fr": "Espace de conformité complet",
+    "es": "Espacio completo de cumplimiento",
+    "ar": "مساحة الامتثال الكاملة"
+  },
+  "Compliance rate": {
+    "fr": "Taux de conformité",
+    "es": "Tasa de cumplimiento",
+    "ar": "نسبة الامتثال"
+  },
+  "Evidence gaps": {
+    "fr": "Lacunes de preuve",
+    "es": "Brechas de evidencia",
+    "ar": "فجوات الأدلة"
+  },
+  "Expiring": {
+    "fr": "À expiration",
+    "es": "Por vencer",
+    "ar": "قريب الانتهاء"
+  },
+  "Policy reviews overdue": {
+    "fr": "Révisions de politiques en retard",
+    "es": "Revisiones de políticas vencidas",
+    "ar": "مراجعات السياسات المتأخرة"
+  },
+  "Policy reviews due": {
+    "fr": "Révisions de politiques à venir",
+    "es": "Revisiones de políticas pendientes",
+    "ar": "مراجعات السياسات المستحقة"
+  },
+  "Radar": {
+    "fr": "Radar",
+    "es": "Radar",
+    "ar": "الرادار"
+  },
+  "Affected workers in your scope": {
+    "fr": "Employés concernés dans votre périmètre",
+    "es": "Empleados afectados dentro de su alcance",
+    "ar": "الموظفون المتأثرون ضمن نطاقك"
+  },
+  "Evidence score": {
+    "fr": "Score de preuve",
+    "es": "Puntuación de evidencia",
+    "ar": "درجة الأدلة"
+  },
+  "Evidence, not legal conclusions.": {
+    "fr": "Des preuves, pas des conclusions juridiques.",
+    "es": "Evidencia, no conclusiones jurídicas.",
+    "ar": "أدلة، وليست استنتاجات قانونية."
+  },
+  "Not assessed": {
+    "fr": "Non évalué",
+    "es": "No evaluado",
+    "ar": "غير مقيّم"
+  },
+  "{name}'s evidence-backed skills": {
+    "fr": "Compétences de {name} étayées par des preuves",
+    "es": "Habilidades de {name} respaldadas por evidencia",
+    "ar": "مهارات {name} المدعومة بالأدلة"
+  },
+  "A portable view of verified skills, self-reported skills, current-role gaps, learning and certificates—without personality or protected-trait inference.": {
+    "fr": "Une vue portable des compétences vérifiées, auto-déclarées, des écarts du rôle actuel, de l’apprentissage et des certificats — sans inférence de personnalité ni de caractéristiques protégées.",
+    "es": "Una vista portátil de habilidades verificadas y autodeclaradas, brechas del rol actual, aprendizaje y certificados, sin inferir personalidad ni características protegidas.",
+    "ar": "عرض قابل للنقل للمهارات الموثقة والمهارات المصرح بها ذاتياً وفجوات الدور الحالي والتعلم والشهادات، دون استنتاجات عن الشخصية أو السمات المحمية."
+  },
+  "Open Learning & Skills": {
+    "fr": "Ouvrir Apprentissage et compétences",
+    "es": "Abrir Aprendizaje y habilidades",
+    "ar": "فتح التعلم والمهارات"
+  },
+  "Verified skills": {
+    "fr": "Compétences vérifiées",
+    "es": "Habilidades verificadas",
+    "ar": "المهارات الموثقة"
+  },
+  "Self-reported": {
+    "fr": "Auto-déclarées",
+    "es": "Autodeclaradas",
+    "ar": "مصرح بها ذاتياً"
+  },
+  "Current-role gaps": {
+    "fr": "Écarts du rôle actuel",
+    "es": "Brechas del rol actual",
+    "ar": "فجوات الدور الحالي"
+  },
+  "Evidence coverage": {
+    "fr": "Couverture des preuves",
+    "es": "Cobertura de evidencia",
+    "ar": "تغطية الأدلة"
+  },
+  "Manager/evidence verified": {
+    "fr": "Vérifiées par gestionnaire/preuve",
+    "es": "Verificadas por gerente/evidencia",
+    "ar": "موثقة بواسطة المدير/الدليل"
+  },
+  "Not treated as verified": {
+    "fr": "Non considérées comme vérifiées",
+    "es": "No se consideran verificadas",
+    "ar": "لا تُعامل كمهارات موثقة"
+  },
+  "Configured role requirements": {
+    "fr": "Exigences du rôle configurées",
+    "es": "Requisitos configurados del rol",
+    "ar": "متطلبات الدور المهيأة"
+  },
+  "Verified / current skill records": {
+    "fr": "Enregistrements de compétences vérifiés / actuels",
+    "es": "Registros de habilidades verificadas / actuales",
+    "ar": "سجلات المهارات الموثقة / الحالية"
+  },
+  "No verified skill evidence is currently recorded.": {
+    "fr": "Aucune preuve de compétence vérifiée n’est actuellement enregistrée.",
+    "es": "Actualmente no hay evidencia de habilidades verificadas registrada.",
+    "ar": "لا توجد حالياً أدلة مهارات موثقة مسجلة."
+  },
+  "Current-role skill gaps": {
+    "fr": "Écarts de compétences du rôle actuel",
+    "es": "Brechas de habilidades del rol actual",
+    "ar": "فجوات مهارات الدور الحالي"
+  },
+  "No verified current-role gaps are represented in the accessible evidence.": {
+    "fr": "Aucun écart vérifié du rôle actuel n’apparaît dans les preuves accessibles.",
+    "es": "No se representan brechas verificadas del rol actual en la evidencia accesible.",
+    "ar": "لا تظهر في الأدلة المتاحة فجوات موثقة للدور الحالي."
+  },
+  "Learning in progress": {
+    "fr": "Apprentissage en cours",
+    "es": "Aprendizaje en curso",
+    "ar": "التعلم قيد التنفيذ"
+  },
+  "No active learning assignments.": {
+    "fr": "Aucune activité d’apprentissage active.",
+    "es": "No hay asignaciones de aprendizaje activas.",
+    "ar": "لا توجد تكليفات تعلم نشطة."
+  },
+  "Evidence boundary.": {
+    "fr": "Limite des preuves.",
+    "es": "Límite de evidencia.",
+    "ar": "حدود الأدلة."
+  },
+  "OPSIQO Cortex · Organizational Memory": {
+    "fr": "OPSIQO Cortex · Mémoire organisationnelle",
+    "es": "OPSIQO Cortex · Memoria organizacional",
+    "ar": "OPSIQO Cortex · الذاكرة المؤسسية"
+  },
+  "Ask the organization, not the internet": {
+    "fr": "Interrogez l’organisation, pas Internet",
+    "es": "Pregunte a la organización, no a Internet",
+    "ar": "اسأل المؤسسة، لا الإنترنت"
+  },
+  "Search published policies, HR knowledge, governed workflow definitions and published learning courses with source identity preserved.": {
+    "fr": "Recherchez les politiques publiées, les connaissances RH, les définitions de flux gouvernés et les cours publiés tout en préservant l’identité de la source.",
+    "es": "Busque políticas publicadas, conocimiento de RR. HH., definiciones de flujos gobernados y cursos publicados preservando la identidad de la fuente.",
+    "ar": "ابحث في السياسات المنشورة ومعرفة الموارد البشرية وتعريفات سير العمل المحكومة والدورات المنشورة مع الحفاظ على هوية المصدر."
+  },
+  "Ask OPSIQO with AI": {
+    "fr": "Demander à OPSIQO avec l’IA",
+    "es": "Preguntar a OPSIQO con IA",
+    "ar": "اسأل OPSIQO بالذكاء الاصطناعي"
+  },
+  "Search organizational memory": {
+    "fr": "Rechercher dans la mémoire organisationnelle",
+    "es": "Buscar en la memoria organizacional",
+    "ar": "البحث في الذاكرة المؤسسية"
+  },
+  "What does our parental leave policy say?": {
+    "fr": "Que dit notre politique de congé parental ?",
+    "es": "¿Qué dice nuestra política de licencia parental?",
+    "ar": "ماذا تنص سياسة إجازة الوالدين لدينا؟"
+  },
+  "Searching…": {
+    "fr": "Recherche…",
+    "es": "Buscando…",
+    "ar": "جارٍ البحث…"
+  },
+  "Search memory": {
+    "fr": "Rechercher la mémoire",
+    "es": "Buscar memoria",
+    "ar": "البحث في الذاكرة"
+  },
+  "Published policy sources": {
+    "fr": "Sources de politiques publiées",
+    "es": "Fuentes de políticas publicadas",
+    "ar": "مصادر السياسات المنشورة"
+  },
+  "Knowledge articles": {
+    "fr": "Articles de connaissance",
+    "es": "Artículos de conocimiento",
+    "ar": "مقالات المعرفة"
+  },
+  "Workflow definitions": {
+    "fr": "Définitions de flux de travail",
+    "es": "Definiciones de flujo de trabajo",
+    "ar": "تعريفات سير العمل"
+  },
+  "Learning courses": {
+    "fr": "Cours de formation",
+    "es": "Cursos de aprendizaje",
+    "ar": "دورات التعلم"
+  },
+  "Sources for “{query}”": {
+    "fr": "Sources pour « {query} »",
+    "es": "Fuentes para «{query}»",
+    "ar": "مصادر «{query}»"
+  },
+  "Recent governed memory": {
+    "fr": "Mémoire gouvernée récente",
+    "es": "Memoria gobernada reciente",
+    "ar": "الذاكرة المحكومة الحديثة"
+  },
+  "Explicit internal citations": {
+    "fr": "Citations internes explicites",
+    "es": "Citas internas explícitas",
+    "ar": "إحالات داخلية صريحة"
+  },
+  "Open source workspace": {
+    "fr": "Ouvrir l’espace source",
+    "es": "Abrir espacio de origen",
+    "ar": "فتح مساحة المصدر"
+  },
+  "Source date {date}": {
+    "fr": "Date de source {date}",
+    "es": "Fecha de fuente {date}",
+    "ar": "تاريخ المصدر {date}"
+  },
+  "No matching permission-available organizational source was found. OPSIQO will not fill the gap with invented company policy.": {
+    "fr": "Aucune source organisationnelle accessible correspondant à vos autorisations n’a été trouvée. OPSIQO ne comblera pas l’écart avec une politique d’entreprise inventée.",
+    "es": "No se encontró una fuente organizacional coincidente disponible según sus permisos. OPSIQO no llenará el vacío con políticas empresariales inventadas.",
+    "ar": "لم يتم العثور على مصدر مؤسسي مطابق ومتاح وفق صلاحياتك. لن يملأ OPSIQO الفجوة بسياسة شركة مختلقة."
+  },
+  "Memory boundary.": {
+    "fr": "Limite de mémoire.",
+    "es": "Límite de memoria.",
+    "ar": "حدود الذاكرة."
+  },
+  "Loading translation readiness evidence…": {
+    "fr": "Chargement des preuves de préparation de traduction…",
+    "es": "Cargando evidencia de preparación de traducción…",
+    "ar": "جارٍ تحميل أدلة جاهزية الترجمة…"
+  },
+  "{pct}% exact-source reviewed": {
+    "fr": "{pct}% de sources exactes révisées",
+    "es": "{pct}% de fuentes exactas revisadas",
+    "ar": "تمت مراجعة {pct}% من المصادر الدقيقة"
+  },
+  "Snapshot: {date} · Locales: {locales}": {
+    "fr": "Instantané : {date} · Langues : {locales}",
+    "es": "Instantánea: {date} · Idiomas: {locales}",
+    "ar": "لقطة: {date} · اللغات: {locales}"
+  },
+  "PREHIRES / ONBOARDING": {
+    "fr": "PRÉ-EMBAUCHE / INTÉGRATION",
+    "es": "PRECONTRATACIONES / INCORPORACIÓN",
+    "ar": "ما قبل التعيين / التهيئة"
+  },
+  "OPEN POSITIONS": {
+    "fr": "POSTES OUVERTS",
+    "es": "PUESTOS ABIERTOS",
+    "ar": "المناصب المفتوحة"
+  },
+  "ACTIVE WORKERS": {
+    "fr": "TRAVAILLEURS ACTIFS",
+    "es": "TRABAJADORES ACTIVOS",
+    "ar": "الموظفون النشطون"
+  },
+  "OPEN SKILL GAPS": {
+    "fr": "ÉCARTS DE COMPÉTENCES OUVERTS",
+    "es": "BRECHAS DE HABILIDADES ABIERTAS",
+    "ar": "فجوات المهارات المفتوحة"
+  },
+  "OPEN PERFORMANCE REVIEWS": {
+    "fr": "ÉVALUATIONS DE PERFORMANCE OUVERTES",
+    "es": "REVISIONES DE DESEMPEÑO ABIERTAS",
+    "ar": "مراجعات الأداء المفتوحة"
+  },
+  "OPEN TIME EXCEPTIONS": {
+    "fr": "EXCEPTIONS DE TEMPS OUVERTES",
+    "es": "EXCEPCIONES DE TIEMPO ABIERTAS",
+    "ar": "استثناءات الوقت المفتوحة"
+  },
+  "HEALTH & SAFETY": {
+    "fr": "SANTÉ ET SÉCURITÉ",
+    "es": "SALUD Y SEGURIDAD",
+    "ar": "الصحة والسلامة"
+  },
+  "EMPLOYEE RELATIONS": {
+    "fr": "RELATIONS AVEC LES EMPLOYÉS",
+    "es": "RELACIONES CON EMPLEADOS",
+    "ar": "علاقات الموظفين"
+  },
+  "COMPENSATION ACTIONS": {
+    "fr": "ACTIONS DE RÉMUNÉRATION",
+    "es": "ACCIONES DE COMPENSACIÓN",
+    "ar": "إجراءات التعويضات"
+  },
+  "INTERNAL MOBILITY INTERESTS": {
+    "fr": "INTÉRÊTS DE MOBILITÉ INTERNE",
+    "es": "INTERESES DE MOVILIDAD INTERNA",
+    "ar": "اهتمامات التنقل الداخلي"
+  },
+  "PEOPLE ANALYTICS": {
+    "fr": "ANALYTIQUE DES PERSONNES",
+    "es": "ANALÍTICA DE PERSONAS",
+    "ar": "تحليلات الأفراد"
+  },
+  "WORKFORCE PLANNING": {
+    "fr": "PLANIFICATION DES EFFECTIFS",
+    "es": "PLANIFICACIÓN DE LA FUERZA LABORAL",
+    "ar": "تخطيط القوى العاملة"
+  },
+  "EMPLOYEE EXPERIENCE": {
+    "fr": "EXPÉRIENCE EMPLOYÉ",
+    "es": "EXPERIENCIA DEL EMPLEADO",
+    "ar": "تجربة الموظف"
+  },
+  "DOCUMENTS": {
+    "fr": "DOCUMENTS",
+    "es": "DOCUMENTOS",
+    "ar": "المستندات"
+  },
+  "LEAVE": {
+    "fr": "CONGÉS",
+    "es": "LICENCIAS",
+    "ar": "الإجازات"
+  },
+  "UNREAD": {
+    "fr": "NON LUES",
+    "es": "NO LEÍDAS",
+    "ar": "غير مقروءة"
+  },
+  "HR REQUESTS": {
+    "fr": "DEMANDES RH",
+    "es": "SOLICITUDES DE RR. HH.",
+    "ar": "طلبات الموارد البشرية"
+  },
+  "ACTIVE GOALS": {
+    "fr": "OBJECTIFS ACTIFS",
+    "es": "OBJETIVOS ACTIVOS",
+    "ar": "الأهداف النشطة"
+  },
+  "COMPLIANCE": {
+    "fr": "CONFORMITÉ",
+    "es": "CUMPLIMIENTO",
+    "ar": "الامتثال"
+  },
+  "ACTIVE LEARNING": {
+    "fr": "APPRENTISSAGE ACTIF",
+    "es": "APRENDIZAJE ACTIVO",
+    "ar": "التعلم النشط"
+  },
+  "Documents available to you": {
+    "fr": "Documents à votre disposition",
+    "es": "Documentos disponibles para usted",
+    "ar": "المستندات المتاحة لك"
+  },
+  "Track HR support requests": {
+    "fr": "Suivre les demandes de soutien RH",
+    "es": "Dar seguimiento a solicitudes de soporte de RR. HH.",
+    "ar": "متابعة طلبات دعم الموارد البشرية"
+  },
+  "{count} self-review(s) waiting": {
+    "fr": "{count} autoévaluation(s) en attente",
+    "es": "{count} autoevaluación(es) en espera",
+    "ar": "{count} تقييم ذاتي بانتظارك"
+  },
+  "{count} pending request(s)": {
+    "fr": "{count} demande(s) en attente",
+    "es": "{count} solicitud(es) pendientes",
+    "ar": "{count} طلب معلق"
+  },
+  "Organization context is connected": {
+    "fr": "Le contexte organisationnel est connecté",
+    "es": "El contexto organizacional está conectado",
+    "ar": "سياق المؤسسة متصل"
+  },
+  "{count} unread notification(s)": {
+    "fr": "{count} notification(s) non lue(s)",
+    "es": "{count} notificación(es) no leída(s)",
+    "ar": "{count} إشعار غير مقروء"
   }
 }

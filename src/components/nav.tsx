@@ -170,13 +170,13 @@ export function Nav() {
   );
 
   const renderItem = (item: Item) => {
-    const active = pathname===item.href || pathname.startsWith(`${item.href}/`),pinned=adaptiveState.pinned.includes(item.href);
+    const active = pathname===item.href || pathname.startsWith(`${item.href}/`),pinned=adaptiveState.pinned.includes(item.href),renderedLabel=shellText(item.label,shellLocale),pinAction=shellText(pinned?'Unpin':'Pin',shellLocale);
     return (
       <div className="navItemWrap" key={item.href}>
-        <Link href={item.href} className={`navItem ${active?'active':''}`} title={collapsed?item.label:undefined} aria-current={active?'page':undefined} onClick={()=>setQuery('')}>
-          <span className="navIcon" aria-hidden="true">{item.icon}</span><span className="navText">{item.label}</span>
+        <Link href={item.href} className={`navItem ${active?'active':''}`} title={collapsed?renderedLabel:undefined} aria-current={active?'page':undefined} onClick={()=>setQuery('')}>
+          <span className="navIcon" aria-hidden="true">{item.icon}</span><span className="navText">{renderedLabel}</span>
         </Link>
-        {!collapsed&&<button type="button" className={`navPin ${pinned?'active':''}`} aria-label={`${pinned?'Unpin':'Pin'} ${item.label}`} onClick={()=>toggleNavigationPin(item.href)}>{pinned?'★':'☆'}</button>}
+        {!collapsed&&<button type="button" className={`navPin ${pinned?'active':''}`} aria-label={`${pinAction} ${renderedLabel}`} onClick={()=>toggleNavigationPin(item.href)}>{pinned?'★':'☆'}</button>}
       </div>
     );
   };
@@ -184,7 +184,7 @@ export function Nav() {
   return (
     <aside className={`sidebar ${collapsed?'collapsed':''}`} aria-label={shellText('Application navigation',shellLocale)}>
       <div className="sidebarTop">
-        <Link href="/home" className="brand" aria-label="OPSIQO home">
+        <Link href="/home" className="brand" aria-label={shellText('OPSIQO home',shellLocale)}>
           <img className="brandLogo" src="/brand/opsiqo-wordmark.png" alt="OPSIQO" />
           <img className="brandIcon" src="/brand/opsiqo-icon.png" alt="" aria-hidden="true" />
         </Link>
@@ -192,7 +192,7 @@ export function Nav() {
       </div>
 
       {!collapsed && (
-        <div className="outcomeNav" data-opsiqo-shell-i18n="true" aria-label="OPSIQO ONE primary outcomes">
+        <div className="outcomeNav" data-opsiqo-shell-i18n="true" aria-label={shellText('OPSIQO ONE primary outcomes',shellLocale)}>
           <Link className={`outcomeNavItem ${pathname==='/home'?'active':''}`} href="/home"><span aria-hidden="true">⌂</span><strong>{shellText('Home',shellLocale)}</strong></Link>
           <Link className={`outcomeNavItem ${pathname.startsWith('/my-work')?'active':''}`} href="/my-work"><span aria-hidden="true">✓</span><strong>{shellText('My Work',shellLocale)}</strong></Link>
           <Link className={`outcomeNavItem ${pathname.startsWith('/people')?'active':''}`} href="/people"><span aria-hidden="true">◌</span><strong>{shellText('People',shellLocale)}</strong></Link>
@@ -215,7 +215,7 @@ export function Nav() {
           />
           {normalizedQuery && (
             <div className="navSearchSummary" role="status">
-              {searchResults.length ? `${searchResults.length} result${searchResults.length===1?'':'s'}` : shellText('No matching page',shellLocale)}
+              {searchResults.length ? (searchResults.length===1?shellText('1 result',shellLocale):shellText('{count} results',shellLocale).replace('{count}',String(searchResults.length))) : shellText('No matching page',shellLocale)}
             </div>
           )}
         </div>
@@ -228,7 +228,7 @@ export function Nav() {
             <div className="navGroupItems">
               {searchResults.map(renderItem)}
               {!searchResults.length && (
-                <div className="navEmptyState">Try “leave”, “people”, “recruiting”, “analytics” or “settings”.</div>
+                <div className="navEmptyState">{shellText('Try “leave”, “people”, “recruiting”, “analytics” or “settings”.',shellLocale)}</div>
               )}
             </div>
           </section>
@@ -262,9 +262,9 @@ export function Nav() {
           className="navCollapse"
           type="button"
           onClick={()=>setCollapsed(value=>!value)}
-          aria-label={collapsed?'Expand navigation':'Collapse navigation'}
+          aria-label={shellText(collapsed?'Expand navigation':'Collapse navigation',shellLocale)}
         >
-          {collapsed?'»':'«'}<span>{collapsed?'':'Collapse'}</span>
+          {collapsed?'»':'«'}<span>{collapsed?'':shellText('Collapse',shellLocale)}</span>
         </button>
       </div>
     </aside>

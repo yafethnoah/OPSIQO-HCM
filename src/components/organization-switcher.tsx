@@ -5,10 +5,12 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { firebaseAuth } from '@/lib/firebase/client';
 import { apiFetch, setActiveOrgId, tryActiveOrgId } from '@/lib/http/client';
+import { shellText, useShellLocale } from '@/lib/opsiqo-one/shell-i18n';
 
 type Org = { orgId:string; name:string; role:string; status:string };
 
 export function OrganizationSwitcher() {
+  const shellLocale=useShellLocale();
   const [organizations,setOrganizations]=useState<Org[]>([]);
   const [selected,setSelected]=useState('');
   const [error,setError]=useState('');
@@ -80,19 +82,19 @@ export function OrganizationSwitcher() {
     };
   }, []);
 
-  if (loading) return <div className="orgSwitcherSkeleton">Loading organization…</div>;
-  if (error) return <div className="orgSwitcherError" title={error}><span>Organization unavailable</span><br/><Link href="/setup">Set up / reconnect</Link></div>;
-  if (!organizations.length) return <div className="orgSwitcherSkeleton"><Link href="/setup">Set up organization</Link></div>;
+  if (loading) return <div className="orgSwitcherSkeleton">{shellText('Loading organization…',shellLocale)}</div>;
+  if (error) return <div className="orgSwitcherError" title={error}><span>{shellText('Organization unavailable',shellLocale)}</span><br/><Link href="/setup">{shellText('Set up / reconnect',shellLocale)}</Link></div>;
+  if (!organizations.length) return <div className="orgSwitcherSkeleton"><Link href="/setup">{shellText('Set up organization',shellLocale)}</Link></div>;
 
   return <label className="orgSwitcher">
-    <span>Organization</span>
+    <span>{shellText('Organization',shellLocale)}</span>
     <select value={selected} onChange={(e) => {
       const orgId = e.target.value;
       setActiveOrgId(orgId);
       setSelected(orgId);
       window.location.assign('/dashboard');
     }}>
-      {organizations.map((org) => <option key={org.orgId} value={org.orgId}>{org.name} · {org.role.replaceAll('_',' ')}</option>)}
+      {organizations.map((org) => {const role=org.role.replaceAll('_',' ');return <option key={org.orgId} value={org.orgId}>{org.name} · {shellText(role,shellLocale)}</option>})}
     </select>
   </label>;
 }
