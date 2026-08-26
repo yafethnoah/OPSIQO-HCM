@@ -2563,5 +2563,75 @@
     "fr": "{count} notification(s) non lue(s)",
     "es": "{count} notificación(es) no leída(s)",
     "ar": "{count} إشعار غير مقروء"
+  },
+  "Comfortable": {
+    "fr": "Confortable",
+    "es": "Cómodo",
+    "ar": "مريح"
+  },
+  "Compact": {
+    "fr": "Compact",
+    "es": "Compacto",
+    "ar": "مضغوط"
+  },
+  "Monday": {
+    "fr": "Lundi",
+    "es": "Lunes",
+    "ar": "الاثنين"
+  },
+  "Sunday": {
+    "fr": "Dimanche",
+    "es": "Domingo",
+    "ar": "الأحد"
+  },
+  "Dark": {
+    "fr": "Sombre",
+    "es": "Oscuro",
+    "ar": "داكن"
+  },
+  "Light": {
+    "fr": "Clair",
+    "es": "Claro",
+    "ar": "فاتح"
+  },
+  "Normal": {
+    "fr": "Normal",
+    "es": "Normal",
+    "ar": "عادي"
+  },
+  "Large": {
+    "fr": "Grand",
+    "es": "Grande",
+    "ar": "كبير"
+  },
+  "English": {
+    "fr": "Anglais",
+    "es": "Inglés",
+    "ar": "الإنجليزية"
+  },
+  "Arabic": {
+    "fr": "Arabe",
+    "es": "Árabe",
+    "ar": "العربية"
+  },
+  "French": {
+    "fr": "Français",
+    "es": "Francés",
+    "ar": "الفرنسية"
+  },
+  "Spanish": {
+    "fr": "Espagnol",
+    "es": "Español",
+    "ar": "الإسبانية"
+  },
+  "Not configured": {
+    "fr": "Non configuré",
+    "es": "No configurado",
+    "ar": "غير مهيأ"
+  },
+  "Reviewed means either the exact source string is present in its V7.32 surface catalog with explicit French, Spanish and Arabic translations, or the same exact source has one unambiguous approved FR/ES/AR translation across the reviewed catalog. Exact-source conflicts are never globally reused. Explicit technical identifiers and obvious JSX/code fragments are excluded from the UI localization backlog. This inventory is not a linguistic-quality, dynamic-content or formal accessibility-completeness claim.": {
+    "fr": "Révisé signifie que la chaîne source exacte est soit présente dans son catalogue de surface V7.32 avec des traductions explicites en français, espagnol et arabe, soit qu’elle possède une seule traduction FR/ES/AR approuvée et non ambiguë dans le catalogue révisé. Les conflits de source exacte ne sont jamais réutilisés globalement. Les identifiants techniques explicites et les fragments JSX/code évidents sont exclus du retard de localisation de l’interface. Cet inventaire ne constitue pas une affirmation de qualité linguistique, d’exhaustivité du contenu dynamique ou de conformité formelle en matière d’accessibilité.",
+    "es": "Revisado significa que la cadena fuente exacta está presente en su catálogo de superficie V7.32 con traducciones explícitas al francés, español y árabe, o que la misma fuente exacta tiene una única traducción FR/ES/AR aprobada y no ambigua en el catálogo revisado. Los conflictos de fuente exacta nunca se reutilizan globalmente. Los identificadores técnicos explícitos y los fragmentos obvios de JSX/código se excluyen del pendiente de localización de la interfaz. Este inventario no constituye una afirmación de calidad lingüística, exhaustividad del contenido dinámico ni cumplimiento formal de accesibilidad.",
+    "ar": "تعني «تمت المراجعة» أن النص المصدري المطابق موجود إما في كتالوج واجهته V7.32 مع ترجمات صريحة إلى الفرنسية والإسبانية والعربية، أو أن النص المصدري نفسه له ترجمة واحدة معتمدة وغير ملتبسة باللغات FR/ES/AR ضمن الكتالوج المراجع. لا يُعاد استخدام تعارضات النصوص المصدرية المطابقة على المستوى العام. تُستبعد المعرّفات التقنية الصريحة ومقاطع JSX/الشيفرة الواضحة من قائمة الترجمة المتبقية للواجهة. ولا يشكل هذا الجرد ادعاءً بجودة لغوية أو اكتمال المحتوى الديناميكي أو اكتمال رسمي لإمكانية الوصول."
   }
 }

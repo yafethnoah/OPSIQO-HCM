@@ -7,7 +7,7 @@ import { InstallAppButton } from '@/components/install-app-button';
 import type { SuperAppDashboard,SuperAppDataState,SuperAppPreference } from '@/domain/superapp';
 import { mutableSuperAppPreference } from '@/lib/superapp/guardrails';
 import { useShellLocale } from '@/lib/opsiqo-one/shell-i18n';
-import { applyRuntimeLocale } from '@/lib/opsiqo-one/runtime-locale';
+import { setRuntimeLocalePreference } from '@/lib/opsiqo-one/runtime-locale';
 import { runtimeUiTranslation } from '@/lib/opsiqo-one/runtime-ui-i18n';
 
 type SuperAppLocale='en'|'fr'|'es'|'ar';
@@ -59,9 +59,9 @@ export function SuperAppWorkspace(){
  const T=I[locale]||I.en;
  const rt=(source:string)=>runtimeUiTranslation(source,locale)||source;
  const formatNumber=(value:number)=>new Intl.NumberFormat(locale).format(Number(value)||0);
- async function load(){setError('');setMfaRequired(false);try{const r=await apiFetch<{data:SuperAppDashboard}>(`/api/organizations/${activeOrgId()}/superapp/dashboard`);setD(r.data);if(r.data.preference?.locale&&r.data.preference.locale!=='auto')applyRuntimeLocale(r.data.preference.locale)}catch(e){if(isMfaRequiredError(e)){setD(null);setMfaRequired(true);return}setError(T.loadError)}}
+ async function load(){setError('');setMfaRequired(false);try{const r=await apiFetch<{data:SuperAppDashboard}>(`/api/organizations/${activeOrgId()}/superapp/dashboard`);setD(r.data);/* Runtime locale is synchronized centrally by AppShell. */}catch(e){if(isMfaRequiredError(e)){setD(null);setMfaRequired(true);return}setError(T.loadError)}}
  useEffect(()=>{void load()},[]);
- async function savePref(next:ReturnType<typeof mutableSuperAppPreference>){setBusy('preference');setError('');try{await apiFetch(`/api/organizations/${activeOrgId()}/superapp/preferences`,{method:'POST',body:JSON.stringify(next)});if(next.locale&&next.locale!=='auto')applyRuntimeLocale(next.locale);else window.dispatchEvent(new CustomEvent('opsiqo:runtime-locale-refresh'));window.dispatchEvent(new CustomEvent('opsiqo:locale-preference-changed'));await load()}catch(e){if(isMfaRequiredError(e)){setD(null);setMfaRequired(true);return}setError(T.saveError)}finally{setBusy('')}}
+ async function savePref(next:ReturnType<typeof mutableSuperAppPreference>){setBusy('preference');setError('');try{await apiFetch(`/api/organizations/${activeOrgId()}/superapp/preferences`,{method:'POST',body:JSON.stringify(next)});setRuntimeLocalePreference(next.locale||'auto');await load()}catch(e){if(isMfaRequiredError(e)){setD(null);setMfaRequired(true);return}setError(T.saveError)}finally{setBusy('')}}
  const pinned=useMemo(()=>new Set<string>(d?.preference?.pinnedActionIds||[]),[d?.preference?.pinnedActionIds]);
  if(!d){if(mfaRequired)return <section className="card stack" data-security-state="mfa-required"><div><span className="eyebrow">Privileged access security</span><h2 className="sectionTitle">Multi-factor authentication required</h2></div><div className="warning" role="alert">Multi-factor authentication is required for privileged HR access.</div><p className="muted">My OPSIQO data is intentionally withheld until this session completes the required second factor.</p><div><Link className="button" href={mfaSetupHref('/home')}>Set up multi-factor authentication</Link></div></section>;return <section className="card stack" aria-labelledby="superapp-home-heading"><h2 id="superapp-home-heading" className="sectionTitle">{T.home}</h2>{error?<div className="error">{error}</div>:<div className="muted">{T.loading}</div>}</section>;}
  const primaryActions=(d.preference.pinnedActionIds.length?d.actions.filter(x=>pinned.has(x.id)):d.actions.slice(0,d.preference.compactMode?4:8)),visibleActions=showAll?d.actions:primaryActions,hasUnavailable=Object.values(d.health).some(x=>x.state==='unavailable');

@@ -6,13 +6,13 @@
     "es",
     "ar"
   ],
-  "scannedFiles": 184,
-  "cataloguedSurfaceCount": 66,
-  "catalogEntries": 3295,
-  "globalReviewedExactPoolSize": 2502,
-  "conflictedExactSourceCount": 55,
-  "directReviewedSourceCandidates": 3071,
-  "globalReuseReviewedCandidates": 447,
+  "scannedFiles": 185,
+  "cataloguedSurfaceCount": 68,
+  "catalogEntries": 3351,
+  "globalReviewedExactPoolSize": 2515,
+  "conflictedExactSourceCount": 69,
+  "directReviewedSourceCandidates": 3101,
+  "globalReuseReviewedCandidates": 417,
   "reviewedSourceCandidates": 3518,
   "legacyCandidateCountRemaining": 0,
   "totalSourceCandidates": 3518,
@@ -359,8 +359,8 @@
       "file": "src/components/program-workforce-workspace.tsx",
       "totalCandidates": 28,
       "reviewedCandidates": 28,
-      "directReviewedCandidates": 22,
-      "globalReuseReviewedCandidates": 6,
+      "directReviewedCandidates": 24,
+      "globalReuseReviewedCandidates": 4,
       "remainingCandidates": 0
     },
     {
@@ -421,6 +421,6 @@
     }
   ],
   "candidateExamples": [],
-  "generatedAt": "2026-08-25T18:13:54.506Z",
+  "generatedAt": "2026-08-26T02:36:10.105Z",
   "boundary": "Reviewed means either the exact source string is present in its V7.32 surface catalog with explicit French, Spanish and Arabic translations, or the same exact source has one unambiguous approved FR/ES/AR translation across the reviewed catalog. Exact-source conflicts are never globally reused. Explicit technical identifiers and obvious JSX/code fragments are excluded from the UI localization backlog. This inventory is not a linguistic-quality, dynamic-content or formal accessibility-completeness claim."
 }

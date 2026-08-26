@@ -14441,6 +14441,11 @@
         "fr": "L’allocation est validée côté serveur par rapport aux dates de la subvention/du projet et aux allocations de travailleur qui se chevauchent.",
         "es": "La asignación se valida en el servidor contra las fechas de la subvención/proyecto y las asignaciones superpuestas del trabajador.",
         "ar": "يتم التحقق من التخصيص على الخادم مقابل تواريخ المنحة/المشروع وتخصيصات العامل المتداخلة."
+      },
+      "Worker": {
+        "fr": "Travailleur",
+        "es": "Trabajador",
+        "ar": "الموظف"
       }
     }
   },
@@ -16801,6 +16806,291 @@
         "fr": "Choisir le fichier d’importation des employés",
         "es": "Elegir archivo de importación de empleados",
         "ar": "اختر ملف استيراد الموظفين"
+      }
+    }
+  },
+  "grant-workforce": {
+    "file": "src/components/grant-workforce-workspace.tsx",
+    "translations": {
+      "Unable to load grant workforce intelligence.": {
+        "fr": "Impossible de charger les données de main-d’œuvre financée par subventions.",
+        "es": "No se pudo cargar la inteligencia de la fuerza laboral financiada por subvenciones.",
+        "ar": "تعذر تحميل معلومات القوى العاملة الممولة بالمنح."
+      },
+      "Action failed.": {
+        "fr": "L’action a échoué.",
+        "es": "La acción falló.",
+        "ar": "فشل الإجراء."
+      },
+      "Loading grant workforce evidence…": {
+        "fr": "Chargement des preuves de main-d’œuvre financée par subventions…",
+        "es": "Cargando evidencia de la fuerza laboral financiada por subvenciones…",
+        "ar": "جارٍ تحميل أدلة القوى العاملة الممولة بالمنح…"
+      },
+      "OPSIQO ONE · Grant Workforce": {
+        "fr": "OPSIQO ONE · Main-d’œuvre financée par subventions",
+        "es": "OPSIQO ONE · Fuerza laboral financiada por subvenciones",
+        "ar": "OPSIQO ONE · القوى العاملة الممولة بالمنح"
+      },
+      "Funding → workforce exposure, without guessing": {
+        "fr": "Financement → exposition de la main-d’œuvre, sans supposition",
+        "es": "Financiación → exposición de la fuerza laboral, sin suposiciones",
+        "ar": "التمويل ← انكشاف القوى العاملة، دون تخمين"
+      },
+      "Track explicit funding periods and workforce allocations so nonprofit and grant-funded organizations can see upcoming exposure before commitments are assumed.": {
+        "fr": "Suivez les périodes de financement explicites et les affectations de main-d’œuvre afin que les organismes sans but lucratif et financés par subventions puissent voir l’exposition à venir avant de présumer des engagements.",
+        "es": "Realice seguimiento de los períodos explícitos de financiación y las asignaciones de personal para que las organizaciones sin fines de lucro y financiadas por subvenciones puedan ver la exposición próxima antes de asumir compromisos.",
+        "ar": "تتبّع فترات التمويل المحددة وتخصيصات القوى العاملة حتى تتمكن المؤسسات غير الربحية والممولة بالمنح من رؤية الانكشاف القادم قبل افتراض الالتزامات."
+      },
+      "Active funding sources": {
+        "fr": "Sources de financement actives",
+        "es": "Fuentes de financiación activas",
+        "ar": "مصادر التمويل النشطة"
+      },
+      "Ending ≤90 days": {
+        "fr": "Fin ≤ 90 jours",
+        "es": "Finalizan en ≤90 días",
+        "ar": "تنتهي خلال ≤90 يوماً"
+      },
+      "Funded workers": {
+        "fr": "Travailleurs financés",
+        "es": "Trabajadores financiados",
+        "ar": "الموظفون الممولون"
+      },
+      "Active allocation": {
+        "fr": "Affectation active",
+        "es": "Asignación activa",
+        "ar": "التخصيص النشط"
+      },
+      "Planned annual funding": {
+        "fr": "Financement annuel planifié",
+        "es": "Financiación anual planificada",
+        "ar": "التمويل السنوي المخطط"
+      },
+      "Not configured": {
+        "fr": "Non configuré",
+        "es": "No configurado",
+        "ar": "غير مهيأ"
+      },
+      "Funding signals": {
+        "fr": "Signaux de financement",
+        "es": "Señales de financiación",
+        "ar": "مؤشرات التمويل"
+      },
+      "Funding allocations": {
+        "fr": "Affectations de financement",
+        "es": "Asignaciones de financiación",
+        "ar": "تخصيصات التمويل"
+      },
+      "Worker": {
+        "fr": "Travailleur",
+        "es": "Trabajador",
+        "ar": "الموظف"
+      },
+      "Funding": {
+        "fr": "Financement",
+        "es": "Financiación",
+        "ar": "التمويل"
+      },
+      "Allocation": {
+        "fr": "Affectation",
+        "es": "Asignación",
+        "ar": "التخصيص"
+      },
+      "Period": {
+        "fr": "Période",
+        "es": "Período",
+        "ar": "الفترة"
+      },
+      "Planned annual amount": {
+        "fr": "Montant annuel planifié",
+        "es": "Importe anual planificado",
+        "ar": "المبلغ السنوي المخطط"
+      },
+      "open": {
+        "fr": "ouvert",
+        "es": "abierto",
+        "ar": "مفتوح"
+      },
+      "Governance boundary": {
+        "fr": "Limite de gouvernance",
+        "es": "Límite de gobernanza",
+        "ar": "حدود الحوكمة"
+      },
+      "Add funding source": {
+        "fr": "Ajouter une source de financement",
+        "es": "Agregar fuente de financiación",
+        "ar": "إضافة مصدر تمويل"
+      },
+      "Funding source code": {
+        "fr": "Code de la source de financement",
+        "es": "Código de la fuente de financiación",
+        "ar": "رمز مصدر التمويل"
+      },
+      "Code": {
+        "fr": "Code",
+        "es": "Código",
+        "ar": "الرمز"
+      },
+      "Funding source name": {
+        "fr": "Nom de la source de financement",
+        "es": "Nombre de la fuente de financiación",
+        "ar": "اسم مصدر التمويل"
+      },
+      "Funding source / grant": {
+        "fr": "Source de financement / subvention",
+        "es": "Fuente de financiación / subvención",
+        "ar": "مصدر التمويل / المنحة"
+      },
+      "Funder": {
+        "fr": "Bailleur de fonds",
+        "es": "Financiador",
+        "ar": "الجهة الممولة"
+      },
+      "Funding start date": {
+        "fr": "Date de début du financement",
+        "es": "Fecha de inicio de la financiación",
+        "ar": "تاريخ بدء التمويل"
+      },
+      "Funding end date": {
+        "fr": "Date de fin du financement",
+        "es": "Fecha de finalización de la financiación",
+        "ar": "تاريخ انتهاء التمويل"
+      },
+      "Create funding source": {
+        "fr": "Créer la source de financement",
+        "es": "Crear fuente de financiación",
+        "ar": "إنشاء مصدر تمويل"
+      },
+      "Allocate workforce": {
+        "fr": "Affecter la main-d’œuvre",
+        "es": "Asignar fuerza laboral",
+        "ar": "تخصيص القوى العاملة"
+      },
+      "Funding source": {
+        "fr": "Source de financement",
+        "es": "Fuente de financiación",
+        "ar": "مصدر التمويل"
+      },
+      "Allocation percent": {
+        "fr": "Pourcentage d’affectation",
+        "es": "Porcentaje de asignación",
+        "ar": "نسبة التخصيص"
+      },
+      "Allocation start date": {
+        "fr": "Date de début de l’affectation",
+        "es": "Fecha de inicio de la asignación",
+        "ar": "تاريخ بدء التخصيص"
+      },
+      "Add allocation": {
+        "fr": "Ajouter l’affectation",
+        "es": "Agregar asignación",
+        "ar": "إضافة تخصيص"
+      }
+    }
+  },
+  "organizational-memory": {
+    "file": "src/components/organizational-memory-workspace.tsx",
+    "translations": {
+      "Unable to search Organizational Memory.": {
+        "fr": "Impossible d’effectuer une recherche dans la mémoire organisationnelle.",
+        "es": "No se pudo buscar en la memoria organizacional.",
+        "ar": "تعذر البحث في الذاكرة المؤسسية."
+      },
+      "Multi-factor authentication required": {
+        "fr": "Authentification multifacteur requise",
+        "es": "Se requiere autenticación multifactor",
+        "ar": "المصادقة متعددة العوامل مطلوبة"
+      },
+      "Set up MFA": {
+        "fr": "Configurer l’AMF",
+        "es": "Configurar MFA",
+        "ar": "إعداد المصادقة متعددة العوامل"
+      },
+      "OPSIQO Cortex · Organizational Memory": {
+        "fr": "OPSIQO Cortex · Mémoire organisationnelle",
+        "es": "OPSIQO Cortex · Memoria organizacional",
+        "ar": "OPSIQO Cortex · الذاكرة المؤسسية"
+      },
+      "Ask the organization, not the internet": {
+        "fr": "Interrogez l’organisation, pas Internet",
+        "es": "Pregunte a la organización, no a Internet",
+        "ar": "اسأل المؤسسة، لا الإنترنت"
+      },
+      "Search published policies, HR knowledge, governed workflow definitions and published learning courses with source identity preserved.": {
+        "fr": "Recherchez les politiques publiées, les connaissances RH, les définitions de flux de travail gouvernés et les cours publiés tout en préservant l’identité de la source.",
+        "es": "Busque políticas publicadas, conocimiento de RR. HH., definiciones de flujos de trabajo gobernados y cursos publicados preservando la identidad de la fuente.",
+        "ar": "ابحث في السياسات المنشورة ومعرفة الموارد البشرية وتعريفات سير العمل المحكومة والدورات المنشورة مع الحفاظ على هوية المصدر."
+      },
+      "Ask OPSIQO with AI": {
+        "fr": "Interroger OPSIQO avec l’IA",
+        "es": "Preguntar a OPSIQO con IA",
+        "ar": "اسأل OPSIQO باستخدام الذكاء الاصطناعي"
+      },
+      "Search organizational memory": {
+        "fr": "Rechercher dans la mémoire organisationnelle",
+        "es": "Buscar en la memoria organizacional",
+        "ar": "البحث في الذاكرة المؤسسية"
+      },
+      "What does our parental leave policy say?": {
+        "fr": "Que dit notre politique de congé parental ?",
+        "es": "¿Qué dice nuestra política de licencia parental?",
+        "ar": "ماذا تنص سياسة إجازة الوالدين لدينا؟"
+      },
+      "Searching…": {
+        "fr": "Recherche…",
+        "es": "Buscando…",
+        "ar": "جارٍ البحث…"
+      },
+      "Search memory": {
+        "fr": "Rechercher dans la mémoire",
+        "es": "Buscar en la memoria",
+        "ar": "البحث في الذاكرة"
+      },
+      "Published policy sources": {
+        "fr": "Sources de politiques publiées",
+        "es": "Fuentes de políticas publicadas",
+        "ar": "مصادر السياسات المنشورة"
+      },
+      "Knowledge articles": {
+        "fr": "Articles de connaissances",
+        "es": "Artículos de conocimiento",
+        "ar": "مقالات المعرفة"
+      },
+      "Workflow definitions": {
+        "fr": "Définitions des flux de travail",
+        "es": "Definiciones de flujos de trabajo",
+        "ar": "تعريفات سير العمل"
+      },
+      "Learning courses": {
+        "fr": "Cours de formation",
+        "es": "Cursos de aprendizaje",
+        "ar": "الدورات التعليمية"
+      },
+      "Recent governed memory": {
+        "fr": "Mémoire gouvernée récente",
+        "es": "Memoria gobernada reciente",
+        "ar": "الذاكرة المحكومة الحديثة"
+      },
+      "Explicit internal citations": {
+        "fr": "Citations internes explicites",
+        "es": "Citas internas explícitas",
+        "ar": "مراجع داخلية صريحة"
+      },
+      "Open source workspace": {
+        "fr": "Ouvrir l’espace de travail source",
+        "es": "Abrir espacio de trabajo de la fuente",
+        "ar": "فتح مساحة عمل المصدر"
+      },
+      "No matching permission-available organizational source was found. OPSIQO will not fill the gap with invented company policy.": {
+        "fr": "Aucune source organisationnelle correspondante accessible avec vos autorisations n’a été trouvée. OPSIQO ne comblera pas cette lacune avec une politique d’entreprise inventée.",
+        "es": "No se encontró ninguna fuente organizacional coincidente disponible con sus permisos. OPSIQO no llenará el vacío con una política empresarial inventada.",
+        "ar": "لم يتم العثور على مصدر مؤسسي مطابق ومتاح وفق صلاحياتك. لن يملأ OPSIQO هذا الفراغ بسياسة شركة مختلقة."
+      },
+      "Memory boundary.": {
+        "fr": "Limite de la mémoire.",
+        "es": "Límite de memoria.",
+        "ar": "حدود الذاكرة."
       }
     }
   }

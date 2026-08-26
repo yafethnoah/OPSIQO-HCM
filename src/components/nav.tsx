@@ -182,7 +182,7 @@ export function Nav() {
   };
 
   return (
-    <aside className={`sidebar ${collapsed?'collapsed':''}`} aria-label={shellText('Application navigation',shellLocale)}>
+    <aside className={`sidebar ${collapsed?'collapsed':''}`} data-opsiqo-shell-i18n="true" aria-label={shellText('Application navigation',shellLocale)}>
       <div className="sidebarTop">
         <Link href="/home" className="brand" aria-label={shellText('OPSIQO home',shellLocale)}>
           <img className="brandLogo" src="/brand/opsiqo-wordmark.png" alt="OPSIQO" />

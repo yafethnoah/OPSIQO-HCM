@@ -4,7 +4,7 @@ import { AppShell } from '@/components/app-shell';
 
 import { PwaRegistrar } from '@/components/pwa-registrar';
 import { AppearanceBootstrap } from '@/components/appearance-bootstrap';
-import { LanguageBootstrap } from '@/components/language-bootstrap';
+import { RuntimeLocaleBootstrap } from '@/components/runtime-locale-bootstrap';
 export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
   title: { default: 'OPSIQO ONE', template: '%s · OPSIQO ONE' },
@@ -18,11 +18,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head><RuntimeLocaleBootstrap /></head>
       <body>
         <PwaRegistrar />
         <AppearanceBootstrap />
-        <LanguageBootstrap />
         <AppShell>{children}</AppShell>
       </body>
     </html>

@@ -7,7 +7,7 @@ import { OpsiQoCommandBar } from '@/components/opsiqo-command-bar';
 import { ConnectivityBanner } from '@/components/connectivity-banner';
 import { MobileOutcomeNav } from '@/components/mobile-outcome-nav';
 import { RouteAnnouncer } from '@/components/route-announcer';
-import { useGlobalReviewedTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
+import { useGlobalReviewedTranslation, useRouteReviewedTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 import { useRuntimeLocaleSync } from '@/lib/opsiqo-one/runtime-locale';
 import { useSessionExpiryRedirect } from '@/lib/auth/session-expiry-client';
 import { useAuthenticatedShellGuard } from '@/lib/auth/authenticated-shell-guard';
@@ -34,6 +34,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
   const pathname = usePathname();
   const publicBootstrap = isPublicBootstrapRoute(pathname);
   useRuntimeLocaleSync(!publicBootstrap);
+  useRouteReviewedTranslation(pathname,!publicBootstrap);
   useSessionExpiryRedirect(!publicBootstrap);
   useAuthenticatedShellGuard(!publicBootstrap);
   useRuntimeLocalizationDiagnostics(!publicBootstrap);
@@ -56,10 +57,10 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
       <Nav />
       <main id="main-content" className="main" tabIndex={-1}>
         <ConnectivityBanner />
-        <OpsiQoCommandBar />
-        <div className="mainInner">{children}</div>
+        <div data-opsiqo-shell-i18n="true"><OpsiQoCommandBar /></div>
+        <div className="mainInner" data-opsiqo-route-surface-host="true">{children}</div>
       </main>
-      <MobileOutcomeNav />
+      <div data-opsiqo-shell-i18n="true"><MobileOutcomeNav /></div>
     </div>
   );
 }

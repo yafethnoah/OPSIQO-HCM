@@ -2,9 +2,19 @@ import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 
 describe('V7.32 Hotfix 19 shell locale and target-size closure',()=>{
-  it('makes shell locale resilient to direct document locale changes',()=>{
+  it('keeps shell locale hydration-stable and resilient to direct document locale changes',()=>{
     const shell=fs.readFileSync('src/lib/opsiqo-one/shell-i18n.ts','utf8');
-    expect(shell).toContain("useState<ShellLocale>(()=>currentShellLocale())");
+
+    // H28 deliberately hydrates from the same deterministic English state as
+    // the server, then synchronizes to the already-bootstrapped runtime locale
+    // after mount. This supersedes H19's old requirement to read document
+    // locale during the initial client render.
+    expect(shell).toContain("useState<ShellLocale>('en')");
+    expect(shell).toContain('update();');
+    expect(shell).toContain("setLocale(normalizeShellLocale(raw)||currentShellLocale())");
+
+    // Preserve H19's actual resilience guarantee: direct document locale
+    // changes remain observed after hydration.
     expect(shell).toContain('new MutationObserver');
     expect(shell).toContain("attributeFilter:['data-opsiqo-locale','lang','dir']");
   });

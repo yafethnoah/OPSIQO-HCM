@@ -49,7 +49,7 @@ function excluded(node:Node){
 }
 function excludedFromGlobal(node:Node){
   const parent=node.nodeType===Node.TEXT_NODE?node.parentElement:node as Element;
-  return excluded(node)||Boolean(parent?.closest('[data-opsiqo-legacy-surface]') || parent?.closest('[data-opsiqo-shell-i18n="true"]'));
+  return excluded(node)||Boolean(parent?.closest('[data-opsiqo-legacy-surface]') || parent?.closest('[data-opsiqo-route-surface]') || parent?.closest('[data-opsiqo-shell-i18n="true"]'));
 }
 function applySurfaceTranslation(root:HTMLElement,surfaceId:SurfaceId,locale:ShellLocale){
   const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
@@ -141,5 +141,145 @@ export function useGlobalReviewedTranslation(){
     return()=>{cancelled=true;window.removeEventListener('opsiqo:locale-changed',onLocaleChanged);cancelAnimationFrame(raf);observer.disconnect()};
   },[locale]);
 }
+
+type CatalogEntry={file?:string;translations:Record<string,Translated>};
+
+function normalizedRoute(pathname:string){
+  return pathname.split('?')[0].split('#')[0].replace(/^\/+|\/+$/g,'').toLowerCase();
+}
+function normalizedId(value:string){
+  return value.toLowerCase().replace(/[_\s/]+/g,'-').replace(/-+/g,'-');
+}
+const NATIVE_REACT_LOCALIZED_ROUTES=new Set<string>([
+  '/translation-readiness',
+]);
+
+export type RouteLocalizationOwnership=
+  |{kind:'native-react';surfaceId:null}
+  |{kind:'reviewed-surface';surfaceId:SurfaceId}
+  |{kind:'none';surfaceId:null};
+
+export function routeLocalizationOwnership(pathname:string):RouteLocalizationOwnership{
+  const normalized='/' + normalizedRoute(pathname);
+  if(NATIVE_REACT_LOCALIZED_ROUTES.has(normalized)){
+    return{kind:'native-react',surfaceId:null};
+  }
+  const surfaceId=inferRouteSurface(pathname);
+  return surfaceId
+    ?{kind:'reviewed-surface',surfaceId}
+    :{kind:'none',surfaceId:null};
+}
+
+export function inferRouteSurface(pathname:string):SurfaceId|null{
+  const route=normalizedRoute(pathname);
+  if(!route)return null;
+  const leaf=route.split('/').filter(Boolean).pop()||route;
+  const slug=route.replace(/\//g,'-');
+  let best:{id:SurfaceId;score:number}[]=[];
+
+  for(const [id,raw] of Object.entries(catalog) as [SurfaceId,CatalogEntry][]){
+    const file=String(raw.file||'').toLowerCase().replace(/\\/g,'/');
+    const idNorm=normalizedId(String(id));
+    let score=0;
+
+    if(file.includes(`/app/${route}/page.tsx`))score=120;
+    else if(file.includes(`/${slug}-workspace.tsx`))score=110;
+    else if(file.includes(`/${leaf}-workspace.tsx`))score=105;
+    else if(file.includes(`/${slug}-center.tsx`))score=100;
+    else if(file.includes(`/${leaf}-center.tsx`))score=95;
+    else if(idNorm===slug||idNorm===leaf)score=90;
+    else if(file.includes(`/${slug}-`)||file.includes(`/${leaf}-`))score=80;
+    else if(idNorm.includes(slug)||idNorm.includes(leaf))score=60;
+
+    if(score>0)best.push({id,score});
+  }
+
+  if(!best.length)return null;
+  best=best.sort((a,b)=>b.score-a.score);
+  if(best.length>1&&best[0].score===best[1].score&&best[0].id!==best[1].id)return null;
+  return best[0].id;
+}
+
+function excludedFromRoute(node:Node){
+  const parent=node.nodeType===Node.TEXT_NODE?node.parentElement:node as Element;
+  if(!parent)return true;
+  if(excluded(node))return true;
+  return Boolean(parent.closest('[data-opsiqo-legacy-surface]'));
+}
+function applyRouteSurfaceTranslation(root:HTMLElement,surfaceId:SurfaceId,locale:ShellLocale){
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+  let node:Node|null;
+  while((node=walker.nextNode())){
+    if(excludedFromRoute(node))continue;
+    const text=node as Text,current=text.data,trimmed=current.trim();
+    if(!trimmed)continue;
+    if(!originalText.has(text))originalText.set(text,trimmed);
+    const source=originalText.get(text)!;
+    const next=translated(surfaceId,source,locale);
+    if(current.trim()!==next)text.data=replaceTrimmed(source,next,current);
+  }
+
+  for(const el of [root,...Array.from(root.querySelectorAll<HTMLElement>('*'))]){
+    if(excludedFromRoute(el))continue;
+    let originals=originalAttr.get(el);
+    if(!originals){originals=new Map();originalAttr.set(el,originals)}
+    for(const attr of attrNames){
+      const value=el.getAttribute(attr);
+      if(!value)continue;
+      if(!originals.has(attr))originals.set(attr,value);
+      const source=originals.get(attr)!;
+      const next=translated(surfaceId,source,locale);
+      if(value!==next)el.setAttribute(attr,next);
+    }
+  }
+}
+
+export function useRouteReviewedTranslation(pathname:string,enabled=true){
+  const locale=useShellLocale();
+  useEffect(()=>{
+    if(!enabled)return;
+    const root=document.querySelector<HTMLElement>('[data-opsiqo-route-surface-host="true"]');
+    const ownership=routeLocalizationOwnership(pathname);
+    if(!root||ownership.kind==='none')return;
+
+    if(ownership.kind==='native-react'){
+      root.setAttribute('data-opsiqo-route-surface','native-react');
+      return()=>{
+        if(root.getAttribute('data-opsiqo-route-surface')==='native-react'){
+          root.removeAttribute('data-opsiqo-route-surface');
+        }
+      };
+    }
+
+    const surfaceId=ownership.surfaceId;
+    let cancelled=false,queued=false;
+    root.setAttribute('data-opsiqo-route-surface',String(surfaceId));
+
+    const apply=()=>{
+      if(cancelled)return;
+      queued=false;
+      applyRouteSurfaceTranslation(root,surfaceId,currentShellLocale());
+    };
+    const schedule=()=>{
+      if(cancelled||queued)return;
+      queued=true;
+      queueMicrotask(apply);
+    };
+
+    apply();
+    const observer=new MutationObserver(schedule);
+    observer.observe(root,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:[...attrNames]});
+    const onLocaleChanged=()=>apply();
+    window.addEventListener('opsiqo:locale-changed',onLocaleChanged);
+
+    return()=>{
+      cancelled=true;
+      observer.disconnect();
+      window.removeEventListener('opsiqo:locale-changed',onLocaleChanged);
+      if(root.getAttribute('data-opsiqo-route-surface')===String(surfaceId))root.removeAttribute('data-opsiqo-route-surface');
+    };
+  },[enabled,pathname,locale]);
+}
+
 export const LEGACY_TRANSLATION_SURFACES=Object.keys(catalog) as SurfaceId[];
 export const GLOBAL_REVIEWED_TRANSLATION_COUNT=Array.from(globalReviewedTranslations.values()).filter(Boolean).length;
