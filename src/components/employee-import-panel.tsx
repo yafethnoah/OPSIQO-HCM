@@ -75,6 +75,17 @@ export function EmployeeImportPanel({title='Import employees',detail='Upload wor
     return preview.options.positions.filter(p=>p.orgUnitId===draft.orgUnitId&&(p.availableHeadcount>0||p.id===draft.positionId)&&!['full','closed','frozen'].includes(p.capacityState.toLowerCase()));
   },[preview,draft.orgUnitId,draft.positionId]);
 
+  const reviewCounts=useMemo(()=>{
+    if(!preview)return{readyCount:0,blockedCount:0,serverMismatch:false};
+    const readyCount=preview.rows.filter(row=>(row.errors||[]).length===0).length;
+    const blockedCount=preview.rows.length-readyCount;
+    return{
+      readyCount,
+      blockedCount,
+      serverMismatch:readyCount!==preview.readyCount||blockedCount!==preview.blockedCount,
+    };
+  },[preview]);
+
   async function createPreview(e:FormEvent<HTMLFormElement>){
     e.preventDefault();setBusy('preview');setError('');setNotice('');setEditingRow(null);
     try{
@@ -124,7 +135,7 @@ export function EmployeeImportPanel({title='Import employees',detail='Upload wor
   }
 
   async function commit(){
-    if(!preview||preview.blockedCount)return;
+    if(!preview||reviewCounts.blockedCount)return;
     setBusy('commit');setError('');
     try{
       const r=await apiFetch<{data:{createdCount:number;expectedCount:number}}>(`/api/organizations/${activeOrgId()}/imports/employees`,{method:'POST',body:JSON.stringify({action:'commit',previewId:preview.previewId})});
@@ -149,19 +160,20 @@ export function EmployeeImportPanel({title='Import employees',detail='Upload wor
     {preview&&<div className="stack insetCard">
       <div className="toolbar">
         <div><h3>Review & complete · {preview.fileName}</h3><p className="muted">{preview.sourceType||'Source'} · {(preview.parser||'parser').replaceAll('_',' ')} · SHA-256 {preview.fileSha256.slice(0,16)}…</p></div>
-        <div className="row wrap"><span className="badge">{preview.readyCount} ready</span><span className="badge">{preview.blockedCount} need review</span></div>
+        <div className="row wrap"><span className="badge" data-testid="employee-import-ready-count">{reviewCounts.readyCount} ready</span><span className="badge" data-testid="employee-import-review-count">{reviewCounts.blockedCount} need review</span></div>
       </div>
 
       {(preview.warnings||[]).length>0&&<div className="notice"><strong>Source/parser notes</strong><ul>{(preview.warnings||[]).map((w,i)=><li key={i}>{w}</li>)}</ul></div>}
-      {preview.blockedCount>0&&<div className="notice"><strong>OPSIQO found information that needs your confirmation.</strong> Complete the highlighted rows below. You do not need to edit and upload the source file again.</div>}
+      {reviewCounts.serverMismatch&&<div className="notice" role="status"><strong>Review summary synchronized.</strong> OPSIQO is using the authoritative row validation state for the counts and import gate.</div>}
+      {reviewCounts.blockedCount>0&&<div className="notice"><strong>OPSIQO found information that needs your confirmation.</strong> Complete the highlighted rows below. You do not need to edit and upload the source file again.</div>}
 
       <div className="tableWrap"><table>
         <thead><tr><th>Row</th><th>Employee</th><th>Email / number</th><th>Manager</th><th>Hire date</th><th>Result</th></tr></thead>
         <tbody>{preview.rows.map(r=><FragmentRow key={r.rowNumber} row={r} preview={preview} editingRow={editingRow} draft={draft} setDraft={setDraft} beginEdit={beginEdit} saveCorrection={saveCorrection} cancelEdit={()=>setEditingRow(null)} busy={busy} availablePositions={availablePositions}/>)}</tbody>
       </table></div>
 
-      <button className="button" disabled={preview.blockedCount>0||busy==='commit'} onClick={commit}>{busy==='commit'?'Creating employees…':preview.blockedCount?`Complete ${preview.blockedCount} row(s) before import`:`Import ${preview.readyCount} reviewed employee(s)`}</button>
-      {preview.blockedCount>0&&<div className="muted">Rows automatically move to Ready after the server confirms that all required information is valid.</div>}
+      <button className="button" disabled={reviewCounts.blockedCount>0||busy==='commit'} onClick={commit}>{busy==='commit'?'Creating employees…':reviewCounts.blockedCount?`Complete ${reviewCounts.blockedCount} row(s) before import`:`Import ${reviewCounts.readyCount} reviewed employee(s)`}</button>
+      {reviewCounts.blockedCount>0&&<div className="muted">Rows automatically move to Ready after the server confirms that all required information is valid.</div>}
     </div>}
   </section>;
 }
