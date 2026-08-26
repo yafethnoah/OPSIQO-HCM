@@ -288,8 +288,41 @@ function readyPayload(r:PreviewDraftRow){
   };
 }
 
+function retainedReviewErrors(d:PreviewDraftRow){
+  const reviewed=new Set(d.reviewedFields||[]);
+  return(d.errors||[]).filter(message=>
+    (
+      !reviewed.has('orgUnitId')&&
+      !d.orgUnitId&&
+      message.startsWith('Organization unit match is ambiguous:')
+    )||
+    (
+      !reviewed.has('positionId')&&
+      !d.positionId&&
+      message==='Position match is ambiguous.'
+    )
+  );
+}
+
+function retainedReviewWarnings(d:PreviewDraftRow){
+  const reviewed=new Set(d.reviewedFields||[]);
+  return(d.warnings||[]).filter(message=>
+    !reviewed.has('orgUnitId')&&
+    message.includes(' mapped to ')&&
+    message.endsWith(' by governed alias.')
+  );
+}
+
 function validateRows(drafts:PreviewDraftRow[],ctx:ValidationContext){
-  const rows:PreviewDraftRow[]=drafts.map(d=>({...d,errors:[...(d.errors||[])],warnings:[...(d.warnings||[])]}));
+  // Validation must be idempotent. Never carry ordinary validation
+  // findings forward from the prior preview; recompute them from the
+  // corrected row. Preserve only unresolved governed reconciliation
+  // evidence that cannot be reconstructed from authoritative IDs.
+  const rows:PreviewDraftRow[]=drafts.map(d=>({
+    ...d,
+    errors:retainedReviewErrors(d),
+    warnings:retainedReviewWarnings(d),
+  }));
   const seenNums=new Set<string>();
   const seenEmails=new Set<string>();
 
@@ -382,6 +415,11 @@ function validateRows(drafts:PreviewDraftRow[],ctx:ValidationContext){
     visited.add(n);
   }
   for(const r of rows)visit(r.rowNumber);
+
+  for(const r of rows){
+    r.errors=[...new Set(r.errors||[])];
+    r.warnings=[...new Set(r.warnings||[])];
+  }
 
   const readyRows=rows.filter(r=>r.errors!.length===0).map(readyPayload);
   return{rows,readyRows,readyCount:readyRows.length,blockedCount:rows.length-readyRows.length};
