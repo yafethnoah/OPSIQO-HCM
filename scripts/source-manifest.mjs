@@ -9,6 +9,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import {
+  extname,
   isAbsolute,
   relative,
   resolve,
@@ -49,12 +50,142 @@ const excludedFileSuffixes = [
   '.log',
 ];
 
+/*
+ * Canonical source-manifest hashing contract:
+ *
+ * - Text files are hashed after CRLF -> LF canonicalization.
+ * - Binary files are always hashed byte-for-byte.
+ * - Lone CR bytes, final-newline state, BOMs, spaces, tabs and every
+ *   non-EOL byte remain significant.
+ *
+ * This makes one logical text file hash identically in a Windows
+ * working tree, Git's LF-normalized object database, git archive,
+ * and Linux/macOS CI without weakening binary integrity.
+ */
+const binaryExtensions = new Set([
+  '.7z',
+  '.avi',
+  '.bin',
+  '.bmp',
+  '.dat',
+  '.db',
+  '.dll',
+  '.doc',
+  '.docx',
+  '.dylib',
+  '.eot',
+  '.exe',
+  '.gif',
+  '.gz',
+  '.ico',
+  '.jar',
+  '.jpeg',
+  '.jpg',
+  '.m4a',
+  '.mov',
+  '.mp3',
+  '.mp4',
+  '.odp',
+  '.ods',
+  '.odt',
+  '.otf',
+  '.pdf',
+  '.pfx',
+  '.png',
+  '.ppt',
+  '.pptx',
+  '.rar',
+  '.so',
+  '.sqlite',
+  '.sqlite3',
+  '.tgz',
+  '.ttf',
+  '.wav',
+  '.wasm',
+  '.webm',
+  '.webp',
+  '.woff',
+  '.woff2',
+  '.xls',
+  '.xlsx',
+  '.zip',
+]);
+
 const toPosix = (value) =>
   value.split(sep).join('/');
 
+function isUtf8Text(bytes) {
+  if (bytes.includes(0x00)) {
+    return false;
+  }
+
+  try {
+    new TextDecoder('utf-8', {
+      fatal: true,
+    }).decode(bytes);
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function canonicalBytes(filePath) {
+  const bytes = readFileSync(filePath);
+
+  if (
+    binaryExtensions.has(
+      extname(filePath).toLowerCase(),
+    ) ||
+    !isUtf8Text(bytes)
+  ) {
+    return bytes;
+  }
+
+  let crlfCount = 0;
+
+  for (let i = 0; i + 1 < bytes.length; i += 1) {
+    if (
+      bytes[i] === 0x0d &&
+      bytes[i + 1] === 0x0a
+    ) {
+      crlfCount += 1;
+      i += 1;
+    }
+  }
+
+  if (crlfCount === 0) {
+    return bytes;
+  }
+
+  const canonical = Buffer.allocUnsafe(
+    bytes.length - crlfCount,
+  );
+
+  let writeIndex = 0;
+
+  for (let readIndex = 0; readIndex < bytes.length; readIndex += 1) {
+    if (
+      bytes[readIndex] === 0x0d &&
+      readIndex + 1 < bytes.length &&
+      bytes[readIndex + 1] === 0x0a
+    ) {
+      canonical[writeIndex] = 0x0a;
+      writeIndex += 1;
+      readIndex += 1;
+      continue;
+    }
+
+    canonical[writeIndex] = bytes[readIndex];
+    writeIndex += 1;
+  }
+
+  return canonical;
+}
+
 const hash = (filePath) =>
   createHash('sha256')
-    .update(readFileSync(filePath))
+    .update(canonicalBytes(filePath))
     .digest('hex');
 
 function isLocalEnvironmentFile(name) {
