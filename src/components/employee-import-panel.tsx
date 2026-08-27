@@ -60,6 +60,18 @@ type EditDraft={
 
 const EMPTY_DRAFT:EditDraft={legalFirstName:'',legalLastName:'',workEmail:'',phone:'',employeeNumber:'',employmentType:'permanent',hireDate:'',orgUnitId:'',positionId:'',managerWorkerId:''};
 
+type NewOrgUnitDraft={name:string;code:string;type:'company'|'division'|'department'|'team'|'location';parentId:string};
+type NewPositionDraft={title:string;positionCode:string;headcountLimit:string;fte:string};
+
+function normalizeChoice(value:string){
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g,'');
+}
+
+function suggestedCode(prefix:string,value:string){
+  const token=value.normalize('NFKD').replace(/[^\x00-\x7F]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,28)||'ITEM';
+  return `${prefix}-${token}`.slice(0,40);
+}
+
 export function EmployeeImportPanel({title='Import employees',detail='Upload workforce data and review the mapped employee records before OPSIQO writes to Core HR.',embedded=false}:{title?:string;detail?:string;embedded?:boolean}){
   const[preview,setPreview]=useState<Preview|null>(null);
   const[busy,setBusy]=useState('');
@@ -114,13 +126,13 @@ export function EmployeeImportPanel({title='Import employees',detail='Upload wor
     setError('');
   }
 
-  async function saveCorrection(){
+  async function saveCorrection(nextDraft:EditDraft=draft){
     if(!preview||editingRow===null)return;
     setBusy(`row-${editingRow}`);setError('');setNotice('');
     try{
       const r=await apiFetch<{data:Preview}>(`/api/organizations/${activeOrgId()}/imports/employees`,{
         method:'PATCH',
-        body:JSON.stringify({previewId:preview.previewId,rowNumber:editingRow,corrections:draft}),
+        body:JSON.stringify({previewId:preview.previewId,rowNumber:editingRow,corrections:nextDraft}),
       });
       setPreview(r.data);
       const corrected=r.data.rows.find(x=>x.rowNumber===editingRow);
@@ -185,12 +197,91 @@ function FragmentRow({row,preview,editingRow,draft,setDraft,beginEdit,saveCorrec
   draft:EditDraft;
   setDraft:(next:EditDraft)=>void;
   beginEdit:(row:PreviewRow)=>void;
-  saveCorrection:()=>Promise<void>;
+  saveCorrection:(nextDraft?:EditDraft)=>Promise<void>;
   cancelEdit:()=>void;
   busy:string;
   availablePositions:PreviewOptions['positions'];
 }){
   const editing=editingRow===row.rowNumber;
+  const[showUnitCreate,setShowUnitCreate]=useState(false);
+  const[showPositionCreate,setShowPositionCreate]=useState(false);
+  const[masterBusy,setMasterBusy]=useState('');
+  const[masterError,setMasterError]=useState('');
+  const[unitDraft,setUnitDraft]=useState<NewOrgUnitDraft>({name:'',code:'',type:'department',parentId:''});
+  const[positionDraft,setPositionDraft]=useState<NewPositionDraft>({title:'',positionCode:'',headcountLimit:'1',fte:'1'});
+
+  const sourceUnit=String(row.orgUnitSource||'').trim();
+  const sourcePosition=String(row.positionSource||'').trim();
+
+  const unitSuggestions=sourceUnit?preview.options.orgUnits.filter(u=>{
+    const a=normalizeChoice(sourceUnit),b=normalizeChoice(u.name);
+    return a===b||a.includes(b)||b.includes(a);
+  }).slice(0,4):[];
+
+  const selectedUnitPositions=preview.options.positions.filter(p=>p.orgUnitId===draft.orgUnitId);
+  const positionSuggestions=sourcePosition&&draft.orgUnitId?selectedUnitPositions.filter(p=>{
+    const a=normalizeChoice(sourcePosition),b=normalizeChoice(p.title);
+    return a===b||a.includes(b)||b.includes(a);
+  }).slice(0,4):[];
+
+  function openUnitCreate(){
+    setMasterError('');
+    setUnitDraft({name:sourceUnit,code:suggestedCode('ORG',sourceUnit),type:'department',parentId:''});
+    setShowUnitCreate(true);
+  }
+
+  function openPositionCreate(){
+    setMasterError('');
+    setPositionDraft({title:sourcePosition,positionCode:suggestedCode('POS',sourcePosition),headcountLimit:'1',fte:'1'});
+    setShowPositionCreate(true);
+  }
+
+  async function createAndSelectUnit(){
+    setMasterBusy('unit');setMasterError('');
+    try{
+      const r=await apiFetch<{data:{id:string}}>(`/api/organizations/${activeOrgId()}/org-units`,{
+        method:'POST',
+        body:JSON.stringify({
+          name:unitDraft.name.trim(),
+          code:unitDraft.code.trim(),
+          type:unitDraft.type,
+          ...(unitDraft.parentId?{parentId:unitDraft.parentId}:{}),
+        }),
+      });
+      if(!r.data?.id)throw new Error('OPSIQO did not return the new organizational-unit identifier.');
+      const nextDraft={...draft,orgUnitId:r.data.id,positionId:''};
+      setDraft(nextDraft);
+      setShowUnitCreate(false);
+      await saveCorrection(nextDraft);
+    }catch(e){setMasterError(e instanceof Error?e.message:'Unable to create organizational unit.')}
+    finally{setMasterBusy('')}
+  }
+
+  async function createAndSelectPosition(){
+    if(!draft.orgUnitId)return;
+    setMasterBusy('position');setMasterError('');
+    try{
+      const headcountLimit=Math.max(1,Math.min(100,Number(positionDraft.headcountLimit)||1));
+      const fte=Math.max(0,Math.min(2,Number(positionDraft.fte)||1));
+      const r=await apiFetch<{data:{id:string}}>(`/api/organizations/${activeOrgId()}/positions`,{
+        method:'POST',
+        body:JSON.stringify({
+          title:positionDraft.title.trim(),
+          positionCode:positionDraft.positionCode.trim(),
+          orgUnitId:draft.orgUnitId,
+          status:'open',
+          headcountLimit,
+          fte,
+        }),
+      });
+      if(!r.data?.id)throw new Error('OPSIQO did not return the new position identifier.');
+      const nextDraft={...draft,positionId:r.data.id};
+      setDraft(nextDraft);
+      setShowPositionCreate(false);
+      await saveCorrection(nextDraft);
+    }catch(e){setMasterError(e instanceof Error?e.message:'Unable to create position.')}
+    finally{setMasterBusy('')}
+  }
   return <>
     <tr>
       <td>{row.rowNumber}</td>
@@ -211,11 +302,37 @@ function FragmentRow({row,preview,editingRow,draft,setDraft,beginEdit,saveCorrec
           <label className="field"><span>Phone <span className="muted">(optional)</span></span><input className="input" value={draft.phone} onChange={e=>setDraft({...draft,phone:e.target.value})}/></label>
           <label className="field"><span>Employment type</span><select className="input" value={draft.employmentType} onChange={e=>setDraft({...draft,employmentType:e.target.value})}><option value="permanent">Permanent</option><option value="temporary">Temporary</option><option value="contractor">Contractor</option><option value="intern">Intern</option><option value="volunteer">Volunteer</option></select></label>
           <label className="field"><span>Hire date</span><input className="input" type="date" value={draft.hireDate} onChange={e=>setDraft({...draft,hireDate:e.target.value})}/></label>
-          <label className="field"><span>Organization unit</span><select className="input" value={draft.orgUnitId} onChange={e=>setDraft({...draft,orgUnitId:e.target.value,positionId:''})}><option value="">No organization unit / select unit</option>{preview.options.orgUnits.map(u=><option key={u.id} value={u.id}>{u.name}{u.code?` · ${u.code}`:''}</option>)}</select>{row.orgUnitSource&&<span className="muted">Parsed from source: {row.orgUnitSource}</span>}</label>
-          <label className="field"><span>Position</span><select className="input" value={draft.positionId} disabled={!draft.orgUnitId} onChange={e=>setDraft({...draft,positionId:e.target.value})}><option value="">No position / select available position</option>{availablePositions.map(p=><option key={p.id} value={p.id}>{p.title} · {p.availableHeadcount} seat(s)</option>)}</select>{row.positionSource&&<span className="muted">Parsed from source: {row.positionSource}</span>}</label>
+          <div className="field"><span>Organization unit</span><select className="input" value={draft.orgUnitId} onChange={e=>{setDraft({...draft,orgUnitId:e.target.value,positionId:''});setShowPositionCreate(false)}}><option value="">No organization unit / select unit</option>{preview.options.orgUnits.map(u=><option key={u.id} value={u.id}>{u.name}{u.code?` · ${u.code}`:''}</option>)}</select>{sourceUnit&&<span className="muted">Parsed from source: {sourceUnit}</span>}
+            {!draft.orgUnitId&&sourceUnit&&unitSuggestions.length>0&&<div className="notice"><strong>Possible existing matches</strong><div className="row wrap">{unitSuggestions.map(u=><button key={u.id} type="button" className="button secondary" onClick={()=>setDraft({...draft,orgUnitId:u.id,positionId:''})}>Use {u.name}</button>)}</div></div>}
+            {!showUnitCreate&&<button type="button" className="button secondary" onClick={openUnitCreate}>+ Create organizational unit</button>}
+            {showUnitCreate&&<div className="insetCard stack">
+              <strong>Create organizational unit</strong>
+              <label className="field"><span>Name</span><input className="input" value={unitDraft.name} onChange={e=>setUnitDraft({...unitDraft,name:e.target.value})}/></label>
+              <label className="field"><span>Code</span><input className="input" value={unitDraft.code} onChange={e=>setUnitDraft({...unitDraft,code:e.target.value})}/></label>
+              <label className="field"><span>Type</span><select className="input" value={unitDraft.type} onChange={e=>setUnitDraft({...unitDraft,type:e.target.value as NewOrgUnitDraft['type']})}><option value="company">Company</option><option value="division">Division</option><option value="department">Department</option><option value="team">Team</option><option value="location">Location</option></select></label>
+              <label className="field"><span>Parent <span className="muted">(optional)</span></span><select className="input" value={unitDraft.parentId} onChange={e=>setUnitDraft({...unitDraft,parentId:e.target.value})}><option value="">No parent</option>{preview.options.orgUnits.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label>
+              <div className="row wrap"><button type="button" className="button" disabled={masterBusy==='unit'||!unitDraft.name.trim()||!unitDraft.code.trim()} onClick={()=>void createAndSelectUnit()}>{masterBusy==='unit'?'Creating…':'Create & select'}</button><button type="button" className="button secondary" onClick={()=>setShowUnitCreate(false)}>Cancel</button></div>
+            </div>}
+          </div>
+          <div className="field"><span>Position</span><select className="input" value={draft.positionId} disabled={!draft.orgUnitId} onChange={e=>setDraft({...draft,positionId:e.target.value})}><option value="">No position / select available position</option>{availablePositions.map(p=><option key={p.id} value={p.id}>{p.title} · {p.availableHeadcount} seat(s)</option>)}</select>{sourcePosition&&<span className="muted">Parsed from source: {sourcePosition}</span>}
+            {draft.orgUnitId&&!draft.positionId&&positionSuggestions.length>0&&<div className="notice"><strong>Possible existing matches</strong><div className="row wrap">{positionSuggestions.map(p=><button key={p.id} type="button" className="button secondary" disabled={p.availableHeadcount<=0} onClick={()=>setDraft({...draft,positionId:p.id})}>Use {p.title}{p.availableHeadcount>0?` · ${p.availableHeadcount} seat(s)`:' · no capacity'}</button>)}</div></div>}
+            {draft.orgUnitId&&availablePositions.length===0&&<span className="muted">No open position with available capacity exists in this organizational unit.</span>}
+            {draft.orgUnitId&&!showPositionCreate&&<button type="button" className="button secondary" onClick={openPositionCreate}>+ Create position</button>}
+            {draft.orgUnitId&&showPositionCreate&&<div className="insetCard stack">
+              <strong>Create position</strong>
+              <label className="field"><span>Title</span><input className="input" value={positionDraft.title} onChange={e=>setPositionDraft({...positionDraft,title:e.target.value})}/></label>
+              <label className="field"><span>Position code</span><input className="input" value={positionDraft.positionCode} onChange={e=>setPositionDraft({...positionDraft,positionCode:e.target.value})}/></label>
+              <label className="field"><span>Headcount capacity</span><input className="input" type="number" min="1" max="100" value={positionDraft.headcountLimit} onChange={e=>setPositionDraft({...positionDraft,headcountLimit:e.target.value})}/></label>
+              <label className="field"><span>FTE</span><input className="input" type="number" min="0" max="2" step="0.05" value={positionDraft.fte} onChange={e=>setPositionDraft({...positionDraft,fte:e.target.value})}/></label>
+              <div className="muted">Organizational unit: {preview.options.orgUnits.find(u=>u.id===draft.orgUnitId)?.name||draft.orgUnitId}</div>
+              <div className="row wrap"><button type="button" className="button" disabled={masterBusy==='position'||!positionDraft.title.trim()||!positionDraft.positionCode.trim()} onClick={()=>void createAndSelectPosition()}>{masterBusy==='position'?'Creating…':'Create & select'}</button><button type="button" className="button secondary" onClick={()=>setShowPositionCreate(false)}>Cancel</button></div>
+            </div>}
+          </div>
           <label className="field"><span>Manager <span className="muted">(optional)</span></span><select className="input" value={draft.managerWorkerId} onChange={e=>setDraft({...draft,managerWorkerId:e.target.value})}><option value="">No manager</option>{preview.options.managers.map(m=><option key={m.id} value={m.id}>{m.displayName}{m.employeeNumber?` · ${m.employeeNumber}`:''}</option>)}</select>{row.managerReference&&<span className="muted">Parsed from source: {row.managerReference}</span>}</label>
         </div>
-        <div className="row wrap"><button type="button" className="button" disabled={busy===`row-${row.rowNumber}`} onClick={()=>void saveCorrection()}>{busy===`row-${row.rowNumber}`?'Saving & revalidating…':'Save & revalidate'}</button><button type="button" className="button secondary" onClick={cancelEdit}>Cancel</button></div>
+        {masterError&&<div className="error" role="alert">{masterError}</div>}
+        <div className="notice"><strong>Governed master data:</strong> creating an organizational unit or position requires your explicit action and the appropriate OPSIQO management permission. Nothing is created automatically.</div>
+        <div className="row wrap"><button type="button" className="button" disabled={busy===`row-${row.rowNumber}`||Boolean(masterBusy)} onClick={()=>void saveCorrection()}>{busy===`row-${row.rowNumber}`?'Saving & revalidating…':'Save & revalidate'}</button><button type="button" className="button secondary" onClick={cancelEdit}>Cancel</button></div>
       </div>
     </td></tr>}
   </>;
