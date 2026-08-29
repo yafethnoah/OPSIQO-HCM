@@ -95,12 +95,27 @@ export async function applyOrganizationLaunchpad(actor:ActorContext, raw:unknown
   const uniqueDepartments=[...new Set(profile.departments.map(v=>v.trim()).filter(Boolean))].filter(name=>!existingNames.has(name.toLowerCase()));
   const unitRows=uniqueDepartments.map(name=>{const id=randomUUID(),code=unitCode(name,existingCodes);createdOrgUnits.push({id,name,code});return{id,name,code,type:'department' as const,parentId:root?.id,status:'active' as const,createdAt:timestamp,updatedAt:timestamp};});
   const checklist:OrganizationLaunchpadApplyResult['setupChecklist']=[
-    {id:'structure',title:'Review organization structure and reporting lines',href:'/organization',status:'review_required'},
-    {id:'members',title:'Invite members and verify role assignments',href:'/members',status:'review_required'},
-    {id:'policies',title:'Review organization policies and acknowledgement requirements',href:'/policy-intelligence',status:'review_required'},
-    {id:'workflows',title:'Review installed workflow starters before activation',href:'/workflows',status:'review_required'},
-    {id:'security',title:'Verify MFA, registration and identity controls',href:'/settings',status:'review_required'},
-    {id:'import',title:'Import or add people only after the structure is reviewed',href:'/import-center',status:'ready'},
+    {id:'profile',title:'Verify organization profile, locations and regional defaults',href:'/settings',status:'review_required'},
+    {id:'structure',title:'Review organization units and reporting lines',href:'/organization',status:'review_required'},
+    {id:'positions',title:'Create and validate positions before employee assignment',href:'/organization',status:'review_required'},
+    {id:'members',title:'Verify administrators, roles, permissions and MFA',href:'/members',status:'review_required'},
+    {id:'imports',title:'Stage governed migration batches and reconcile exceptions',href:'/import-center',status:'ready'},
+    {id:'people',title:'Import and verify the authoritative employee master',href:'/people',status:'review_required'},
+    {id:'policies',title:'Review, approve and publish authoritative policies',href:'/policy-intelligence',status:'review_required'},
+    {id:'procedures',title:'Review procedures, SOPs and digital forms',href:'/organizational-memory',status:'review_required'},
+    {id:'time',title:'Configure schedules, leave types, entitlement and approvals',href:'/time',status:'review_required'},
+    {id:'recruiting',title:'Configure requisitions, ATS evidence and interview workflow',href:'/recruiting',status:'review_required'},
+    {id:'onboarding',title:'Configure onboarding and governed offboarding tasks',href:'/onboarding',status:'review_required'},
+    {id:'learning',title:'Configure mandatory learning, certificates and renewals',href:'/learning',status:'review_required'},
+    {id:'performance',title:'Configure performance cycles, goals and reviews',href:'/performance',status:'review_required'},
+    {id:'safety',title:'Configure health and safety reporting and follow-up',href:'/safety',status:'review_required'},
+    {id:'compliance',title:'Configure compliance evidence and acknowledgements',href:'/compliance',status:'review_required'},
+    {id:'privacy',title:'Verify privacy, confidentiality and information controls',href:'/privacy',status:'review_required'},
+    {id:'portals',title:'Validate employee and manager self-service',href:'/employee',status:'review_required'},
+    {id:'automation',title:'Review automation packs before enabling workflows',href:'/automation-marketplace',status:'review_required'},
+    {id:'ai',title:'Approve AI models, evidence scopes and Universal Import governance',href:'/ai-governance',status:'review_required'},
+    {id:'agents',title:'Create custom agents only after governed evidence exists',href:'/agent-builder',status:'review_required'},
+    {id:'maintenance',title:'Run tenant health, cleanup and readiness review',href:'/admin-maintenance',status:'review_required'},
   ];
   const setupRow={id:'foundation',profile,checklist,appliedBy:actor.uid,appliedAt:timestamp,version:1};
   const audit=buildAudit(actor,{action:'opsiqo_one.organization_launchpad.apply',entityType:'opsiqoOneSetup',entityId:'foundation',before:beforeSetup.exists?beforeSetup.data():null,after:{...setupRow,createdOrgUnits},metadata:{departmentCount:createdOrgUnits.length,marketplacePackIds:profile.marketplacePackIds}});

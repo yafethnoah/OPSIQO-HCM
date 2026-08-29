@@ -1,0 +1,57 @@
+'use client';
+
+import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
+import { activeOrgId, apiFetch, isMfaRequiredError } from '@/lib/http/client';
+import { mfaSetupHref } from '@/lib/auth/mfa-client';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
+
+type Snapshot = {
+  generatedAt: string;
+  organization: { id: string; name: string };
+  health: { status: string; issues: Array<{ severity: string; code: string; summary: string; count: number }>; workers: number; orgUnits: number; positions: number; workflowDefinitions: number };
+  imports: { total: number; notScanned: number; failedAnalysis: number; abandonedReview: number; safeCleanupCandidates: number; promoted: number };
+  storage: { importFileCount: number; importBytes: number; orphanFileCount: number; listingCapped: boolean };
+  cleanup: { retentionDays: number; automaticDeletionScope: string };
+  cache: { apiMode: string; organizationRefreshSupported: boolean; userBrowserCacheSupported: boolean; note: string };
+  reset: { enabled: boolean; confirmationText: string; collections: Record<string, number>; protected: string[]; note: string };
+  protectedEvidence: string[];
+  editorLinks: Array<{ label: string; href: string; permission: string }>;
+};
+
+const formatBytes = (bytes: number) => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+};
+
+export function AdminDataMaintenanceWorkspace(){
+  const translationRoot=useRef<HTMLDivElement>(null);
+  useLegacySurfaceTranslation('admin_data_maintenance' as any,translationRoot);
+  const[data,setData]=useState<Snapshot|null>(null),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(''),[confirmation,setConfirmation]=useState(''),[mfa,setMfa]=useState(false);
+  const load=async()=>{setError('');try{const r=await apiFetch<{data:Snapshot}>(`/api/organizations/${activeOrgId()}/admin-maintenance`);setData(r.data)}catch(e){if(isMfaRequiredError(e))setMfa(true);else setError(e instanceof Error?e.message:'Unable to load administration health.')}};
+  useEffect(()=>{void load()},[]);
+  const action=async(name:string,extra:Record<string,unknown>={})=>{setBusy(name);setError('');setNotice('');try{await apiFetch(`/api/organizations/${activeOrgId()}/admin-maintenance`,{method:'POST',body:JSON.stringify({action:name,...extra})});setNotice(name==='safe_cleanup'?'Safe cleanup completed. Protected evidence was preserved.':name==='refresh_cache'?'Organization cache refresh requested.':'Maintenance action completed.');await load()}catch(e){setError(e instanceof Error?e.message:'Maintenance action failed.')}finally{setBusy('')}};
+  const clearBrowserCache=()=>{const active=window.localStorage.getItem('opsiqo.activeOrgId');for(let i=window.localStorage.length-1;i>=0;i--){const key=window.localStorage.key(i);if(key?.startsWith('opsiqo.')&&key!=='opsiqo.activeOrgId')window.localStorage.removeItem(key)}window.sessionStorage.clear();if(active)window.localStorage.setItem('opsiqo.activeOrgId',active);window.location.reload()};
+  if(mfa)return <section className="card stack"><h2 className="sectionTitle">Multi-factor authentication required</h2><p>Administrative maintenance requires privileged authenticated access.</p><Link className="button" href={mfaSetupHref('/admin-maintenance')}>Set up multi-factor authentication</Link></section>;
+  return <div ref={translationRoot} className="stack" data-opsiqo-one="admin-data-maintenance">
+    <section className="card oneHero"><div><span className="eyebrow">OPSIQO ONE · Administration</span><h1>Data, maintenance & tenant health</h1><p className="muted">Correct information through authoritative modules, inspect data quality, clean safe temporary/import artifacts, refresh caches and control UAT reset without weakening the audit trail.</p></div><div className="row wrap"><Link className="button secondary" href="/settings">Settings</Link><Link className="button secondary" href="/audit">Audit Trail</Link></div></section>
+    {error&&<div className="error" role="alert">{error}</div>}{notice&&<div className="success" role="status">{notice}</div>}
+    {!data?<section className="card">Loading system health…</section>:<>
+      <section className="card stack"><div className="rowBetween"><div><h2 className="sectionTitle">System health</h2><p className="muted">Snapshot generated {new Date(data.generatedAt).toLocaleString()}</p></div><span className="badge">{data.health.status.replaceAll('_',' ')}</span></div><div className="launchpadStats"><Metric label="Employees / workers" value={data.health.workers}/><Metric label="Organization units" value={data.health.orgUnits}/><Metric label="Positions" value={data.health.positions}/><Metric label="Workflow definitions" value={data.health.workflowDefinitions}/></div>{data.health.issues.length?<div className="stack">{data.health.issues.map(issue=><div className={issue.severity==='high'?'error':'notice'} key={issue.code}><strong>{issue.count}</strong> · {issue.summary}</div>)}</div>:<div className="success">No high-confidence data-integrity issue was detected in the bounded health scan.</div>}<button className="button secondary" disabled={!!busy} onClick={()=>action('health_check')}>{busy==='health_check'?'Checking…':'Run full health check'}</button></section>
+
+      <section className="card stack"><h2 className="sectionTitle">Edit & correct organization data</h2><p className="muted">Use the authoritative module editor for business records. OPSIQO does not provide an unsafe raw-database editor that could bypass validation, indexes, approvals or audit history.</p><div className="sourceGrid">{data.editorLinks.map(link=><Link className="oneWorkItem medium" href={link.href} key={link.href}><div><strong>{link.label}</strong><p className="muted">Governed editor · {link.permission}</p></div><span>›</span></Link>)}</div><div className="notice"><strong>Correction rule:</strong> consequential and historical data should be corrected, amended or superseded with reason/effective date where the domain supports it; immutable evidence is never silently rewritten.</div></section>
+
+      <section className="card stack"><h2 className="sectionTitle">Import cleanup & migration reconciliation</h2><div className="launchpadStats"><Metric label="Import records" value={data.imports.total}/><Metric label="Not scanned" value={data.imports.notScanned}/><Metric label="Failed analysis" value={data.imports.failedAnalysis}/><Metric label="Needs review" value={data.imports.abandonedReview}/><Metric label="Safe cleanup" value={data.imports.safeCleanupCandidates}/></div><p className="muted">{data.cleanup.automaticDeletionScope}</p><div className="row wrap"><Link className="button secondary" href="/import-center">Open Import Center</Link><button className="button" disabled={!!busy||data.imports.safeCleanupCandidates===0} onClick={()=>action('safe_cleanup')}>{busy==='safe_cleanup'?'Cleaning…':`Clean ${data.imports.safeCleanupCandidates} safe item(s)`}</button></div></section>
+
+      <section className="card stack"><h2 className="sectionTitle">Storage & cache</h2><div className="launchpadStats"><Metric label="Import files" value={data.storage.importFileCount}/><Metric label="Import storage" value={formatBytes(data.storage.importBytes)}/><Metric label="Orphan storage" value={data.storage.orphanFileCount}/></div>{data.storage.listingCapped&&<div className="notice">Storage listing reached the bounded 1,000-file health-check limit. Use cloud-level inventory for an exhaustive review.</div>}<p className="muted">{data.cache.note}</p><div className="row wrap"><button className="button secondary" onClick={clearBrowserCache}>Clear my UI cache</button><button className="button secondary" disabled={!!busy} onClick={()=>action('refresh_cache')}>{busy==='refresh_cache'?'Refreshing…':'Refresh organization cache'}</button></div></section>
+
+      <section className="card stack"><h2 className="sectionTitle">Protected evidence</h2><p className="muted">These records are intentionally excluded from Safe Cleanup and raw editing.</p>{data.protectedEvidence.map(item=><div key={item}>✓ {item}</div>)}</section>
+
+      <section className="card stack"><h2 className="sectionTitle">UAT tenant reset</h2><p>{data.reset.note}</p><div className="tableWrap"><table><thead><tr><th>Allowlisted collection</th><th>Records in preview</th></tr></thead><tbody>{Object.entries(data.reset.collections).map(([name,count])=><tr key={name}><td>{name}</td><td>{count}</td></tr>)}</tbody></table></div><div className="notice"><strong>Always preserved:</strong> {data.reset.protected.join(' · ')}</div>{data.reset.enabled?<><label className="field"><span>Type {data.reset.confirmationText} to authorize the UAT reset</span><input className="input" value={confirmation} onChange={e=>setConfirmation(e.target.value)}/></label><button className="button dangerButton" disabled={busy==='execute_uat_reset'||confirmation!==data.reset.confirmationText} onClick={()=>action('execute_uat_reset',{confirmation})}>{busy==='execute_uat_reset'?'Resetting…':'Reset allowlisted UAT operational data'}</button></>:<div className="warning">Tenant reset is disabled. Enable it only in a controlled UAT environment with OPSIQO_ALLOW_UAT_TENANT_RESET=true.</div>}</section>
+    </>}
+  </div>
+}
+
+function Metric({label,value}:{label:string;value:string|number}){return <div><div className="metricLabel">{label}</div><div className="metricValue">{value}</div></div>}

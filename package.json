@@ -260,7 +260,10 @@
     "opsiqo85:v7.32:hotfix18:audit": "node scripts/opsiqo85-v7-32-hotfix18-audit.mjs",
     "test:opsiqo-one-v7.32-hotfix18": "vitest run tests/opsiqo85/opsiqo-one-v7-32-hotfix18.test.ts",
     "opsiqo85:v7.32:hotfix19:audit": "node scripts/opsiqo85-v7-32-hotfix19-audit.mjs",
-    "test:opsiqo-one-v7.32-hotfix19": "vitest run tests/opsiqo85/opsiqo-one-v7-32-hotfix19.test.ts"
+    "test:opsiqo-one-v7.32-hotfix19": "vitest run tests/opsiqo85/opsiqo-one-v7-32-hotfix19.test.ts",
+    "maintenance:housekeeping": "tsx scripts/run-admin-housekeeping.ts",
+    "opsiqo85:h34:audit": "node scripts/opsiqo-h34-platform-stabilization-audit.mjs",
+    "test:h34": "vitest run tests/opsiqo85/opsiqo-one-v7-34-platform-stabilization.test.ts"
   },
   "dependencies": {
     "firebase": "12.16.0",

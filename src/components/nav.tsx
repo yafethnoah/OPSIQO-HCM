@@ -85,6 +85,7 @@ const allItems: Item[] = [
   { label:'Experience Readiness',href:'/experience-readiness',permission:'self.read',icon:'◍',keywords:['accessibility','wcag','translation','language coverage'],area:'more',priority:84 },
   { label:'Translation Readiness',href:'/translation-readiness',permission:'self.read',icon:'文',keywords:['translation readiness','translation backlog','language completion','localization inventory'],area:'more',priority:83 },
   { label:'Organization Launchpad',href:'/organization-launchpad',permission:'organization.manage',icon:'◎',keywords:['organization setup','launchpad','one click setup','tenant setup'],area:'admin',priority:99 },
+  { label:'Admin Data & Maintenance',href:'/admin-maintenance',permission:'platform.manage',icon:'⌘',keywords:['maintenance','cleanup','cache','storage','health','reset','edit','data quality'],area:'admin',priority:98 },
   { label:'Import Center',href:'/import-center',permission:'documents.manage',icon:'⇩',keywords:['import','bulk upload','migration'],area:'admin',priority:95 },
   { label:'Automation',href:'/automation',permission:'automation.read',icon:'⚙',keywords:['automation','jobs'],area:'admin',priority:90 },
   { label:'Agent Builder',href:'/agent-builder',permission:'ai.manage',icon:'✦',keywords:['agent builder','custom agent','cortex agent'],area:'admin',priority:94 },

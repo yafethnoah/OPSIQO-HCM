@@ -17093,5 +17093,85 @@
         "ar": "حدود الذاكرة."
       }
     }
+  },
+  "admin_data_maintenance": {
+    "file": "src/components/admin-data-maintenance-workspace.tsx",
+    "translations": {
+      "Data, maintenance & tenant health": {
+        "fr": "Données, maintenance et santé du locataire",
+        "es": "Datos, mantenimiento y salud del entorno",
+        "ar": "البيانات والصيانة وصحة بيئة المؤسسة"
+      },
+      "System health": {
+        "fr": "Santé du système",
+        "es": "Salud del sistema",
+        "ar": "صحة النظام"
+      },
+      "Edit & correct organization data": {
+        "fr": "Modifier et corriger les données de l’organisation",
+        "es": "Editar y corregir datos de la organización",
+        "ar": "تحرير وتصحيح بيانات المؤسسة"
+      },
+      "Import cleanup & migration reconciliation": {
+        "fr": "Nettoyage des imports et rapprochement de migration",
+        "es": "Limpieza de importaciones y conciliación de migración",
+        "ar": "تنظيف الاستيراد وتسوية الترحيل"
+      },
+      "Storage & cache": {
+        "fr": "Stockage et cache",
+        "es": "Almacenamiento y caché",
+        "ar": "التخزين وذاكرة التخزين المؤقت"
+      },
+      "Protected evidence": {
+        "fr": "Preuves protégées",
+        "es": "Evidencia protegida",
+        "ar": "الأدلة المحمية"
+      },
+      "UAT tenant reset": {
+        "fr": "Réinitialisation du locataire UAT",
+        "es": "Restablecimiento del entorno UAT",
+        "ar": "إعادة ضبط بيئة اختبار القبول"
+      },
+      "Run full health check": {
+        "fr": "Exécuter le contrôle de santé complet",
+        "es": "Ejecutar comprobación completa",
+        "ar": "تشغيل فحص الصحة الكامل"
+      },
+      "Clear my UI cache": {
+        "fr": "Vider mon cache d’interface",
+        "es": "Limpiar mi caché de interfaz",
+        "ar": "مسح ذاكرة واجهتي المؤقتة"
+      },
+      "Refresh organization cache": {
+        "fr": "Actualiser le cache de l’organisation",
+        "es": "Actualizar caché de la organización",
+        "ar": "تحديث ذاكرة المؤسسة المؤقتة"
+      },
+      "Open Import Center": {
+        "fr": "Ouvrir le centre d’importation",
+        "es": "Abrir centro de importación",
+        "ar": "فتح مركز الاستيراد"
+      },
+      "Settings": {
+        "fr": "Paramètres",
+        "es": "Configuración",
+        "ar": "الإعدادات"
+      },
+      "Audit Trail": {
+        "fr": "Piste d’audit",
+        "es": "Registro de auditoría",
+        "ar": "سجل التدقيق"
+      },
+      "Multi-factor authentication required": {
+        "fr": "Authentification multifacteur requise",
+        "es": "Se requiere autenticación multifactor",
+        "ar": "المصادقة متعددة العوامل مطلوبة"
+      },
+      "Set up multi-factor authentication": {
+        "fr": "Configurer l’authentification multifacteur",
+        "es": "Configurar autenticación multifactor",
+        "ar": "إعداد المصادقة متعددة العوامل"
+      }
+    }
   }
 }
