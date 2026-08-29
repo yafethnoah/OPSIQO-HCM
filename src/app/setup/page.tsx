@@ -27,7 +27,7 @@ export default function SetupPage() {
     setSignedIn(Boolean(user));
     setEmail(user?.email || '');
     if (!user) { setChecking(false); return; }
-    apiFetch<{data:ExistingOrg[]}>('/api/me/organizations')
+    apiFetch<{data:ExistingOrg[]}>('/api/me/organizations', { orgContext:'omit' })
       .then((result) => {
         const existing = result.data[0];
         if (existing) {
@@ -47,6 +47,7 @@ export default function SetupPage() {
       const result = await apiFetch<SetupResult>('/api/setup', {
         method:'POST',
         body:JSON.stringify({ organizationName:form.get('organizationName'), firstName:form.get('firstName'), lastName:form.get('lastName') }),
+        orgContext:'omit',
       });
       setActiveOrgId(result.data.orgId);
       router.replace('/dashboard');
@@ -66,7 +67,7 @@ export default function SetupPage() {
       </div>
     </section>
     <section className="authFormPanel">
-      {checking ? <div className="authCard"><LoadingState label="Checking your organization access…"/></div> : !signedIn ? <section className="authCard stack"><div><span className="authKicker">First organization</span><h1>Set up OPSIQO</h1></div><p>Sign in with the authorized bootstrap administrator account before creating the first organization.</p>{error && <div className="error">{error}</div>}<div><Link className="button" href="/signin?returnTo=/setup">Sign in to continue</Link></div></section> : <form className="authCard stack" onSubmit={submit}>
+      {checking ? <div className="authCard"><LoadingState label="Checking your organization accessâ€¦"/></div> : !signedIn ? <section className="authCard stack"><div><span className="authKicker">First organization</span><h1>Set up OPSIQO</h1></div><p>Sign in with the authorized bootstrap administrator account before creating the first organization.</p>{error && <div className="error">{error}</div>}<div><Link className="button" href="/signin?returnTo=/setup">Sign in to continue</Link></div></section> : <form className="authCard stack" onSubmit={submit}>
         <div><span className="authKicker">First organization</span><h1>Create your OPSIQO organization</h1><p className="muted">This one-time action establishes the tenant, initial administrator identity and authoritative organization foundation.</p></div>
         <label className="field"><span>Authenticated administrator</span><input className="input" value={email} disabled /></label>
         <label className="field"><span>Organization name</span><input className="input" name="organizationName" required minLength={2} maxLength={120} placeholder="Your organization" /></label>
@@ -75,7 +76,7 @@ export default function SetupPage() {
           <label className="field"><span>Administrator last name</span><input className="input" name="lastName" required maxLength={80}/></label>
         </div>
         {error && <div className="error">{error}</div>}
-        <button className="button" disabled={submitting}>{submitting ? 'Creating organization…' : 'Create organization securely'}</button>
+        <button className="button" disabled={submitting}>{submitting ? 'Creating organizationâ€¦' : 'Create organization securely'}</button>
         <p className="muted">Local emulator mode allows the first authenticated identity to claim an empty environment. Production still requires the configured bootstrap administrator. After successful production creation, disable <code>OPSIQO_ALLOW_FIRST_ORG_BOOTSTRAP</code>.</p>
       </form>}
     </section>
