@@ -17,6 +17,30 @@ export const employeeCreateSchema = z.object({
   managerWorkerId: z.string().optional(),
 });
 
+export const employeeCoreCorrectionSchema = z.object({
+  legalFirstName: z.string().trim().min(1).max(100),
+  legalLastName: z.string().trim().min(1).max(100),
+  preferredName: z.string().trim().max(100).optional().default(''),
+  workEmail: z.preprocess(
+    (value) => typeof value === 'string' && value.trim() === '' ? undefined : value,
+    z.string().email().optional(),
+  ),
+  personalEmail: z.preprocess(
+    (value) => typeof value === 'string' && value.trim() === '' ? undefined : value,
+    z.string().email().optional(),
+  ),
+  phone: z.string().trim().max(40).optional().default(''),
+  employeeNumber: z.string().trim().min(1).max(40),
+  employmentType: z.enum(['permanent', 'temporary', 'contractor', 'intern', 'volunteer']),
+  hireDate: isoDate,
+  reason: z.string().trim().min(3).max(1000),
+});
+
+export const employeeDuplicateDeleteSchema = z.object({
+  reason: z.string().trim().min(3).max(1000),
+  confirmationEmployeeNumber: z.string().trim().min(1).max(40),
+});
+
 export const employeeChangeSchema = z.object({
   changeType: z.enum(['transfer', 'promotion', 'manager_change', 'status_change']),
   effectiveDate: isoDate,

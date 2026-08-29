@@ -294,6 +294,7 @@ ad9abf4c7711ffb52d0bdde48d102663968fd56221585946c8de491df6fd5f38  scripts/local-
 95bf9a71af80bdacefb0073f7a972e4560c2bec55c1432f7c74311d69f889867  scripts/opsiqo-h28-locale-authority-audit.mjs
 b28b322d1b425e173a28b6f5a806b99755d7d34219aefad084d8ceb6575641cb  scripts/opsiqo-h34-platform-stabilization-audit.mjs
 434669bd86fb410c600f9f80672eee4e7902a00b984ffcf480918b3f96ce0d20  scripts/opsiqo-h35-uat-runtime-identity-audit.mjs
+504dccd6039afac5ae63d8f5b6580ac4d65e44f2a39c71b43a1aeef26a8b3acb  scripts/opsiqo-h36-people-lifecycle-import-state-audit.mjs
 01e0620713747dcd5630c12978725362f8f1351d50f0eef7f118f446bdd7fce0  scripts/opsiqo-invitation-diagnostic.mjs
 da4406aef6d90ba29836bc7834502c115dd2beb3b865cc06e51b537cb4a4b3be  scripts/opsiqo8-integration-report.mjs
 3777de5614af7f36d330d0ad92d1f4b1b44ea987749819fa5a8fd28006e5f31c  scripts/opsiqo85-ats-import-audit.mjs
@@ -550,7 +551,7 @@ c3c414cb033093a02107505512979f66615a9081fc90acedbbc8e936a3afab40  src/app/api/or
 e1ef76c7e57cd20628a7278e8387951dc58131de3994b660b4c958546f63a606  src/app/api/organizations/[orgId]/employees/[workerId]/assignments/[assignmentId]/route.ts
 adb5dc1bc50a99ff60d2a29398dff02d7979b2f7932125394133031dbf330295  src/app/api/organizations/[orgId]/employees/[workerId]/assignments/route.ts
 ded493a373a839234ecc8f368c052d30a869e3067099d0f2a629de5951f8565c  src/app/api/organizations/[orgId]/employees/[workerId]/changes/route.ts
-06b9e6aca3a5de3ff3e460b6115a86852527d7d88a62f6108321d79de85bf6a2  src/app/api/organizations/[orgId]/employees/[workerId]/route.ts
+7736d0e901e7cea85c0e2e04d5c4bd1eff38bed3420daf474264efb579766839  src/app/api/organizations/[orgId]/employees/[workerId]/route.ts
 4f3b8b33cd72d252f4cebb132b285cbb0c5e2319682970c52e5d1e889257ea3a  src/app/api/organizations/[orgId]/employees/[workerId]/secondary-assignment-plans/[planId]/route.ts
 d20b1c05eaed713f781eeae306cec5a71a95a7e019318566c5b42b7646c25614  src/app/api/organizations/[orgId]/employees/route.ts
 33310c78940a96cede8f358988d5a3a7340e06071bb4329fcb693109d2b9f31b  src/app/api/organizations/[orgId]/enterprise-command/actions/[id]/route.ts
@@ -1050,7 +1051,7 @@ f7d3b5dc580507d14c2b4a4b8c792862ba210c0bd1b69bd451a123e7ea5741f3  src/components
 38924e51761485e8419e02da1c49a4b97a813fe5dc1123f30086581c8323a2d2  src/components/grant-workforce-workspace.tsx
 2bd6fc5af828686da1f711605e8a4c2f8b4debae05ec9caedd17402a179b8fa0  src/components/hr-diagnostic-workspace.tsx
 a304627fb5342de06d490cef738f512dd125f78c8464e7b36807581e6369dc15  src/components/identity-command-center.tsx
-5a486eaf81a1e5b5c0f9c0f1a6fd114fd3ffc18de651b60f52a65bc28713d473  src/components/import-center-workspace.tsx
+05e25752f8bb4777a9641e990a16ad4b4173281e2bee2538514a631cf2b05fe6  src/components/import-center-workspace.tsx
 9e42a2b446b369796290b3d66095adf36b5297b03612394eda78060c7bc890ce  src/components/install-app-button.tsx
 b309bb0f31e1d8d770cc05610a9527a5cf40f5aaf6c9bfff3fb08efab9f0b2ff  src/components/integration-command-center.tsx
 0248dd054f30cac4a9581605611333fb53dd43183f914528c507c81651ab1f39  src/components/integration-runtime-center.tsx
@@ -1081,7 +1082,7 @@ d3dcecff9e5181bed9d278943c4e020ac04593efe1ef6b1024d44590e6a0fdcd  src/components
 38e05200f09009b7c8de114484c61a7638f132201b19652c2d55fa94e6048684  src/components/organizational-memory-workspace.tsx
 0ee1ed1fec901d076e19985aadcf84a079f5851d813473d0946dd2bede78eb11  src/components/page-header.tsx
 3484395182c0e512fdf5299ee74ed92bb887dbff68e7fefd0528c0f6130c0256  src/components/people-analytics-workspace.tsx
-94b0fc31284924a3be60d5fda10818157a1be1bb76b52f89441b93910b5c34f7  src/components/people-table.tsx
+43d560c8f2b937009e1a3332803b2fe0b3b3803668bed6985817fe3bf816541c  src/components/people-table.tsx
 f3fd58782ec01d02fe25e40f8ce7ce44b134af4f340873c068592d14ba11a2a3  src/components/performance-workspace.tsx
 539ba039cc194315cd08d9d422c73041ac3ac9f02fbe90713ec8b378e2d6626c  src/components/phase1-dashboard.tsx
 535bfc2dfcdaa8ba20592a296bfccc800fe00c1a782ceae2d4a14a83ee32d039  src/components/platform-reliability-center.tsx
@@ -1232,7 +1233,7 @@ e2c01b63d39498e16668209055d1ed0d4f36d30f4d53d797cef700f12d232912  src/lib/contra
 f619e00fec0ba196e963d4898c122fbd6d72cbb346357240789173cefeb737ec  src/lib/contract-import/service.ts
 eb5b049062c28484542986783eea22fc8b27160040957dc6fb70794c1d2e623f  src/lib/data-import/employee-import.ts
 dfff8ea8aca2d61a1f43b922770d286284963209e79f4edee56364ae78175267  src/lib/data-import/employee-roster-text.ts
-71a455b8167888d7b87c23eac5df261a05eca88e8b1ea416be87b18dab6c2f4f  src/lib/data-import/library-import.ts
+12651f606cfce1641aedede9a52ee030b78086f11fddaeb82d0abfbb4ce37536  src/lib/data-import/library-import.ts
 bbd020d15e9e5f3265a929586c39c8b1f9ac1fe48427d154607ffba483a15944  src/lib/data-import/pdf-text.ts
 ea5431f213de726b90a5c82ef0f4a80c262ce2b3d1bc414903d2c49d90f5b2d2  src/lib/data-import/tabular.ts
 463d21c26ebc95692a197b156c0d5f9d81533643ad37fdf9ede72405a0de6f5a  src/lib/data-import/universal-parser.ts
@@ -1264,8 +1265,8 @@ c64d3e0bcac05bdcfe8992c37ac443528db082b0c8e821784570e5b1176d2f03  src/lib/hr-dia
 76263ec6e5ec8c7183f15617f3fc2a51d3e83ddc33fe8586dec267372a94998e  src/lib/hr-diagnostic/schemas.ts
 2ccfa70d14478e038662303c0870af14de69f504cff8b23b3685084f3694de71  src/lib/hr-diagnostic/service.ts
 12c5f16d3488431114ec7c611c11f02f74463b2423bdbcb250bfa2e5175b21d1  src/lib/hr/directory.ts
-4b76b08c914c539747d38ec9b23c1b3284cb859a7e9b54256e1463c6726ef08e  src/lib/hr/schemas.ts
-68351375ffedb1fa7fdabec745c4abb186519573fd11068f8bc0bfb8efc2ac88  src/lib/hr/service.ts
+2ed23b6a6f60b704ef95caae326dab987869f6a9864357ef05cadbbd3a4da9e3  src/lib/hr/schemas.ts
+560ae69c17b6675ee7a2bdf381b9cf9a57d19695979af03885eb992c426163c3  src/lib/hr/service.ts
 961f876d7ab48cbb815dc6f3deab7bedc35cfc6ac828abda550638a99f2e9383  src/lib/http/api-request-error.ts
 12f36465776f9fb6fdc1b6cacfb9a4d801ceaaca49609ffd0b3c843baa1e84ff  src/lib/http/client.ts
 c5be1bed6695440d77b7e4caa993a724b01f26b8f98144a432aa8cfc76ec4155  src/lib/http/errors.ts
@@ -1575,6 +1576,7 @@ e2647efb4e3ef19c092223b723e4c519286e1bd86971379f942fe648e9a23883  tests/opsiqo85
 d151afc78d6db44a129765ee07e8354c13a1f32b8722dbfc50476097e4e9aa13  tests/opsiqo85/opsiqo-one-v7-32.test.ts
 92fb6f2f6f650b2a7ad88d89a422f260d1b8a92c498fdb19d8acd186ff243801  tests/opsiqo85/opsiqo-one-v7-34-platform-stabilization.test.ts
 e913a4ce8258a702d0efeaaadd28265b8171457e43da344f3a0dd412bfa66dfc  tests/opsiqo85/opsiqo-one-v7-35-uat-runtime-identity.test.ts
+087b44e995d8f169c47e1a67cb3fa9c8901e9c2e2e42187db2d62835ac500d9d  tests/opsiqo85/opsiqo-one-v7-36-people-lifecycle-import-state.test.ts
 a9bda5c7449cf4d9cd890a7123677cf3b1437868b9a489c15359e47b79befd30  tests/opsiqo85/platform-settings.test.ts
 08e2fe8d48cc7ec05779f2b1a7069ad53fbe17c86a46903261ed1ea66ba3fd19  tests/opsiqo85/stabilization-v7-9-1.test.ts
 deafc13bbdf9f7023665f65861e17a326323ce513d5d9284fc5511a5b300ddee  tests/opsiqo85/tabular.test.ts
