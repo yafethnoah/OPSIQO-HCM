@@ -1,0 +1,13 @@
+# OPSIQO UAT-specific App Hosting overrides.
+# To activate this file, set the App Hosting backend Environment name to: uat
+# Firebase console variables, when configured, retain higher precedence.
+env:
+  - variable: OPSIQO_ENVIRONMENT
+    value: uat
+    availability: [BUILD, RUNTIME]
+  - variable: APP_BASE_URL
+    value: https://uat.opsiqo.ca
+    availability: [RUNTIME]
+  - variable: NEXT_PUBLIC_APP_BASE_URL
+    value: https://uat.opsiqo.ca
+    availability: [BUILD, RUNTIME]

@@ -1,3 +1,9 @@
+import {
+  deploymentEnvironment,
+  isProductionDeployment,
+  runtimeMode,
+} from '@/lib/runtime/deployment-environment';
+
 export type ReadinessStatus = 'pass' | 'warn' | 'fail';
 
 export interface ReadinessCheck {
@@ -11,6 +17,7 @@ export interface ReadinessSummary {
   service: string;
   version: string;
   environment: string;
+  runtimeMode: string;
   checkedAt: string;
   checks: ReadinessCheck[];
 }
@@ -74,7 +81,8 @@ function push(checks: ReadinessCheck[], code: string, status: ReadinessStatus, m
 
 export function buildReadinessSummary(): ReadinessSummary {
   const checks: ReadinessCheck[] = [];
-  const production = process.env.NODE_ENV === 'production';
+  const environment = deploymentEnvironment();
+  const production = isProductionDeployment();
   const serverProject = value('FIREBASE_PROJECT_ID');
   const clientProject = value('NEXT_PUBLIC_FIREBASE_PROJECT_ID');
   const serverBucket = value('FIREBASE_STORAGE_BUCKET');
@@ -158,7 +166,8 @@ export function buildReadinessSummary(): ReadinessSummary {
     ok,
     service: 'opsiqo-hcm',
     version: value('OPSIQO_RELEASE_VERSION') || '3.6.1',
-    environment: process.env.NODE_ENV || 'development',
+    environment,
+    runtimeMode: runtimeMode(),
     checkedAt: new Date().toISOString(),
     checks,
   };
