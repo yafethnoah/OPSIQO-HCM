@@ -17,6 +17,7 @@ type Item = {
   keywords?: string[];
   area: 'home' | 'people' | 'work' | 'insights' | 'more' | 'admin';
   priority: number;
+  roles?: string[];
 };
 
 type Group = { label: string; area: Item['area']; items: Item[] };
@@ -98,6 +99,7 @@ const allItems: Item[] = [
   { label:'Security Operations',href:'/security-operations',permission:'securityops.read',icon:'⬢',keywords:['security operations'],area:'admin',priority:75 },
   { label:'Security Admin',href:'/security',permission:'security.manage',icon:'▣',keywords:['security admin'],area:'admin',priority:70 },
   { label:'Platform Reliability',href:'/platform-reliability',permission:'platform.read',icon:'◉',keywords:['reliability','health'],area:'admin',priority:70 },
+  { label:'Platform Companies',href:'/platform-tenants',permission:'platform.manage',roles:['super_admin'],icon:'▦',keywords:['tenant','company','super admin'],area:'admin',priority:70 },
   { label:'Audit Trail',href:'/audit',permission:'audit.read',icon:'▤',keywords:['audit trail','history'],area:'admin',priority:70 },
   { label:'Members',href:'/members',permission:'membership.read',icon:'◫',keywords:['members','access'],area:'admin',priority:65 },
 ];
@@ -111,9 +113,9 @@ const groupDefinitions: Array<{ area: Item['area']; label: string; defaultClosed
   { area:'admin', label:'Admin & Platform', defaultClosed:true },
 ];
 
-function canSee(item: Item, permissions: string[] | null): boolean {
+function canSee(item: Item, permissions: string[] | null, role:string|null): boolean {
   if (permissions === null) return ['/home','/dashboard','/self-service'].includes(item.href);
-  return !item.permission || permissions.includes(item.permission);
+  return (!item.permission || permissions.includes(item.permission)) && (!item.roles || Boolean(role&&item.roles.includes(role)));
 }
 
 
@@ -121,6 +123,7 @@ export function Nav() {
   const pathname = usePathname();
   const shellLocale = useShellLocale();
   const [permissions,setPermissions] = useState<string[]|null>(null);
+  const [role,setRole] = useState<string|null>(null);
   const [collapsed,setCollapsed] = useState(false);
   const [query,setQuery] = useState('');
   const [adaptiveTick,setAdaptiveTick] = useState(0);
@@ -130,8 +133,8 @@ export function Nav() {
 
   useEffect(()=>{
     let alive = true;
-    apiFetch<{actor:{permissions:string[]}}>('/api/me')
-      .then(r=>{ if(alive) setPermissions(r.actor.permissions); })
+    apiFetch<{actor:{permissions:string[];role:string}}>('/api/me')
+      .then(r=>{ if(alive){setPermissions(r.actor.permissions);setRole(r.actor.role)} })
       .catch(()=>{ if(alive) setPermissions([]); });
     return ()=>{ alive = false; };
   },[]);
@@ -144,8 +147,8 @@ export function Nav() {
   useEffect(()=>{const h=()=>setAdaptiveTick(value=>value+1);window.addEventListener('opsiqo:adaptive-navigation-changed',h);return()=>window.removeEventListener('opsiqo:adaptive-navigation-changed',h)},[]);
 
   const visibleItems = useMemo(
-    ()=>allItems.filter(item=>canSee(item,permissions)),
-    [permissions],
+    ()=>allItems.filter(item=>canSee(item,permissions,role)),
+    [permissions,role],
   );
 
   const normalizedQuery = query.trim().toLowerCase();
