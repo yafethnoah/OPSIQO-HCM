@@ -40,6 +40,7 @@ const allItems: Item[] = [
 
   { label:'Recruiting',href:'/recruiting',permission:'recruiting.read',icon:'⌕',keywords:['ats','candidates','jobs'],area:'work',priority:100 },
   { label:'Onboarding',href:'/onboarding',permission:'onboarding.read',icon:'＋',keywords:['new hire'],area:'work',priority:95 },
+  { label:'Offboarding',href:'/separations',permission:'separation.read',icon:'↙',keywords:['offboarding','employee exit','termination','separation'],area:'work',priority:94 },
   { label:'Time & Leave',href:'/time',permission:'time.read',icon:'◷',keywords:['vacation','absence','timesheet'],area:'work',priority:95 },
   { label:'Performance',href:'/performance',permission:'performance.read',icon:'◆',keywords:['goals','reviews'],area:'work',priority:90 },
   { label:'Learning',href:'/learning',permission:'learning.read',icon:'△',keywords:['skills','training','certificates'],area:'work',priority:85 },
@@ -61,7 +62,6 @@ const allItems: Item[] = [
   { label:'Operations Orchestrator',href:'/operations-orchestrator',permission:'workflow.read',icon:'⇢',keywords:['orchestration','automation'],area:'insights',priority:75 },
 
   { label:'Career & Succession',href:'/career',permission:'career.read',icon:'↗',keywords:['succession','career'],area:'more',priority:90 },
-  { label:'Offboarding',href:'/separations',permission:'separation.read',icon:'↙',keywords:['termination','separation'],area:'more',priority:85 },
   { label:'Organizational Memory',href:'/organizational-memory',permission:'policies.read',icon:'◈',keywords:['organizational memory','internal knowledge','handbook','policy search'],area:'more',priority:91 },
   { label:'Policy Intelligence',href:'/policy-intelligence',permission:'policies.read',icon:'§',keywords:['policy intelligence','policy overlap','review due'],area:'more',priority:90 },
   { label:'Compliance Radar',href:'/compliance-radar',permission:'compliance.read',icon:'◉',keywords:['compliance radar','expiring','gaps'],area:'more',priority:88 },
