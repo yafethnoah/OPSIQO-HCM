@@ -12,7 +12,7 @@ import { ApiError } from "@/lib/http/errors";
 import { buildAudit } from "@/lib/audit/service";
 import { buildDomainEvent } from "@/lib/events/build";
 import { extractDocxText, extractRtfText } from "@/lib/contract-import/docx";
-import { extractPdfTextLayer } from "@/lib/data-import/pdf-text";
+import { assessHumanReadableText, extractPdfTextLayer } from "@/lib/data-import/pdf-text";
 import {
   analyzeJobDescription,
   buildAtsReview,
@@ -73,7 +73,8 @@ function textFromResume(name: string, bytes: Buffer) {
   const ext = extension(name);
   if (ext === ".pdf") {
     try {
-      return extractPdfTextLayer(bytes).slice(0, 500_000);
+      const extracted = extractPdfTextLayer(bytes).slice(0, 500_000);
+      return assessHumanReadableText(extracted).readable ? extracted : "";
     } catch {
       return "";
     }
@@ -162,6 +163,12 @@ async function parseResume(actor: ActorContext, file: File) {
       503,
       "PDF resume parsing requires an available governed AI provider. Upload DOCX/TXT/RTF/MD or configure Recruiting ATS AI.",
       "resume_parser_unavailable",
+    );
+  if (extension(file.name) === ".pdf" && !assessHumanReadableText(profile.sourceText || "").readable)
+    throw new ApiError(
+      422,
+      "This PDF does not contain a reliable readable text layer, and governed AI parsing was unavailable or returned unusable text. No candidate fields were accepted. Upload a text-based PDF/DOCX or enable the approved Recruiting ATS AI provider.",
+      "resume_text_unreadable",
     );
   const sourceMeta: ResumeSourceMeta = {
     fileName: file.name.replace(/[^A-Za-z0-9._ -]/g, "_").slice(-180),

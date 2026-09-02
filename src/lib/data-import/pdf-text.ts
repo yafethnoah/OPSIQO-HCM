@@ -41,3 +41,34 @@ function extractTextOperators(content:string){
 }
 function contentStreams(bytes:Buffer){const src=bytes.toString('latin1'),out:Buffer[]=[];const re=/stream\r?\n/g;let match:RegExpExecArray|null;while((match=re.exec(src))){const start=match.index+match[0].length,end=src.indexOf('endstream',start);if(end<0)break;if(end-start>MAX_STREAM_BYTES){re.lastIndex=end+9;continue;}const dictStart=Math.max(0,src.lastIndexOf('<<',match.index)),dict=src.slice(dictStart,match.index);let rawEnd=end;if(src[rawEnd-1]==='\n')rawEnd--;if(src[rawEnd-1]==='\r')rawEnd--;const raw=bytes.subarray(start,rawEnd);try{if(/\/Filter\s*(?:\/FlateDecode|\[\s*\/FlateDecode)/.test(dict))out.push(inflateSync(raw,{maxOutputLength:MAX_STREAM_BYTES} as any));else if(!/\/Filter\b/.test(dict))out.push(raw);}catch{}re.lastIndex=end+9;if(out.length>=500)break;}return out;}
 export function extractPdfTextLayer(bytes:Buffer){if(bytes.length<=0||bytes.length>MAX_PDF_BYTES)throw new Error('PDF must be between 1 byte and 15 MB.');if(bytes.subarray(0,5).toString('latin1')!=='%PDF-')throw new Error('Invalid PDF signature.');const streams=contentStreams(bytes);let text=streams.map(b=>extractTextOperators(b.toString('latin1'))).join('\n');if(text.trim().length<40)text=extractTextOperators(bytes.toString('latin1'));return text.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,' ').replace(/[ \t]{2,}/g,' ').replace(/\s*\n\s*/g,'\n').replace(/\n{3,}/g,'\n\n').trim().slice(0,MAX_TEXT);}
+
+export type TextQuality = {
+  readable: boolean;
+  reason?: 'too_short' | 'binary_like' | 'insufficient_words' | 'mojibake';
+  score: number;
+};
+
+/**
+ * Rejects byte/codepoint output that only looks like PDF text. This is a
+ * safety boundary: low-confidence extraction must never be treated as a
+ * candidate identity or persisted as resume evidence.
+ */
+export function assessHumanReadableText(input:string):TextQuality {
+  const text=input.replace(/\s+/g,' ').trim();
+  if(text.length<80)return{readable:false,reason:'too_short',score:0};
+  const visible=[...text].filter(c=>!/\s/.test(c));
+  const letters=visible.filter(c=>/\p{L}/u.test(c)).length;
+  const controls=visible.filter(c=>/[\u0000-\u001f\u007f-\u009f\ufffd]/u.test(c)).length;
+  const mojibake=visible.filter(c=>/[ÃÂ�]/u.test(c)).length;
+  const words=text.match(/[\p{L}][\p{L}'’-]{2,}/gu)||[];
+  const common=words.filter(w=>/^(?:and|the|with|for|from|experience|education|skills|professional|manager|management|work|summary|profile|email|phone|resume|candidate|employment|university|college|certification|responsibilities)$/i.test(w)).length;
+  const letterRatio=letters/Math.max(1,visible.length);
+  const controlRatio=controls/Math.max(1,visible.length);
+  const mojibakeRatio=mojibake/Math.max(1,visible.length);
+  const wordScore=Math.min(1,words.length/24);
+  const score=Math.max(0,Math.min(1,letterRatio*.55+wordScore*.35+Math.min(1,common/3)*.10-controlRatio*3-mojibakeRatio*3));
+  if(controlRatio>.01||letterRatio<.45)return{readable:false,reason:'binary_like',score};
+  if(mojibakeRatio>.015)return{readable:false,reason:'mojibake',score};
+  if(words.length<12)return{readable:false,reason:'insufficient_words',score};
+  return{readable:score>=.55,reason:score>=.55?undefined:'binary_like',score};
+}

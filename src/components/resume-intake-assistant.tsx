@@ -28,6 +28,19 @@ function setNamedValue(form: HTMLFormElement, name: string, value: string) {
   }
 }
 
+function clearParsedValues(form: HTMLFormElement) {
+  for (const name of [
+    "firstName",
+    "lastName",
+    "email",
+    "phone",
+    "location",
+    "linkedinUrl",
+    "resumeText",
+    "source",
+  ]) setNamedValue(form, name, "");
+}
+
 export function ResumeIntakeAssistant({ formId }: { formId: string }) {
   const [file, setFile] = useState<File | null>(null),
     [busy, setBusy] = useState(false),
@@ -45,6 +58,7 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
       setError("Choose a resume file.");
       return;
     }
+    clearParsedValues(form);
     setBusy(true);
     try {
       const data = new FormData();
@@ -71,6 +85,7 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
         `Resume parsed with ${p.parser.replaceAll("_", " ")}. Candidate fields were prefilled. Select the requisition and review every field before submitting.`,
       );
     } catch (e) {
+      clearParsedValues(form);
       setError(e instanceof Error ? e.message : "Resume parsing failed.");
     } finally {
       setBusy(false);

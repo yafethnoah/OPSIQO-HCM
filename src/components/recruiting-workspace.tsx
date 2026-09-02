@@ -369,6 +369,13 @@ export function RecruitingWorkspace() {
           >
             <h2 className="sectionTitle">Create requisition</h2>
             <JobDescriptionAssistant formId="requisition-create-form" />
+            {(!units.length || !eligibleWorkers.length) && (
+              <div className="notice" role="status">
+                Complete company setup before creating a requisition.
+                {!units.length && <> Add an organization unit and position in <a href="/organization">Organization</a>.</>}
+                {!eligibleWorkers.length && <> Add or activate a hiring manager in <a href="/people">People</a>.</>}
+              </div>
+            )}
             <div className="formGrid">
               <Field name="title" label="Requisition title" required />
               <label className="field">
