@@ -11,7 +11,14 @@ const ORG_STORAGE_KEY = 'opsiqo.activeOrgId';
 let authRestorePromise: Promise<User | null> | undefined;
 
 type OrgContextMode = 'required' | 'omit';
-export type ApiFetchInit = RequestInit & { orgContext?: OrgContextMode };
+export type ApiFetchInit = RequestInit & {
+  orgContext?: OrgContextMode;
+  /**
+   * Persistent writes must reconcile after an ambiguous 5xx response. Set this
+   * to false only for non-persistent POST operations such as document parsing.
+   */
+  reconcileOnServerError?: boolean;
+};
 
 const demoMode = () => process.env.NEXT_PUBLIC_OPSIQO_DEMO_MODE === 'true';
 
@@ -100,7 +107,11 @@ async function applyIdentityHeaders(headers: Headers) {
 }
 
 export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promise<T> {
-  const { orgContext = 'required', ...requestInit } = init;
+  const {
+    orgContext = 'required',
+    reconcileOnServerError = true,
+    ...requestInit
+  } = init;
   const headers = new Headers(requestInit.headers);
 
   if (requestInit.body != null && !(requestInit.body instanceof FormData) && !headers.has('content-type')) {
@@ -121,7 +132,7 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
   const contentType = response.headers.get('content-type') || '';
   const payload = contentType.includes('application/json') ? await response.json() : await response.text();
 
-  if (!response.ok && !safeRead && (response.status === 408 || response.status >= 500)) {
+  if (!response.ok && !safeRead && reconcileOnServerError && (response.status === 408 || response.status >= 500)) {
     throw new ReconciliationRequiredError(`Write returned ${response.status}; reconcile authoritative state before retrying.`);
   }
 
@@ -154,4 +165,3 @@ export async function apiDownload(path: string): Promise<{ blob: Blob; fileName?
   const match = disposition.match(/filename="([^"]+)"/);
   return { blob: await response.blob(), fileName: match?.[1] };
 }
-

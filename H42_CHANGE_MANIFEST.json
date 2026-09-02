@@ -1,0 +1,14 @@
+{
+  "release": "H42",
+  "title": "Recruiting parser error transparency",
+  "repairs": [
+    "Treats resume parsing as a non-persistent POST operation.",
+    "Displays the authoritative Recruiting ATS API error instead of an ambiguous write-reconciliation warning.",
+    "Preserves reconciliation protection for all persistent writes.",
+    "Keeps candidate fields transient and cleared after every failed parse."
+  ],
+  "uatPrerequisites": [
+    "Firebase secret OPSIQO_GEMINI_API_KEY must be available to the App Hosting backend.",
+    "An approved active RECRUITING_ATS_MODEL profile and RECRUITING_ATS prompt must exist when strict governed AI configuration is enabled."
+  ]
+}

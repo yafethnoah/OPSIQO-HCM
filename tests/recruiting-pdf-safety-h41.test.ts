@@ -32,6 +32,14 @@ describe("H41 resume PDF safety", () => {
     expect(ui).toMatch(/catch \(e\) \{\s*clearParsedValues\(form\)/);
   });
 
+  it("surfaces the authoritative parser error for transient resume parsing", () => {
+    const ui = readFileSync("src/components/resume-intake-assistant.tsx", "utf8");
+    const client = readFileSync("src/lib/http/client.ts", "utf8");
+    expect(ui).toContain("reconcileOnServerError: false");
+    expect(client).toContain("reconcileOnServerError = true");
+    expect(client).toMatch(/reconcileOnServerError && \(response\.status/);
+  });
+
   it("guides users when company setup blocks requisition creation", () => {
     const ui = readFileSync("src/components/recruiting-workspace.tsx", "utf8");
     expect(ui).toContain("Complete company setup before creating a requisition.");

@@ -70,7 +70,13 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
       data.set("file", selected);
       const r = await apiFetch<{ data: Parsed }>(
         `/api/organizations/${activeOrgId()}/recruiting/ats/parse`,
-        { method: "POST", body: data },
+        {
+          method: "POST",
+          body: data,
+          // Parsing only returns transient prefill data; it does not create or
+          // update a candidate, so show the authoritative API error directly.
+          reconcileOnServerError: false,
+        },
       );
       const p = r.data.profile;
       if (p.firstName) setNamedValue(form, "firstName", p.firstName);
