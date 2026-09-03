@@ -1,3 +1,4 @@
+f76312f870c5dbf21d0efa3e674dbc0a8f4881b9c02cbef3e78dfbda8794a85c  .env.example
 bb0f83e060feffed36d4f3063305184ad31e17d863d9bf35b3c26c5a5f07e4d2  .firebaserc
 8963730503a22b069daabf119fe60c9f5e2b1464cbb8ef9ae1078c670eb02433  .gitattributes
 14335ded41a8a3e4d5b2dcb209f0111372f8f195c8b5185e322bd326660b027c  .github/workflows/automation-scheduler.yml
