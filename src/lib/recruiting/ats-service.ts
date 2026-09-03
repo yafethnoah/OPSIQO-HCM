@@ -1,4 +1,4 @@
-﻿import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { ActorContext } from "@/domain/security";
 import type { Application, Candidate, Requisition } from "@/domain/recruiting";
 import type {
@@ -89,6 +89,18 @@ function textFromResume(name: string, bytes: Buffer) {
       .slice(0, 500_000);
   return "";
 }
+
+function pdfTextLayerState(name: string, bytes: Buffer): "not_pdf" | "readable" | "absent" | "unsafe" {
+  if (extension(name) !== ".pdf") return "not_pdf";
+  try {
+    const extracted = extractPdfTextLayer(bytes).slice(0, 500_000);
+    if (!extracted.trim()) return "absent";
+    return assessHumanReadableText(extracted).readable ? "readable" : "unsafe";
+  } catch {
+    return "unsafe";
+  }
+}
+
 function mimeFor(file: File) {
   const ext = extension(file.name);
   if (ext === ".pdf") return "application/pdf";
@@ -144,6 +156,7 @@ async function parseResume(actor: ActorContext, file: File) {
   const bytes = Buffer.from(await file.arrayBuffer());
   validateResumeFile(file, bytes);
   const text = textFromResume(file.name, bytes);
+  const pdfLayerState = pdfTextLayerState(file.name, bytes);
   let profile: ParsedResumeProfile;
   let ai: Awaited<ReturnType<typeof governedResumeParse>> = null;
   try {
@@ -154,15 +167,38 @@ async function parseResume(actor: ActorContext, file: File) {
       text,
     });
   } catch (e) {
-    if (!text) throw e;
+    if (!text) {
+      if (pdfLayerState === "unsafe") {
+        throw new ApiError(
+          503,
+          "This PDF contains an unreadable, corrupted, or binary-like text layer. No candidate fields were accepted. Export a clean text-based PDF or upload DOCX, TXT, RTF or Markdown instead.",
+          "resume_parser_unavailable",
+        );
+      }
+      const code = e instanceof ApiError ? e.code : '';
+      if (['ai_governance_required', 'ai_unavailable', 'ai_provider_error'].includes(code)) {
+        throw new ApiError(
+          503,
+          'This resume has no reliable readable text layer and needs Recruiting AI. Ask an administrator to complete Recruiting AI setup, or upload a text-based PDF, DOCX, TXT, RTF or Markdown file.',
+          'recruiting_ai_setup_required',
+        );
+      }
+      throw e;
+    }
   }
   if (ai?.profile?.sourceText) profile = ai.profile;
-  else if (text) profile = parseResumeTextDeterministic(text);
+  else if (text) profile = parseResumeTextDeterministic(text, file.name);
+  else if (pdfLayerState === "unsafe")
+    throw new ApiError(
+      503,
+      "This PDF contains an unreadable, corrupted, or binary-like text layer. No candidate fields were accepted. Export a clean text-based PDF or upload DOCX, TXT, RTF or Markdown instead.",
+      "resume_parser_unavailable",
+    );
   else
     throw new ApiError(
       503,
-      "PDF resume parsing requires an available governed AI provider. Upload DOCX/TXT/RTF/MD or configure Recruiting ATS AI.",
-      "resume_parser_unavailable",
+      "This resume has no reliable readable text layer. Upload a text-based PDF, DOCX, TXT, RTF or Markdown file, or ask an administrator to complete Recruiting AI setup.",
+      "recruiting_ai_setup_required",
     );
   if (extension(file.name) === ".pdf" && !assessHumanReadableText(profile.sourceText || "").readable)
     throw new ApiError(

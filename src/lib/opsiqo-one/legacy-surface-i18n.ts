@@ -11,6 +11,22 @@ const originalAttr = new WeakMap<Element,Map<string,string>>();
 const globalOriginalText = new WeakMap<Text,string>();
 const globalOriginalAttr = new WeakMap<Element,Map<string,string>>();
 const attrNames = ['placeholder','title','aria-label'] as const;
+const supportedLocales:ShellLocale[]=['en','fr','es','ar'];
+
+function refreshSource<T extends Text|Element>(map:WeakMap<T,string>,node:T,current:string,render:(source:string,locale:ShellLocale)=>string){
+  let source=map.get(node);
+  if(!source){map.set(node,current);return current;}
+  const stillRendered=source===current||supportedLocales.some(locale=>render(source!,locale)===current);
+  if(!stillRendered){source=current;map.set(node,current);}
+  return source;
+}
+function refreshAttrSource(map:Map<string,string>,attr:string,current:string,render:(source:string,locale:ShellLocale)=>string){
+  let source=map.get(attr);
+  if(!source){map.set(attr,current);return current;}
+  const stillRendered=source===current||supportedLocales.some(locale=>render(source!,locale)===current);
+  if(!stillRendered){source=current;map.set(attr,current);}
+  return source;
+}
 
 function sameTranslation(a:Translated,b:Translated){return a.fr===b.fr&&a.es===b.es&&a.ar===b.ar}
 function buildGlobalReviewedTranslations(){
@@ -58,15 +74,14 @@ function applySurfaceTranslation(root:HTMLElement,surfaceId:SurfaceId,locale:She
     if(excluded(node))continue;
     const text=node as Text,current=text.data,trimmed=current.trim();
     if(!trimmed)continue;
-    if(!originalText.has(text))originalText.set(text,trimmed);
-    const source=originalText.get(text)!;
+    const source=refreshSource(originalText,text,trimmed,(value,nextLocale)=>translated(surfaceId,value,nextLocale));
     const next=translated(surfaceId,source,locale);
     if(current.trim()!==next)text.data=replaceTrimmed(source,next,current);
   }
   for(const el of [root,...Array.from(root.querySelectorAll<HTMLElement>('*'))]){
     if(excluded(el))continue;
     let originals=originalAttr.get(el);if(!originals){originals=new Map();originalAttr.set(el,originals)}
-    for(const attr of attrNames){const value=el.getAttribute(attr);if(!value)continue;if(!originals.has(attr))originals.set(attr,value);const source=originals.get(attr)!;const next=translated(surfaceId,source,locale);if(value!==next)el.setAttribute(attr,next)}
+    for(const attr of attrNames){const value=el.getAttribute(attr);if(!value)continue;const source=refreshAttrSource(originals,attr,value,(current,nextLocale)=>translated(surfaceId,current,nextLocale));const next=translated(surfaceId,source,locale);if(value!==next)el.setAttribute(attr,next)}
   }
 }
 function applyGlobalReviewedTranslation(root:HTMLElement,locale:ShellLocale){
@@ -76,15 +91,14 @@ function applyGlobalReviewedTranslation(root:HTMLElement,locale:ShellLocale){
     if(excludedFromGlobal(node))continue;
     const text=node as Text,current=text.data,trimmed=current.trim();
     if(!trimmed)continue;
-    if(!globalOriginalText.has(text))globalOriginalText.set(text,trimmed);
-    const source=globalOriginalText.get(text)!;
+    const source=refreshSource(globalOriginalText,text,trimmed,translatedGlobally);
     const next=translatedGlobally(source,locale);
     if(current.trim()!==next)text.data=replaceTrimmed(source,next,current);
   }
   for(const el of [root,...Array.from(root.querySelectorAll<HTMLElement>('*'))]){
     if(excludedFromGlobal(el))continue;
     let originals=globalOriginalAttr.get(el);if(!originals){originals=new Map();globalOriginalAttr.set(el,originals)}
-    for(const attr of attrNames){const value=el.getAttribute(attr);if(!value)continue;if(!originals.has(attr))originals.set(attr,value);const source=originals.get(attr)!;const next=translatedGlobally(source,locale);if(value!==next)el.setAttribute(attr,next)}
+    for(const attr of attrNames){const value=el.getAttribute(attr);if(!value)continue;const source=refreshAttrSource(originals,attr,value,translatedGlobally);const next=translatedGlobally(source,locale);if(value!==next)el.setAttribute(attr,next)}
   }
 }
 export function useLegacySurfaceTranslation(surfaceId:SurfaceId,ref:RefObject<HTMLElement|null>){
@@ -213,8 +227,7 @@ function applyRouteSurfaceTranslation(root:HTMLElement,surfaceId:SurfaceId,local
     if(excludedFromRoute(node))continue;
     const text=node as Text,current=text.data,trimmed=current.trim();
     if(!trimmed)continue;
-    if(!originalText.has(text))originalText.set(text,trimmed);
-    const source=originalText.get(text)!;
+    const source=refreshSource(originalText,text,trimmed,(value,nextLocale)=>translated(surfaceId,value,nextLocale));
     const next=translated(surfaceId,source,locale);
     if(current.trim()!==next)text.data=replaceTrimmed(source,next,current);
   }
@@ -226,8 +239,7 @@ function applyRouteSurfaceTranslation(root:HTMLElement,surfaceId:SurfaceId,local
     for(const attr of attrNames){
       const value=el.getAttribute(attr);
       if(!value)continue;
-      if(!originals.has(attr))originals.set(attr,value);
-      const source=originals.get(attr)!;
+      const source=refreshAttrSource(originals,attr,value,(current,nextLocale)=>translated(surfaceId,current,nextLocale));
       const next=translated(surfaceId,source,locale);
       if(value!==next)el.setAttribute(attr,next);
     }

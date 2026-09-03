@@ -265,7 +265,9 @@
     "opsiqo85:h34:audit": "node scripts/opsiqo-h34-platform-stabilization-audit.mjs",
     "test:h34": "vitest run tests/opsiqo85/opsiqo-one-v7-34-platform-stabilization.test.ts",
     "opsiqo85:h37:audit": "node scripts/opsiqo-h37-platform-tenants-audit.mjs",
-    "test:h37": "vitest run tests/platform-tenant-management.test.ts tests/organization-bootstrap.test.ts"
+    "test:h37": "vitest run tests/platform-tenant-management.test.ts tests/organization-bootstrap.test.ts",
+    "opsiqo:h45:audit": "node scripts/opsiqo-h45-stabilization-audit.mjs",
+    "test:h45": "vitest run tests/recruiting-uat-readiness-h45.test.ts"
   },
   "dependencies": {
     "firebase": "12.16.0",

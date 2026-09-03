@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
-import { activeOrgId, apiFetch } from "@/lib/http/client";
+import { useEffect, useState } from "react";
+import { activeOrgId, apiFetch, ApiRequestError } from "@/lib/http/client";
+import Link from "next/link";
 
 type Parsed = {
   profile: {
@@ -41,11 +42,45 @@ function clearParsedValues(form: HTMLFormElement) {
   ]) setNamedValue(form, name, "");
 }
 
+function selectSingleOpenRequisition(form: HTMLFormElement) {
+  const select = form.elements.namedItem("requisitionId");
+  if (!(select instanceof HTMLSelectElement) || select.value) return;
+  const options = Array.from(select.options).filter((option) => option.value);
+  if (options.length === 1) {
+    select.value = options[0]!.value;
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+}
+
+function tryAutoEnroll(form: HTMLFormElement) {
+  if (form.dataset.resumeIntakeReady !== "true" || form.dataset.autoSubmitting === "true") return;
+  const consent = form.elements.namedItem("consent");
+  const requisition = form.elements.namedItem("requisitionId");
+  const firstName = form.elements.namedItem("firstName");
+  const lastName = form.elements.namedItem("lastName");
+  const email = form.elements.namedItem("email");
+  if (!(consent instanceof HTMLInputElement) || !consent.checked) return;
+  if (!(requisition instanceof HTMLSelectElement) || !requisition.value) return;
+  if (!(firstName instanceof HTMLInputElement) || !firstName.value.trim()) return;
+  if (!(lastName instanceof HTMLInputElement) || !lastName.value.trim()) return;
+  if (!(email instanceof HTMLInputElement) || !email.validity.valid || !email.value.trim()) return;
+  if (!form.checkValidity()) return;
+  form.dataset.autoSubmitting = "true";
+  form.requestSubmit();
+}
+
 export function ResumeIntakeAssistant({ formId }: { formId: string }) {
   const [file, setFile] = useState<File | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState("");
+  useEffect(() => {
+    const form = document.getElementById(formId);
+    if (!(form instanceof HTMLFormElement)) return;
+    const onChange = () => tryAutoEnroll(form);
+    form.addEventListener("change", onChange);
+    return () => form.removeEventListener("change", onChange);
+  }, [formId]);
   async function parse(selected: File | null = file) {
     setError("");
     setNotice("");
@@ -58,6 +93,8 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
       setError("Choose a resume file.");
       return;
     }
+    delete form.dataset.resumeIntakeReady;
+    delete form.dataset.autoSubmitting;
     clearParsedValues(form);
     setBusy(true);
     try {
@@ -87,12 +124,23 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
       if (p.linkedinUrl) setNamedValue(form, "linkedinUrl", p.linkedinUrl);
       setNamedValue(form, "resumeText", r.data.resumeText);
       setNamedValue(form, "source", "Resume import");
+      selectSingleOpenRequisition(form);
+      form.dataset.resumeIntakeReady = "true";
       setNotice(
-        `Resume parsed with ${p.parser.replaceAll("_", " ")}. Candidate fields were prefilled. Select the requisition and review every field before submitting.`,
+        `Resume parsed with ${p.parser.replaceAll("_", " ")}. Candidate fields were prefilled. Review the extracted data; when an open requisition is selected and consent is confirmed, OPSIQO creates the application automatically.`,
       );
+      queueMicrotask(() => tryAutoEnroll(form));
     } catch (e) {
       clearParsedValues(form);
-      setError(e instanceof Error ? e.message : "Resume parsing failed.");
+      delete form.dataset.resumeIntakeReady;
+      delete form.dataset.autoSubmitting;
+      if (e instanceof ApiRequestError && e.code === "recruiting_ai_setup_required") {
+        setError("This resume needs Recruiting AI because it has no reliable readable text layer. Complete Recruiting AI setup or use a text-based PDF/DOCX/TXT/RTF/Markdown file.");
+      } else if (e instanceof ApiRequestError && e.code === "resume_parser_unavailable") {
+        setError("This PDF could not be read safely because its text layer appears corrupted or binary-like. Export a clean text-based PDF or upload DOCX/TXT/RTF/Markdown instead.");
+      } else {
+        setError(e instanceof Error ? e.message : "Resume parsing failed.");
+      }
     } finally {
       setBusy(false);
     }
@@ -105,10 +153,10 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
           <div className="muted">
             PDF, DOCX, TXT, RTF or Markdown. Selecting a file immediately parses
             and prefills the candidate form. Data remains transient until
-            consented submission.
+            the recruiter reviews the fields and confirms recorded candidate consent.
           </div>
         </div>
-        <span className="badge">Human review required</span>
+        <span className="badge">Auto-enrollment · human reviewed</span>
       </div>
       <div className="row wrap">
         <input
@@ -134,6 +182,7 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
       {error && (
         <div className="error compactError" role="alert">
           {error}
+          {error.includes("Recruiting AI") && <div><Link className="textLink" href="/ai-copilot?tab=governance">Configure Recruiting AI</Link></div>}
         </div>
       )}
       {notice && (

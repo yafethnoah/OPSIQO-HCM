@@ -5,6 +5,8 @@ import { activeOrgId, apiFetch } from "@/lib/http/client";
 import { ResumeIntakeAssistant } from "@/components/resume-intake-assistant";
 import { AtsRecruitingPanel } from "@/components/ats-recruiting-panel";
 import { JobDescriptionAssistant } from "@/components/job-description-assistant";
+import { InterviewIntelligencePanel } from "@/components/interview-intelligence-panel";
+import { RecruitingReadinessPanel } from "@/components/recruiting-readiness-panel";
 
 type Req = {
   id: string;
@@ -77,11 +79,11 @@ const stages = [
   "withdrawn",
 ];
 const manualTransitions: Record<string, string[]> = {
-  applied: ["screening", "interview", "assessment", "rejected", "withdrawn"],
-  screening: ["interview", "assessment", "rejected", "withdrawn"],
-  interview: ["assessment", "rejected", "withdrawn"],
-  assessment: ["interview", "rejected", "withdrawn"],
-  offer: ["rejected", "withdrawn"],
+  applied: ["screening", "interview", "assessment"],
+  screening: ["interview", "assessment"],
+  interview: ["assessment"],
+  assessment: ["interview"],
+  offer: [],
   hired: [],
   rejected: [],
   withdrawn: [],
@@ -102,6 +104,13 @@ export function RecruitingWorkspace() {
     [notice, setNotice] = useState("");
   const [reqUnitId, setReqUnitId] = useState(""),
     [reqPositionId, setReqPositionId] = useState("");
+  const [disposition, setDisposition] = useState<{
+    applicationId: string;
+    candidateName: string;
+    action: "reject" | "withdraw";
+    reason: string;
+    note: string;
+  } | null>(null);
   const can = (p: string) => permissions.includes(p);
   const openReqs = reqs.filter((r) => r.status === "open");
   const activeApps = apps.filter(
@@ -195,8 +204,10 @@ export function RecruitingWorkspace() {
       await apiFetch(path, { method, body: JSON.stringify(body) });
       setNotice(msg);
       await load();
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Operation failed.");
+      return false;
     }
   };
   async function createReq(e: FormEvent<HTMLFormElement>) {
@@ -230,25 +241,60 @@ export function RecruitingWorkspace() {
     e.preventDefault();
     const form = e.currentTarget;
     const f = new FormData(form);
-    await submit(
-      `/api/organizations/${activeOrgId()}/recruiting/applications`,
+    setError("");
+    setNotice("");
+    try {
+      const response = await apiFetch<{ data: { deduplicated?: boolean } }>(
+        `/api/organizations/${activeOrgId()}/recruiting/applications`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            requisitionId: f.get("requisitionId"),
+            firstName: f.get("firstName"),
+            lastName: f.get("lastName"),
+            email: f.get("email"),
+            phone: f.get("phone") || undefined,
+            location: f.get("location") || undefined,
+            linkedinUrl: f.get("linkedinUrl") || undefined,
+            source: f.get("source") || undefined,
+            resumeText: f.get("resumeText") || undefined,
+            consent: f.get("consent") === "on",
+          }),
+        },
+      );
+      setNotice(
+        response.data.deduplicated
+          ? "This candidate is already enrolled in the selected requisition. The existing application was retained."
+          : "Candidate application created automatically and enrolled in Applied.",
+      );
+      form.reset();
+      delete form.dataset.resumeIntakeReady;
+      delete form.dataset.autoSubmitting;
+      await load();
+    } catch (e) {
+      delete form.dataset.autoSubmitting;
+      setError(e instanceof Error ? e.message : "Unable to create candidate application.");
+    }
+  }
+
+  async function confirmDisposition() {
+    if (!disposition) return;
+    const ok = await submit(
+      `/api/organizations/${activeOrgId()}/recruiting/applications/${disposition.applicationId}/disposition`,
       "POST",
       {
-        requisitionId: f.get("requisitionId"),
-        firstName: f.get("firstName"),
-        lastName: f.get("lastName"),
-        email: f.get("email"),
-        phone: f.get("phone") || undefined,
-        location: f.get("location") || undefined,
-        linkedinUrl: f.get("linkedinUrl") || undefined,
-        source: f.get("source") || undefined,
-        resumeText: f.get("resumeText") || undefined,
-        consent: f.get("consent") === "on",
+        action: disposition.action,
+        reason: disposition.reason,
+        note: disposition.note || undefined,
+        confirm: true,
       },
-      "Candidate application added.",
+      disposition.action === "reject"
+        ? "Application rejected with governed disposition evidence."
+        : "Candidate withdrawal recorded with governed disposition evidence.",
     );
-    form.reset();
+    if (ok) setDisposition(null);
   }
+
   async function scheduleInterview(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
@@ -268,31 +314,6 @@ export function RecruitingWorkspace() {
         meetingUrl: f.get("meetingUrl") || undefined,
       },
       "Interview scheduled.",
-    );
-    form.reset();
-  }
-  async function score(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const f = new FormData(form);
-    const id = String(f.get("interviewId"));
-    await submit(
-      `/api/organizations/${activeOrgId()}/recruiting/interviews/${id}/scorecards`,
-      "POST",
-      {
-        recommendation: f.get("recommendation"),
-        ratings: [
-          ["Role capability", "role"],
-          ["Evidence quality", "evidence"],
-          ["Collaboration", "collaboration"],
-        ].map(([criterion, name]) => ({
-          criterion,
-          rating: Number(f.get(name)),
-          evidence: String(f.get(`${name}Note`) || "") || undefined,
-        })),
-        overallComment: f.get("overallComment") || undefined,
-      },
-      "Scorecard submitted.",
     );
     form.reset();
   }
@@ -350,6 +371,7 @@ export function RecruitingWorkspace() {
     <div ref={translationRoot} className="stack">
       {error && <div className="error">{error}</div>}
       {notice && <div className="success">{notice}</div>}
+      <RecruitingReadinessPanel />
       <div className="grid4">
         <Metric label="Open requisitions" value={metrics.open} />
         <Metric label="Applications" value={metrics.applications} />
@@ -361,7 +383,7 @@ export function RecruitingWorkspace() {
         />
       </div>
       {(can("recruiting.manage") || can("recruiting.manage.team")) && (
-        <div className="grid2">
+        <div className="grid2" id="requisition-management">
           <form
             id="requisition-create-form"
             className="card stack"
@@ -489,7 +511,7 @@ export function RecruitingWorkspace() {
             className="card stack"
             onSubmit={addCandidate}
           >
-            <h2 className="sectionTitle">Add candidate application</h2>
+            <h2 className="sectionTitle">Candidate intake & automatic enrollment</h2>
             <ResumeIntakeAssistant formId="candidate-application-form" />
             <label className="field">
               <span>Open requisition</span>
@@ -536,12 +558,10 @@ export function RecruitingWorkspace() {
               </span>
             </label>
             <div className="notice">
-              Consent evidence is stored with the application. Candidate
-              identity is deduplicated by normalized email, while applications
-              remain requisition-specific.
+              When the résumé has been parsed, an open requisition is selected, and you confirm recorded candidate consent, OPSIQO automatically creates the requisition-specific application in Applied. If only one requisition is open, it is selected automatically. Duplicate submissions reuse the existing application.
             </div>
             <button className="button" disabled={!openReqs.length}>
-              Add application
+              Create application now
             </button>
           </form>
         </div>
@@ -583,7 +603,7 @@ export function RecruitingWorkspace() {
                   {r.openingsRemaining}/{r.headcount}
                 </td>
                 <td>
-                  <span className="badge">{r.status.replaceAll("_", " ")}</span>
+                  <span className="badge" data-opsiqo-no-translate="true">{r.status.replaceAll("_", " ")}</span>
                 </td>
                 <td>
                   <div className="stepActions">
@@ -710,7 +730,7 @@ export function RecruitingWorkspace() {
             <div className="kanbanColumn" key={stage}>
               <div className="kanbanHeader">
                 <strong>{stage}</strong>
-                <span>{apps.filter((a) => a.stage === stage).length}</span>
+                <span data-opsiqo-no-translate="true">{apps.filter((a) => a.stage === stage).length}</span>
               </div>
               {apps
                 .filter((a) => a.stage === stage)
@@ -741,32 +761,51 @@ export function RecruitingWorkspace() {
                               submit(
                                 `/api/organizations/${activeOrgId()}/recruiting/applications/${a.id}`,
                                 "PATCH",
-                                {
-                                  stage: v,
-                                  dispositionReason:
-                                    v === "rejected"
-                                      ? "Recruiter disposition"
-                                      : "Pipeline progression",
-                                },
+                                { stage: v },
                                 `Application moved to ${v}.`,
                               );
                           }}
                         >
                           <option value="">Move…</option>
-                          {manualTransitions[a.stage]
-                            .filter(
-                              (x) =>
-                                can("recruiting.offer") ||
-                                [
-                                  "screening",
-                                  "interview",
-                                  "assessment",
-                                ].includes(x),
-                            )
-                            .map((x) => (
+                          {manualTransitions[a.stage].map((x) => (
                               <option key={x}>{x}</option>
                             ))}
                         </select>
+                      )}
+                    {can("recruiting.offer") &&
+                      !["hired", "rejected", "withdrawn"].includes(a.stage) && (
+                        <div className="stepActions">
+                          <button
+                            type="button"
+                            className="button secondary"
+                            onClick={() =>
+                              setDisposition({
+                                applicationId: a.id,
+                                candidateName: a.candidate?.displayName || a.candidateId,
+                                action: "reject",
+                                reason: "Does not meet the reviewed role requirements",
+                                note: "",
+                              })
+                            }
+                          >
+                            Review rejection…
+                          </button>
+                          <button
+                            type="button"
+                            className="button secondary"
+                            onClick={() =>
+                              setDisposition({
+                                applicationId: a.id,
+                                candidateName: a.candidate?.displayName || a.candidateId,
+                                action: "withdraw",
+                                reason: "Candidate requested withdrawal",
+                                note: "",
+                              })
+                            }
+                          >
+                            Record withdrawal…
+                          </button>
+                        </div>
                       )}
                   </div>
                 ))}
@@ -774,6 +813,65 @@ export function RecruitingWorkspace() {
           ))}
         </div>
       </section>
+      {disposition && (
+        <section className="card stack" role="dialog" aria-modal="true" aria-labelledby="application-disposition-title">
+          <div className="toolbar">
+            <div>
+              <h2 id="application-disposition-title" className="sectionTitle">
+                {disposition.action === "reject" ? "Review application rejection" : "Record candidate withdrawal"}
+              </h2>
+              <div className="muted" data-opsiqo-no-translate="true">{disposition.candidateName}</div>
+            </div>
+            <span className="badge">Human confirmation required</span>
+          </div>
+          <label className="field">
+            <span>Disposition reason</span>
+            <select
+              className="input"
+              value={disposition.reason}
+              onChange={(e) => setDisposition({ ...disposition, reason: e.target.value })}
+            >
+              {disposition.action === "reject" ? (
+                <>
+                  <option>Does not meet the reviewed role requirements</option>
+                  <option>Insufficient job-related evidence</option>
+                  <option>Required certification or qualification not evidenced</option>
+                  <option>Position no longer available</option>
+                  <option>Other reviewed business reason</option>
+                </>
+              ) : (
+                <>
+                  <option>Candidate requested withdrawal</option>
+                  <option>Candidate accepted another opportunity</option>
+                  <option>Candidate no longer available</option>
+                  <option>Other candidate-initiated withdrawal reason</option>
+                </>
+              )}
+            </select>
+          </label>
+          <label className="field">
+            <span>Review note · optional</span>
+            <textarea
+              className="input"
+              rows={3}
+              value={disposition.note}
+              onChange={(e) => setDisposition({ ...disposition, note: e.target.value })}
+              placeholder="Add job-related evidence or context. Do not record protected-characteristic reasoning."
+            />
+          </label>
+          <div className="notice">
+            This is a consequential recruiting disposition. OPSIQO records the reason, confirmer, timestamp, audit evidence, and stage-change event. ATS scores never trigger this action automatically.
+          </div>
+          <div className="stepActions">
+            <button type="button" className="button" onClick={() => void confirmDisposition()}>
+              {disposition.action === "reject" ? "Confirm rejection" : "Confirm withdrawal"}
+            </button>
+            <button type="button" className="button secondary" onClick={() => setDisposition(null)}>
+              Cancel
+            </button>
+          </div>
+        </section>
+      )}
       {can("recruiting.interview") && (
         <div className="grid2">
           <form className="card stack" onSubmit={scheduleInterview}>
@@ -850,77 +948,7 @@ export function RecruitingWorkspace() {
               Schedule
             </button>
           </form>
-          <form className="card stack" onSubmit={score}>
-            <h2 className="sectionTitle">Structured scorecard</h2>
-            <label className="field">
-              <span>Interview</span>
-              <select
-                required
-                className="input"
-                name="interviewId"
-                disabled={!interviews.length}
-              >
-                <option value="">
-                  {interviews.length
-                    ? "Select interview"
-                    : "No interviews available"}
-                </option>
-                {interviews.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.interviewType} ·{" "}
-                    {new Date(i.scheduledAt).toLocaleString()}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Recommendation</span>
-              <select
-                className="input"
-                name="recommendation"
-                defaultValue="yes"
-              >
-                <option value="strong_yes">strong yes</option>
-                <option value="yes">yes</option>
-                <option value="mixed">mixed</option>
-                <option value="no">no</option>
-                <option value="strong_no">strong no</option>
-              </select>
-            </label>
-            {[
-              ["role", "Role capability"],
-              ["evidence", "Evidence quality"],
-              ["collaboration", "Collaboration"],
-            ].map(([n, l]) => (
-              <div className="scoreRow" key={n}>
-                <label>
-                  {l}
-                  <input
-                    className="input"
-                    name={n}
-                    type="number"
-                    min="1"
-                    max="5"
-                    defaultValue="3"
-                    required
-                  />
-                </label>
-                <input
-                  aria-label={`${l} evidence or observation`}
-                  className="input"
-                  name={`${n}Note`}
-                  placeholder="Evidence / observation"
-                />
-              </div>
-            ))}
-            <label className="field">
-              <span>Overall comment</span>
-              <textarea className="input" name="overallComment" rows={3} />
-            </label>
-            <button className="button" disabled={!interviews.length}>
-              Submit immutable scorecard
-            </button>
-          </form>
+          <InterviewIntelligencePanel interviews={interviews} onChanged={load} />
         </div>
       )}
       {can("recruiting.offer") && (
@@ -1163,7 +1191,7 @@ function Metric({
   return (
     <div className="card">
       <div className="metricLabel">{label}</div>
-      <div className="metricValue">{value}</div>
+      <div className="metricValue" data-opsiqo-no-translate="true">{value}</div>
       <div className="metricFoot">{foot || "Live recruiting data"}</div>
     </div>
   );

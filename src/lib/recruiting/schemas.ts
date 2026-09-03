@@ -15,9 +15,32 @@ export const candidateApplicationCreateSchema = z.object({
   phone: z.string().max(50).optional(), location: z.string().max(160).optional(), source: z.string().max(120).optional(), linkedinUrl: z.string().url().optional(),
   resumeText: z.string().max(100000).optional(), consent: z.boolean().default(false),
 }).refine(v => v.consent, { message: 'Candidate consent is required before storing application data.', path: ['consent'] });
-export const applicationStageSchema = z.object({ stage: z.enum(['applied', 'screening', 'interview', 'assessment', 'rejected', 'withdrawn']), dispositionReason: z.string().max(1000).optional() });
+export const applicationStageSchema = z.object({
+  stage: z.enum(['screening', 'interview', 'assessment']),
+});
+export const applicationDispositionSchema = z.object({
+  action: z.enum(['reject', 'withdraw']),
+  reason: z.string().trim().min(3).max(1000),
+  note: z.string().trim().max(3000).optional(),
+  confirm: z.literal(true),
+});
 export const interviewCreateSchema = z.object({ applicationId: z.string().min(1), interviewType: z.enum(['screening', 'structured', 'panel', 'technical', 'final']), scheduledAt: isoDateTime, durationMinutes: z.number().int().min(15).max(480).default(60), interviewerWorkerIds: z.array(z.string().min(1)).min(1).max(12), location: z.string().max(240).optional(), meetingUrl: z.string().url().optional() });
-export const scorecardCreateSchema = z.object({ recommendation: z.enum(['strong_yes', 'yes', 'mixed', 'no', 'strong_no']), ratings: z.array(z.object({ criterion: z.string().min(1).max(160), rating: z.number().int().min(1).max(5), evidence: z.string().max(1200).optional() })).min(1).max(30), overallComment: z.string().max(3000).optional() });
+export const scorecardCreateSchema = z.object({ recommendation: z.enum(['strong_yes', 'yes', 'mixed', 'no', 'strong_no']), ratings: z.array(z.object({ criterion: z.string().min(1).max(160), rating: z.number().int().min(1).max(5), evidence: z.string().trim().min(3).max(1200) })).min(1).max(30), overallComment: z.string().max(3000).optional() });
 export const offerCreateSchema = z.object({ applicationId: z.string().min(1), currency: z.string().length(3).transform(v => v.toUpperCase()), baseSalary: z.number().nonnegative().optional(), hourlyRate: z.number().nonnegative().optional(), bonusTargetPct: z.number().min(0).max(500).optional(), startDate: isoDate, expiresAt: isoDate.optional(), notes: z.string().max(5000).optional() }).refine(v => v.baseSalary != null || v.hourlyRate != null, { message: 'Either baseSalary or hourlyRate is required.' });
 export const offerActionSchema = z.object({ action: z.enum(['submit', 'approve', 'send', 'accept', 'decline', 'withdraw']) });
 export const hireConversionSchema = z.object({ applicationId: z.string().min(1), offerId: z.string().min(1), employeeNumber: z.string().trim().min(1).max(40).optional(), workEmail: z.string().email(), hireDate: isoDate, employmentType, legalFirstName:z.string().min(1).max(100).optional(), legalLastName:z.string().min(1).max(100).optional(), preferredName:z.string().max(100).optional(), personalEmail:z.string().email().optional(), phone:z.string().max(50).optional() });
+
+export const interviewKitUpdateSchema = z.object({
+  action: z.enum(['lock','regenerate']),
+  questions: z.array(z.object({
+    id: z.string().min(1).max(120),
+    type: z.enum(['core','behavioral','situational','technical','verification','candidate_questions']),
+    competency: z.string().min(1).max(200),
+    question: z.string().min(5).max(1200),
+    probes: z.array(z.string().min(1).max(500)).max(8),
+    expectedEvidence: z.array(z.string().min(1).max(500)).max(10),
+    anchors: z.array(z.object({ rating:z.union([z.literal(1),z.literal(3),z.literal(5)]), description:z.string().min(5).max(1000) })).length(3),
+    standardized: z.boolean(),
+    source: z.enum(['requisition','ats_gap','system']),
+  })).min(3).max(30).optional(),
+});

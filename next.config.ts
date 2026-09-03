@@ -13,7 +13,9 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.google.com https://*.gstatic.com wss://*.firebaseio.com wss://*.googleapis.com",
+  process.env.NODE_ENV === 'production'
+    ? "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.google.com https://*.gstatic.com wss://*.firebaseio.com wss://*.googleapis.com"
+    : "connect-src 'self' http://127.0.0.1:8080 http://127.0.0.1:9099 http://127.0.0.1:9199 http://localhost:8080 http://localhost:9099 http://localhost:9199 https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://*.google.com https://*.gstatic.com wss://*.firebaseio.com wss://*.googleapis.com",
   "frame-src 'self' https://www.google.com https://www.recaptcha.net",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
