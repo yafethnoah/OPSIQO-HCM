@@ -4,6 +4,8 @@ export type NotificationChannel = 'in_app' | 'email';
 export interface UserNotification {
   id: string;
   type: string;
+  category?: string;
+  priority?: 'normal'|'high'|'urgent'|'critical';
   title: string;
   message: string;
   targetUid?: string;

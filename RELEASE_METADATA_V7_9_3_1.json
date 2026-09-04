@@ -1,0 +1,12 @@
+{
+  "release": "8.5-v7.9.3.1",
+  "date": "2026-08-17",
+  "type": "code-certification-hotfix",
+  "baseline": "8.5-v7.9.3",
+  "scope": [
+    "production-readiness test fixture alignment",
+    "deployment platform fail-closed regression coverage",
+    "App Hosting evidence fail-closed regression coverage"
+  ],
+  "productionCertified": false
+}

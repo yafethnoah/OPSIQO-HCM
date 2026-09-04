@@ -1,0 +1,24 @@
+{
+  "release": "H43",
+  "title": "Recruiting automatic enrollment and governed disposition closure",
+  "baseline": "H42",
+  "repairs": [
+    "Automatically creates a requisition-specific application once resume intake is ready, an open requisition is selected, required candidate identity is present, and recruiter-confirmed consent is recorded.",
+    "Automatically selects the requisition only when exactly one open requisition is available; otherwise human selection remains required.",
+    "Makes candidate/requisition enrollment idempotent by reusing an existing indexed application rather than creating duplicates.",
+    "Improves deterministic candidate-name, LinkedIn and labeled-location extraction, including safe filename fallback for resume filenames such as ResumeJiaYeeTan.pdf.",
+    "Removes rejection and withdrawal from the generic pipeline Move control.",
+    "Adds a dedicated confirmed disposition endpoint and UI that records reason, optional note, confirmer, timestamp, audit evidence and domain event.",
+    "Keeps ATS scores advisory and prevents automated rejection.",
+    "Repairs legacy translation state so React-updated dynamic text and attributes replace stale translation-source snapshots instead of being reverted.",
+    "Protects recruiting metrics and stage counters from DOM translation mutation as an additional local safeguard.",
+    "Preserves the authoritative server rule that applications can only be created against requisitions whose status is open."
+  ],
+  "governance": {
+    "candidateConsentRequired": true,
+    "automaticRequisitionSelection": "only_when_exactly_one_open_requisition",
+    "automaticRejection": false,
+    "rejectionHumanConfirmationRequired": true,
+    "protectedCharacteristicDecisioning": false
+  }
+}

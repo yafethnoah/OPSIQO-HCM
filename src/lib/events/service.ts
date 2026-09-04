@@ -6,6 +6,7 @@ import { startWorkflowFromDefinition } from '@/lib/workflow/service';
 import { systemActor } from '@/lib/automation/system-actor';
 import { buildAudit } from '@/lib/audit/service';
 import { getNotificationSettingsForOrg } from '@/lib/notifications/service';
+import { workflowMatchesEvent } from '@/lib/workflow/conditions';
 
 const now = () => new Date().toISOString();
 
@@ -32,6 +33,7 @@ export async function processPendingDomainEvents(orgId: string, limit = 50) {
       const actor = systemActor(orgId, 'system:workflow-dispatcher');
       for (const workflowDoc of workflowSnap.docs) {
         const workflow = workflowDoc.data() as WorkflowDefinition;
+        if(!workflowMatchesEvent(workflow,event))continue;
         const dispatchKey = `${event.id}:${workflow.id}:v${workflow.version}`;
         const started = await startWorkflowFromDefinition(actor, workflow, {
           entityType: event.entityType,

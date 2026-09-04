@@ -1,0 +1,19 @@
+{
+  "release": "H41",
+  "title": "Resume PDF corruption safety and recruiting setup guidance",
+  "baseline": "H40 commit d42d3c9",
+  "changes": [
+    "PDF human-readable text quality gate",
+    "False-success prevention",
+    "Candidate field clearing on parse start and failure",
+    "Governed AI fallback for unreadable PDF text layers",
+    "Organization and People setup guidance for blocked requisitions"
+  ],
+  "certification": {
+    "targetedTests": "11/11 passed",
+    "fullTests": "570/570 passed across 130 files",
+    "typecheck": "passed",
+    "productionBuild": "passed",
+    "staticPages": "99/99"
+  }
+}

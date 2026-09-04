@@ -1,0 +1,18 @@
+{
+  "release": "H40",
+  "title": "Recruiting document-first intake merged onto current H39 baseline",
+  "features": [
+    "Resume attachment automatically parses and prefills candidate fields before requisition selection",
+    "Job-description attachment automatically parses and prefills supported requisition fields",
+    "PDF text-layer deterministic fallback",
+    "Preserved H39 asynchronous form safety and Offboarding navigation",
+    "Preserved H37 platform tenant creation"
+  ],
+  "certification": {
+    "targetedTests": "7/7 passed",
+    "fullTests": "566/566 passed across 129 files",
+    "typecheck": "passed",
+    "productionBuild": "passed",
+    "staticPages": "99/99"
+  }
+}

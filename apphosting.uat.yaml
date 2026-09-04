@@ -1,0 +1,86 @@
+﻿# OPSIQO H48.1
+# Firebase App Hosting environment: uat
+# Target: https://uat.opsiqo.ca
+#
+# Secret values are never stored in Git.
+# UAT secrets reference Secret Manager resources by name.
+
+env:
+  - variable: OPSIQO_ENVIRONMENT
+    value: uat
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: FIREBASE_PROJECT_ID
+    value: opsiqo-hcm-uat-2026
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: opsiqo-hcm-uat-2026
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: '1:68136784443:web:8c05e5e25ec2ee943e021e'
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: '68136784443'
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: APP_BASE_URL
+    value: https://uat.opsiqo.ca
+    availability:
+      - RUNTIME
+
+  - variable: NEXT_PUBLIC_APP_BASE_URL
+    value: https://uat.opsiqo.ca
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: OPSIQO_AI_PROVIDER
+    value: gemini
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: GEMINI_API_KEY
+    secret: UAT_OPSIQO_GEMINI_API_KEY
+
+  - variable: OPSIQO_JOB_SECRET
+    secret: UAT_OPSIQO_JOB_SECRET
+
+  - variable: OPSIQO_SURVEY_ANONYMITY_SECRET
+    secret: UAT_OPSIQO_SURVEY_ANONYMITY_SECRET
+
+  - variable: OPSIQO_BACKUP_EVIDENCE_MODE
+    value: governed_manual
+
+  - variable: OPSIQO_PLATFORM_MONITORING_SOURCE
+    value: firebase_app_hosting_and_cloud_logging
+
+  - variable: OPSIQO_REGULATORY_SOURCE_HOSTS
+    value: canada.ca,www.ontario.ca
+
+  - variable: OPSIQO_APP_HOSTING_FRAMEWORK_EVIDENCE_REF
+    value: PENDING
+    availability:
+      - RUNTIME
+
+  - variable: OPSIQO_PRODUCTION_EVIDENCE_REF
+    value: PENDING
+
+  - variable: OPSIQO_CLOUD_DR_EVIDENCE_REF
+    value: PENDING
+
+  - variable: OPSIQO_DR_EXERCISE_EVIDENCE_REF
+    value: PENDING

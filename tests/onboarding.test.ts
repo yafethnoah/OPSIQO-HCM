@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import { can } from '../src/lib/auth/permissions';
 import { candidateTaskActionSchema, caseActionSchema, createPrehireSchema, prehireProfileSchema } from '../src/lib/onboarding/schemas';
 
@@ -21,7 +21,8 @@ describe('Phase 2 onboarding schemas',()=>{
 describe('Phase 2 onboarding RBAC',()=>{
   it('lets managers manage their scoped onboarding tasks but not activate employment',()=>{
     expect(can('manager','onboarding.read')).toBe(true);
-    expect(can('manager','onboarding.manage')).toBe(true);
+    expect(can('manager','onboarding.manage.team')).toBe(true);
+    expect(can('manager','onboarding.manage')).toBe(false);
     expect(can('manager','onboarding.activate')).toBe(false);
   });
   it('separates HR partner journey management from HR admin activation',()=>{

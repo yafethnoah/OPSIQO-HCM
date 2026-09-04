@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "opsiqo-v7.32-local-env-certification-hotfix-3",
+  "release": "7.32",
+  "date": "2026-08-20",
+  "hotfix": 3,
+  "scope": "local environment certification overlay",
+  "sourcePhaseComplete": true,
+  "productionDeploymentPerformed": false,
+  "overallProgressPercent": 99.99,
+  "allowedCertificationLocalEnvironmentOverlay": ".env.local",
+  "strictReleaseAuditStillRejectsLocalEnvironmentFiles": true,
+  "secretValuesReadByCleanReleaseGate": false
+}

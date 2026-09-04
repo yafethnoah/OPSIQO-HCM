@@ -1,0 +1,4 @@
+import { actorFromRequest, requirePermission } from '@/lib/auth/session';
+import { apiErrorResponse } from '@/lib/http/errors';
+import { exportExpenseCsv } from '@/lib/time/frontline-service';
+export async function GET(request:Request,context:{params:Promise<{orgId:string}>}){try{const{orgId}=await context.params;const actor=await actorFromRequest(request,orgId);requirePermission(actor,'expense.manage');const u=new URL(request.url),start=u.searchParams.get('periodStart')||'',end=u.searchParams.get('periodEnd')||'';const r=await exportExpenseCsv(actor,start,end);return new Response(r.csv,{headers:{'content-type':'text/csv; charset=utf-8','content-disposition':`attachment; filename="opsiqo-expenses-${start}-${end}.csv"`,'x-opsiqo-row-count':String(r.rowCount)}});}catch(e){return apiErrorResponse(e);}}

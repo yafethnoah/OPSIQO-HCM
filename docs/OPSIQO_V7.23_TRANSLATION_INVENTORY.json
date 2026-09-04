@@ -1,0 +1,723 @@
+{
+  "version": "7.23",
+  "supportedLocales": [
+    "en",
+    "fr",
+    "es",
+    "ar"
+  ],
+  "scannedFiles": 184,
+  "cataloguedSurfaceCount": 23,
+  "catalogEntries": 1168,
+  "reviewedSourceCandidates": 1294,
+  "legacyCandidateCountRemaining": 2510,
+  "totalSourceCandidates": 3804,
+  "catalogCompleteness": "complete",
+  "incompleteCatalog": [],
+  "topBacklog": [
+    {
+      "file": "src/components/safety-workspace.tsx",
+      "totalCandidates": 123,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 123
+    },
+    {
+      "file": "src/components/career-workspace.tsx",
+      "totalCandidates": 100,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 100
+    },
+    {
+      "file": "src/components/hr-diagnostic-workspace.tsx",
+      "totalCandidates": 100,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 100
+    },
+    {
+      "file": "src/components/regulatory-change-center.tsx",
+      "totalCandidates": 98,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 98
+    },
+    {
+      "file": "src/components/resilience-center.tsx",
+      "totalCandidates": 94,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 94
+    },
+    {
+      "file": "src/components/enterprise-command-center.tsx",
+      "totalCandidates": 81,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 81
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "totalCandidates": 80,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 80
+    },
+    {
+      "file": "src/components/identity-command-center.tsx",
+      "totalCandidates": 79,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 79
+    },
+    {
+      "file": "src/components/governance-control-center.tsx",
+      "totalCandidates": 78,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 78
+    },
+    {
+      "file": "src/components/import-center-workspace.tsx",
+      "totalCandidates": 77,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 77
+    },
+    {
+      "file": "src/components/separation-workspace.tsx",
+      "totalCandidates": 76,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 76
+    },
+    {
+      "file": "src/components/employee-profile.tsx",
+      "totalCandidates": 74,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 74
+    },
+    {
+      "file": "src/components/people-analytics-workspace.tsx",
+      "totalCandidates": 74,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 74
+    },
+    {
+      "file": "src/components/performance-workspace.tsx",
+      "totalCandidates": 131,
+      "reviewedCandidates": 74,
+      "remainingCandidates": 57
+    },
+    {
+      "file": "src/components/employee-relations-workspace.tsx",
+      "totalCandidates": 54,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 54
+    },
+    {
+      "file": "src/components/employee-portal-workspace.tsx",
+      "totalCandidates": 53,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 53
+    },
+    {
+      "file": "src/components/org-design-center.tsx",
+      "totalCandidates": 51,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 51
+    },
+    {
+      "file": "src/components/intelligence-hub-workspace.tsx",
+      "totalCandidates": 46,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 46
+    },
+    {
+      "file": "src/components/scenario-lab-workspace.tsx",
+      "totalCandidates": 41,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 41
+    },
+    {
+      "file": "src/components/strategy-center.tsx",
+      "totalCandidates": 38,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 38
+    },
+    {
+      "file": "src/components/ai-value-workspace.tsx",
+      "totalCandidates": 36,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 36
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "totalCandidates": 33,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 33
+    },
+    {
+      "file": "src/components/governed-gantt.tsx",
+      "totalCandidates": 32,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 32
+    },
+    {
+      "file": "src/components/organization-panel.tsx",
+      "totalCandidates": 32,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 32
+    },
+    {
+      "file": "src/components/program-workforce-workspace.tsx",
+      "totalCandidates": 32,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 32
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "totalCandidates": 31,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 31
+    },
+    {
+      "file": "src/components/invitation-panel.tsx",
+      "totalCandidates": 31,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 31
+    },
+    {
+      "file": "src/components/experience-workspace.tsx",
+      "totalCandidates": 73,
+      "reviewedCandidates": 43,
+      "remainingCandidates": 30
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "totalCandidates": 30,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 30
+    },
+    {
+      "file": "src/components/recruiting-workspace.tsx",
+      "totalCandidates": 83,
+      "reviewedCandidates": 55,
+      "remainingCandidates": 28
+    },
+    {
+      "file": "src/components/people-table.tsx",
+      "totalCandidates": 28,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 28
+    },
+    {
+      "file": "src/components/compensation-workspace.tsx",
+      "totalCandidates": 110,
+      "reviewedCandidates": 83,
+      "remainingCandidates": 27
+    },
+    {
+      "file": "src/components/skills-passport-workspace.tsx",
+      "totalCandidates": 27,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 27
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "totalCandidates": 25,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 25
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "totalCandidates": 24,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 24
+    },
+    {
+      "file": "src/components/manager-portal-workspace.tsx",
+      "totalCandidates": 24,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 24
+    },
+    {
+      "file": "src/components/program-portfolio-workspace.tsx",
+      "totalCandidates": 24,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 24
+    },
+    {
+      "file": "src/components/career-gps-workspace.tsx",
+      "totalCandidates": 23,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 23
+    },
+    {
+      "file": "src/components/manager-copilot-workspace.tsx",
+      "totalCandidates": 23,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 23
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "totalCandidates": 76,
+      "reviewedCandidates": 55,
+      "remainingCandidates": 21
+    },
+    {
+      "file": "src/components/grant-workforce-workspace.tsx",
+      "totalCandidates": 21,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 21
+    },
+    {
+      "file": "src/components/contract-import-workspace.tsx",
+      "totalCandidates": 20,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 20
+    },
+    {
+      "file": "src/components/talent-marketplace-workspace.tsx",
+      "totalCandidates": 19,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 19
+    },
+    {
+      "file": "src/components/employee-concierge-workspace.tsx",
+      "totalCandidates": 17,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 17
+    },
+    {
+      "file": "src/components/organization-launchpad-workspace.tsx",
+      "totalCandidates": 17,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 17
+    },
+    {
+      "file": "src/components/privacy-governance-center.tsx",
+      "totalCandidates": 130,
+      "reviewedCandidates": 114,
+      "remainingCandidates": 16
+    },
+    {
+      "file": "src/components/manager-team.tsx",
+      "totalCandidates": 16,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 16
+    },
+    {
+      "file": "src/components/lifecycle-command-center.tsx",
+      "totalCandidates": 15,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 15
+    },
+    {
+      "file": "src/components/opsiqo-command-bar.tsx",
+      "totalCandidates": 15,
+      "reviewedCandidates": 0,
+      "remainingCandidates": 15
+    },
+    {
+      "file": "src/components/integration-runtime-center.tsx",
+      "totalCandidates": 68,
+      "reviewedCandidates": 54,
+      "remainingCandidates": 14
+    }
+  ],
+  "candidateExamples": [
+    {
+      "file": "src/app/accept-invite/page.tsx",
+      "sample": "Invitation link is incomplete."
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Forgot password"
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Self-service recovery follows the organization access policy."
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Self-service password reset is disabled. Contact an organization administrator."
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Email"
+    },
+    {
+      "file": "src/app/forgot-password/page.tsx",
+      "sample": "Back to sign in"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Sign in required"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Sign in before configuring multi-factor authentication."
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Sign in securely"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Verify your email first"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Firebase requires a verified email before a second factor can be enrolled."
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Your signed-in email is not verified. Verify it, sign in again, then return to MFA setup."
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Return to sign in"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Human verified"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "A second factor is required before privileged HR data is released."
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "No secret logging"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Authenticator secrets and codes remain only in the active browser enrollment flow."
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Fresh session"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "After enrollment, OPSIQO requires a new sign-in that actually proves the second factor."
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Multi-factor authentication"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Set up an authenticator app"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Enrolled factors"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Current password"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Cancel"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Add the account to your authenticator app using the URI below or the manual secret key. Do not share either value."
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Authenticator-compatible URI"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Manual secret key"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Factor name"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "6-digit authenticator code"
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "sample": "Cancel enrollment"
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Register account"
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Registration creates a Firebase identity only. Organization membership remains invitation/JIT governed."
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Open registration is not enabled for this organization."
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Email"
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Password"
+    },
+    {
+      "file": "src/app/register/page.tsx",
+      "sample": "Already registered? Sign in"
+    },
+    {
+      "file": "src/app/settings/page.tsx",
+      "sample": "Platform"
+    },
+    {
+      "file": "src/app/settings/page.tsx",
+      "sample": "Settings"
+    },
+    {
+      "file": "src/app/settings/page.tsx",
+      "sample": "Account, appearance, access, organization defaults, notifications, imports, security and diagnostics."
+    },
+    {
+      "file": "src/app/setup/page.tsx",
+      "sample": ": !signedIn ?"
+    },
+    {
+      "file": "src/app/setup/page.tsx",
+      "sample": "OPSIQO_ALLOW_FIRST_ORG_BOOTSTRAP"
+    },
+    {
+      "file": "src/app/workforce-intelligence/page.tsx",
+      "sample": "Privacy boundary:"
+    },
+    {
+      "file": "src/components/accept-invite.tsx",
+      "sample": "For security, the signed-in Firebase account email must exactly match the email that received this invitation."
+    },
+    {
+      "file": "src/components/accept-invite.tsx",
+      "sample": "Accept invitation"
+    },
+    {
+      "file": "src/components/accept-invite.tsx",
+      "sample": "Sign in first →"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Multi-factor authentication required"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Set up MFA"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": ";return"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "OPSIQO Cortex · Agent Builder"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Create specialized agents without creating a new security boundary"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "AI Governance"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "New custom agent"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Name"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Maximum action level"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Observe"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Recommend"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Prepare"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Purpose"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Instructions"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Capabilities · one per line"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Routing keywords · comma separated"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Evidence permission gates"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Hard ceiling:"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Custom agent lifecycle"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Agent"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Authority"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Evidence gates"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Status"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Governed action"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "hard cap: prepare"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Submit review"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Activate"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Retire"
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "No custom agents have been created."
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "sample": "Agent governance."
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Evidence-to-Action Intelligence"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Human-controlled"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Ask OPSIQO"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "No direct employment action is executed from this screen."
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Copilot answer"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Blocked consequential use"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Ask OPSIQO to summarize relevant criteria, aggregate evidence, risks, or development options instead."
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": ":run.answer?"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Confidence"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "bounded by evidence quality"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Evidence completeness"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "retrieval/data-quality signal"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Human decision"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "AI does not execute consequential actions"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Findings"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Evidence citations"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "x.id===c.evidenceId);return"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Open source view"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Recommendations"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Limitations"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "AI audit history"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Time"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Question"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Status"
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "sample": "Provider/model"
+    }
+  ],
+  "generatedAt": "2026-08-20T02:02:38.150Z",
+  "boundary": "Reviewed means the exact source string is present in the V7.23 surface catalog with explicit French, Spanish and Arabic translations. This source inventory is not a linguistic-quality or browser-completeness claim; dynamic content, date/number formatting, validation responses and accessibility labels still require browser review."
+}

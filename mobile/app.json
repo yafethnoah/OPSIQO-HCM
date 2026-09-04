@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "OPSIQO Employee",
+    "slug": "opsiqo-employee",
+    "version": "0.1.2",
+    "orientation": "portrait",
+    "scheme": "opsiqo",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ca.opsiqo.employee",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Use Face ID to protect access to your OPSIQO employee account.",
+        "NSLocationWhenInUseUsageDescription": "OPSIQO uses your location only when you submit a governed attendance event such as clock in or clock out."
+      },
+      "buildNumber": "1"
+    },
+    "android": {
+      "package": "ca.opsiqo.employee",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "USE_BIOMETRIC"
+      ],
+      "versionCode": 1
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Use Face ID to protect access to your OPSIQO employee account."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow OPSIQO Employee to use your location only when you submit an attendance event.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow OPSIQO Employee to attach receipt or attendance evidence selected by you.",
+          "cameraPermission": "Allow OPSIQO Employee to take receipt or attendance evidence photos selected by you."
+        }
+      ],
+      "expo-notifications"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "h47Release": "employee-mobile-v1.1f",
+      "buildEnvironment": "configured-by-eas-profile"
+    }
+  }
+}

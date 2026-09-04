@@ -114,3 +114,13 @@ export function renderNotificationTemplate(template:NotificationTemplate,values:
   const render=(source:string)=>source.replace(/\{\{\s*([a-zA-Z][a-zA-Z0-9_]*)\s*\}\}/g,(_,key:string)=>String(values[key]??''));
   return {title:render(template.subject),message:render(template.body)};
 }
+
+export async function markVisibleNotificationsRead(actor:ActorContext,limit=100){
+  if(!actor.permissions.includes('notifications.read')) throw new ApiError(403,'Notification read permission required.','forbidden');
+  const safe=Math.max(1,Math.min(limit,100)),db=adminDb(),snap=await db.collection(`organizations/${actor.orgId}/notifications`).orderBy('createdAt','desc').limit(250).get();
+  const unread=snap.docs.filter(d=>{const n=d.data() as UserNotification;return n.inAppVisible!==false&&n.status!=='read'&&n.targetUid===actor.uid&&visibleToActor(n,actor)}).slice(0,safe);
+  if(!unread.length)return{affectedCount:0,completedAt:now()};
+  const timestamp=now(),batch=db.batch();for(const d of unread)batch.set(d.ref,{status:'read',readAt:timestamp},{merge:true});
+  const audit=buildAudit(actor,{action:'notifications.visible.mark_read',entityType:'notificationBatch',entityId:`visible:${actor.uid}:${timestamp}`,after:{affectedCount:unread.length,targetUid:actor.uid,scope:'direct_target_uid_only'}});
+  batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);await batch.commit();return{affectedCount:unread.length,completedAt:timestamp};
+}

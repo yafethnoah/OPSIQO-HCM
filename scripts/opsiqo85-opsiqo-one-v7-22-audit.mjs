@@ -1,0 +1,84 @@
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(p,'utf8'),exists=p=>fs.existsSync(p),checks=[];const add=(name,ok,detail='')=>checks.push({name,passed:Boolean(ok),detail});
+const catalog=JSON.parse(read('src/lib/opsiqo-one/legacy-surface-translations-v7-22.json'));
+const inv=JSON.parse(read('src/generated/opsiqo-v7-22-translation-inventory.json'));
+const hook=read('src/lib/opsiqo-one/legacy-surface-i18n.ts');
+const onboarding=read('src/components/onboarding-workspace.tsx'),workforce=read('src/components/workforce-planning-workspace.tsx'),integration=read('src/components/integration-command-center.tsx'),runtime=read('src/components/integration-runtime-center.tsx');
+const readiness=read('src/lib/integration/production-readiness.ts');
+const a11y=read('scripts/opsiqo85-v7-22-authenticated-accessibility-smoke.mjs');
+const graph=read('src/lib/opsiqo-one/knowledge-graph.ts'),domain=read('src/domain/opsiqo-one.ts'),scenarioDomain=read('src/domain/opsiqo-one-v7-12.ts'),scenario=read('src/lib/opsiqo-one/scenario-lab.ts'),scenarioUi=read('src/components/scenario-lab-workspace.tsx'),intelligence=read('src/components/intelligence-hub-workspace.tsx');
+const translationReadiness=read('src/lib/opsiqo-one/translation-readiness.ts'),experienceReadiness=read('src/lib/opsiqo-one/experience-readiness.ts');
+const safe=read('src/lib/opsiqo-one/safe-execution.ts'),router=read('src/lib/opsiqo-one/command-router.ts'),cortex=read('src/lib/opsiqo-one/cortex.ts'),nav=read('src/components/nav.tsx'),pkg=JSON.parse(read('package.json'));
+
+add('V7.22 reviewed translation catalog exists',exists('src/lib/opsiqo-one/legacy-surface-translations-v7-22.json'));
+const expected=['compensation','compliance','compliance_radar','employee_service','experience','integration_runtime','integrations','learning','notifications','onboarding','performance','policy_intelligence','recruiting','settings','setup','signin','time','workflows','workforce_planning'];
+add('V7.22 catalog covers nineteen governed surfaces',JSON.stringify(Object.keys(catalog).sort())===JSON.stringify(expected),Object.keys(catalog).sort().join(','));
+let entries=0,missing=[];for(const[surface,v]of Object.entries(catalog))for(const[source,t]of Object.entries(v.translations||{})){entries++;for(const l of ['fr','es','ar'])if(!String(t[l]||'').trim())missing.push(`${surface}:${source}:${l}`)}
+add('All V7.22 reviewed entries have FR ES AR text',missing.length===0,missing.slice(0,5).join('; '));
+add('V7.22 catalog exceeds 850 explicit source strings',entries>=850,`entries=${entries}`);
+for(const [surface,min] of [['onboarding',35],['workforce_planning',65],['integrations',45],['integration_runtime',35]])add(`${surface} has substantial reviewed coverage`,Object.keys(catalog[surface]?.translations||{}).length>=min,`entries=${Object.keys(catalog[surface]?.translations||{}).length}`);
+add('Legacy translation hook uses V7.22 catalog',/legacy-surface-translations-v7-(?:22|23|24|25|26|27|28|29|30|31|32)\.json/.test(hook));
+add('Legacy translation preserves original source text',hook.includes('new WeakMap<Text,string>()'));
+add('Legacy translation continues to preserve placeholder/title/aria-label',hook.includes("['placeholder','title','aria-label']"));
+for(const [name,source,id] of [['Onboarding',onboarding,'onboarding'],['Workforce Planning',workforce,'workforce_planning'],['Integration Command Center',integration,'integrations'],['Integration Runtime',runtime,'integration_runtime']])add(`${name} mounts V7.22 translation hook`,source.includes(`useLegacySurfaceTranslation('${id}'`)&&source.includes('ref={translationRoot}'));
+add('V7.22 inventory script exists',exists('scripts/opsiqo85-translation-inventory-v7-22.mjs'));
+add('V7.22 packaged inventory snapshot exists',exists('src/generated/opsiqo-v7-22-translation-inventory.json'));
+add('V7.22 docs inventory exists',exists('docs/OPSIQO_V7_22_TRANSLATION_INVENTORY.json'));
+add('Translation inventory reviews at least 850 exact source candidates',inv.reviewedSourceCandidates>=850,`reviewed=${inv.reviewedSourceCandidates}`);
+add('Translation backlog reduced below V7.21 remainder',inv.legacyCandidateCountRemaining<3160,`remaining=${inv.legacyCandidateCountRemaining}`);
+add('Translation backlog remains honestly non-zero',inv.legacyCandidateCountRemaining>2000,`remaining=${inv.legacyCandidateCountRemaining}`);
+add('Translation totals reconcile',inv.reviewedSourceCandidates+inv.legacyCandidateCountRemaining===inv.totalSourceCandidates);
+add('Translation catalog completeness is complete',inv.catalogCompleteness==='complete');
+add('Translation Readiness consumes V7.22 snapshot',/opsiqo-v7-(?:22|23|24|25|26|27|28|29|30|31|32)-translation-inventory\.json/.test(translationReadiness));
+add('Translation Readiness boundary names V7.22 or later',/V7\.(?:22|23|24|25|26|27|28|29|30|31|32).*(?:coverage|localization)/.test(translationReadiness));
+for(const id of ['onboarding-v7-22','workforce-planning-v7-22','integrations-v7-22','integration-runtime-v7-22'])add(`Experience Readiness lists ${id}`,experienceReadiness.includes(`id:'${id}'`));
+
+add('Production Integration Readiness module exists',exists('src/lib/integration/production-readiness.ts'));
+add('Production readiness checks failing/degraded connector health',readiness.includes("['degraded','failing'].includes(c.health)"));
+add('Production readiness checks governed secret reference presence',readiness.includes("c.authMode!=='none'&&!c.secretRef"));
+add('Production readiness checks HTTPS for REST/SCIM',readiness.includes("['rest_json','scim2'].includes(c.protocol)")&&readiness.includes('https')&&readiness.includes('endpoint is not HTTPS'));
+add('Production readiness checks idempotency evidence',readiness.includes('!c.idempotencyRequired'));
+add('Production readiness checks reconciliation evidence',readiness.includes('!c.reconciliationRequired'));
+add('Production readiness checks failed integration runs',readiness.includes('failedRuns24h'));
+add('Production readiness checks open dead letters',readiness.includes('openDeadLetters'));
+add('Production readiness checks reconciliation variances',readiness.includes('reconciliationVariances'));
+add('Production readiness checks open runtime circuits',readiness.includes('openRuntimeCircuits'));
+add('Production readiness checks overdue runtime schedules',readiness.includes('overdueRuntimeSchedules'));
+add('Production readiness checks rejected webhooks',readiness.includes('rejectedWebhookReceipts24h'));
+add('Production readiness explicitly never reads/displays credential values',readiness.includes('never reads or displays credential values'));
+add('Integration overview renders production readiness evidence',integration.includes('Production readiness evidence')&&integration.includes('integrationProductionReadiness(data)'));
+add('Integration governance continues to warn against pasting secrets',integration.includes('Do not paste API keys, passwords, certificates or tokens here.'));
+
+add('Knowledge Graph domain supports onboarding_task node',domain.includes("'onboarding_task'"));
+for(const kind of ['policy_workflow','policy_onboarding_form','policy_onboarding_training'])add(`Knowledge Graph domain supports ${kind}`,domain.includes(`'${kind}'`));
+add('Knowledge Graph exposes onboardingTasks count',domain.includes('onboardingTasks: number;'));
+add('Policy-to-workflow relationship requires explicit workflow policy condition',graph.includes("field.endsWith('policyid')||field==='policy.id'")&&graph.includes("kind:'policy_workflow'"));
+add('Policy-to-workflow edge is limited to visible published policy nodes',graph.includes('visiblePolicies.has(value)'));
+add('Policy onboarding graph requires onboarding.read',graph.includes("actor.permissions.includes('onboarding.read')"));
+add('Policy onboarding graph reads onboardingTasks only when permitted',graph.includes('/onboardingTasks')||graph.includes('onboardingTasks`'));
+add('Policy-to-form edge requires explicit policyId and form task type',graph.includes("['form','training'].includes(String(t.taskType||''))")&&graph.includes("'policy_onboarding_form'"));
+add('Policy-to-training edge requires explicit policyId and training task type',graph.includes("'policy_onboarding_training'"));
+add('Knowledge graph continues to exclude employee-document contents',graph.includes('employee-document contents'));
+add('Knowledge graph privacy note rejects legal/suitability inference',graph.includes('does not infer legal applicability')&&graph.includes('employee suitability'));
+add('Scenario Lab domain includes onboarding task count',scenarioDomain.includes('onboardingTasks:number'));
+add('Scenario Lab consumes onboarding task graph count',scenario.includes('onboardingTasks:graph.counts.onboardingTasks'));
+add('Scenario Lab UI displays onboarding links',scenarioUi.includes('Onboarding links')&&scenarioUi.includes('data.digitalTwin.onboardingTasks'));
+add('Intelligence hub displays onboarding links',intelligence.includes('Onboarding links')&&intelligence.includes('g.counts.onboardingTasks'));
+
+add('V7.22 authenticated accessibility script exists',exists('scripts/opsiqo85-v7-22-authenticated-accessibility-smoke.mjs'));
+for(const route of ['/onboarding','/workforce-planning','/integrations'])add(`Authenticated accessibility matrix includes ${route}`,a11y.includes(`'${route}'`));
+for(const [route,marker] of [['/onboarding','بدء ما قبل الانضمام من عرض مقبول'],['/workforce-planning','المرحلة 4 · ذكاء القوى العاملة'],['/integrations','حدود حوكمة التكاملات']])add(`Authenticated accessibility checks ${route} Arabic marker`,a11y.includes(`'${route}':'${marker}'`));
+add('Authenticated accessibility retains 320px mobile viewport',a11y.includes('width:320,height:800'));
+add('Authenticated accessibility checks Accessibility Tree names',a11y.includes("'accessibility-tree-names'"));
+add('Authenticated accessibility remains a non-conformance claim',a11y.includes('not a full WCAG conformance claim'));
+
+add('Safe Execute allowlist remains exactly one notification action',(safe.match(/id:'notifications\.mark_visible_read'/g)||[]).length===1&&!safe.includes("id:'preference.locale.update'")&&!safe.includes("id:'preference.appearance.update'"));
+add('Consequential firewall remains before normal route patterns',router.indexOf('for(const item of blockedConsequential)')<router.indexOf('for(const item of patterns)'));
+add('No Cortex agent is promoted to unrestricted execute',!cortex.includes("maxActionLevel:'execute'"));
+add('V7.22 unit test exists',exists('tests/opsiqo85/opsiqo-one-v7-22.test.ts'));
+add('V7.22 package exposes audit',pkg.scripts?.['opsiqo85:opsiqo-one-v7.22:audit']==='node scripts/opsiqo85-opsiqo-one-v7-22-audit.mjs');
+add('V7.22 package exposes targeted unit test',String(pkg.scripts?.['test:opsiqo-one-v7.22']||'').includes('opsiqo-one-v7-22.test.ts'));
+add('V7.22 package exposes translation verification',String(pkg.scripts?.['opsiqo85:v7.22:translation-inventory:verify']||'').includes('--verify'));
+add('V7.22 package exposes authenticated browser UAT',String(pkg.scripts?.['opsiqo85:v7.22:browser-a11y-auth']||'').includes('v7-22-authenticated-accessibility-smoke'));
+add('OPSIQO ONE badge advances to V7.22',/v7\.(?:22|23|24|25|26|27|28|29|30|31|32) · HCM v8\.5/.test(nav));
+const passed=checks.filter(x=>x.passed).length,failed=checks.filter(x=>!x.passed);for(const c of checks)console.log(`${c.passed?'PASS':'FAIL'} ${c.name}${c.detail?` — ${c.detail}`:''}`);console.log(`\nOPSIQO ONE V7.22 audit: ${passed}/${checks.length} PASS`);if(failed.length){console.log('\nFailures:');for(const f of failed)console.log(`- ${f.name}${f.detail?`: ${f.detail}`:''}`);process.exit(1)}

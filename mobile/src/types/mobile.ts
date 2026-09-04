@@ -1,0 +1,26 @@
+export type OrganizationSummary = { orgId:string; name:string; role:string; workerId?:string; status:string };
+export type Actor = { uid:string; orgId:string; role:string; workerId?:string; permissions:string[] };
+export type Shift = { id:string; title:string; startAt:string; endAt:string; locationId?:string; status:string };
+export type NotificationRow = { id:string; title:string; message:string; status:string; priority?:string; createdAt:string };
+export type LeaveType = { id:string; name:string; enabled:boolean; paid:boolean };
+export type LeaveBalance = { leaveTypeId:string; availableHours:number; pendingHours:number };
+export type LeaveRequest = { id:string; leaveTypeId:string; startDate:string; endDate:string; requestedHours:number; status:string };
+export type ExpenseClaim = { id:string; expenseDate:string; merchant?:string; category:string; currency:string; amount:number; status:string; createdAt:string };
+export type MobileBootstrap = {
+  apiVersion:'v1';
+  release:{featureRelease:string;mobileRelease:string};
+  actor:Actor;
+  capabilities:{employeePortal:boolean;time:boolean;clock:boolean;leave:boolean;expenses:boolean;learning:boolean;documents:boolean;notifications:boolean;safety:boolean;aiCopilot:boolean;managerMode:boolean};
+  employee:any;
+  attention:any[];
+  leave:{types:LeaveType[];balances:LeaveBalance[];requests:LeaveRequest[]}|null;
+  shifts:Shift[];
+  attendance:{working?:any[];onBreak?:any[];count?:number}|null;
+  expenses:ExpenseClaim[];
+  notifications:NotificationRow[];
+  learning:any|null;
+  documents:any[];
+  manager:any|null;
+  team:any[];
+  generatedAt:string;
+};

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+﻿import { describe, expect, it } from 'vitest';
 import { can, permissionsForRole } from '../src/lib/auth/permissions';
 
 describe('RBAC permissions', () => {
@@ -73,7 +73,8 @@ describe('Phase 3 skills and learning permissions', () => {
   it('lets managers verify and assign learning within service-enforced team scope', () => {
     expect(can('manager', 'learning.read')).toBe(true);
     expect(can('manager', 'learning.assign')).toBe(true);
-    expect(can('manager', 'learning.verify')).toBe(true);
+    expect(can('manager', 'learning.verify.team')).toBe(true);
+    expect(can('manager', 'learning.verify')).toBe(false);
     expect(can('manager', 'learning.manage')).toBe(false);
   });
 

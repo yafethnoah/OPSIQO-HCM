@@ -1,0 +1,17 @@
+{
+  "product": "OPSIQO ONE",
+  "hcmVersion": "8.5",
+  "release": "7.24",
+  "releaseName": "Production Candidate Closure",
+  "date": "2026-08-19",
+  "overallProgressPercent": 94,
+  "safeExecuteAllowlist": ["notifications.mark_visible_read"],
+  "translation": {
+    "supportedLocales": ["en", "fr", "es", "ar"],
+    "cataloguedSurfaces": 26,
+    "catalogEntries": 1430,
+    "reviewedSourceCandidates": 1597,
+    "remainingHeuristicCandidates": 2205
+  },
+  "certificationBoundary": "Source-complete/source-audited; dependency-backed Windows certification required before deployment-certified status."
+}

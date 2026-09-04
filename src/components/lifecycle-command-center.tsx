@@ -1,15 +1,17 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import type { LifecycleDashboard } from '@/domain/lifecycle';
+import { LoadingState } from '@/components/data-states';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
-export function LifecycleCommandCenter(){const[data,setData]=useState<LifecycleDashboard|null>(null);const[error,setError]=useState('');const[busy,setBusy]=useState(false);
+export function LifecycleCommandCenter(){const translationRoot=useRef<HTMLDivElement>(null);useLegacySurfaceTranslation('lifecycle_command',translationRoot);const[data,setData]=useState<LifecycleDashboard|null>(null);const[error,setError]=useState('');const[busy,setBusy]=useState(false);
  const load=()=>apiFetch<{data:LifecycleDashboard}>(`/api/organizations/${activeOrgId()}/lifecycle/dashboard`).then(r=>setData(r.data)).catch(e=>setError(e instanceof Error?e.message:'Unable to load lifecycle command center.'));
  useEffect(()=>{load();},[]);
  async function snapshot(){setBusy(true);setError('');try{await apiFetch(`/api/organizations/${activeOrgId()}/lifecycle/diagnostics`,{method:'POST'});await load();}catch(e){setError(e instanceof Error?e.message:'Unable to persist diagnostics.');}finally{setBusy(false);}}
- if(!data)return <div className="stack">{error&&<div className="error">{error}</div>}<div className="card">Loading lifecycle intelligence…</div></div>;
- return <div className="stack">{error&&<div className="error">{error}</div>}
+ if(!data)return <div className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading lifecycle intelligence and authoritative worker evidence…"/></div>;
+ return <div ref={translationRoot} className="stack">{error&&<div className="error">{error}</div>}
   <div className="grid4">{data.metrics.map(m=><Link className="card metricLink" href={m.href} key={m.key}><div className="metricLabel">{m.label}</div><div className="metricValue">{m.value}</div><div className="metricFoot">{m.helper}</div></Link>)}</div>
   <div className="grid2"><section className="card"><div className="rowBetween"><div><h2 className="sectionTitle">Lifecycle funnel</h2><p className="muted">One workforce lifecycle from demand through separation.</p></div><span className="badge">Live</span></div><div className="funnelList">{data.funnel.map((f,i)=><Link href={f.href} className="funnelRow" key={f.stage}><span>{i+1}. {f.stage}</span><strong>{f.value}</strong></Link>)}</div></section>
   <section className="card"><div className="rowBetween"><div><h2 className="sectionTitle">Data quality</h2><p className="muted">Cross-module integrity score.</p></div><button className="button secondary" onClick={snapshot} disabled={busy}>{busy?'Running…':'Save diagnostic snapshot'}</button></div><div className="qualityScore">{data.diagnostics.score}<span>/100</span></div><div className="qualityBreakdown"><span>Critical {data.diagnostics.counts.critical}</span><span>High {data.diagnostics.counts.high}</span><span>Warning {data.diagnostics.counts.warning}</span></div>{data.diagnostics.sampled&&<div className="notice">Diagnostic scan reached the {data.diagnostics.sampleLimit}-record safety cap for at least one collection. Run the scheduled batch diagnostic for full large-tenant coverage.</div>}</section></div>

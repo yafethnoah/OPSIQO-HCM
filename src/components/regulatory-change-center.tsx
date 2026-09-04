@@ -1,21 +1,24 @@
 'use client';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { RegulatoryDashboard } from '@/domain/regulatory';
 import type { Policy } from '@/domain/compliance';
 import type { GovernanceControl } from '@/domain/governance';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
+import { LoadingState } from '@/components/data-states';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 type Me={actor:{permissions:string[]}};type Policies={data:Policy[]};type Gov={data:{controls:GovernanceControl[]}};
 const iso=(days=0)=>{const d=new Date();d.setDate(d.getDate()+days);return d.toISOString().slice(0,10)};
 export function RegulatoryChangeCenter(){
+ const translationRoot=useRef<HTMLDivElement>(null); useLegacySurfaceTranslation('regulatory_change',translationRoot);
  const[data,setData]=useState<RegulatoryDashboard|null>(null),[policies,setPolicies]=useState<Policy[]>([]),[controls,setControls]=useState<GovernanceControl[]>([]),[permissions,setPermissions]=useState<string[]>([]),[tab,setTab]=useState('overview'),[error,setError]=useState(''),[busy,setBusy]=useState('');
  const load=async()=>{try{setError('');const[d,m,p,g]=await Promise.all([apiFetch<{data:RegulatoryDashboard}>(`/api/organizations/${activeOrgId()}/regulatory/dashboard`),apiFetch<Me>('/api/me'),apiFetch<Policies>(`/api/organizations/${activeOrgId()}/policies`).catch(()=>({data:[]} as Policies)),apiFetch<Gov>(`/api/organizations/${activeOrgId()}/governance/dashboard`).catch(()=>({data:{controls:[]}} as Gov))]);setData(d.data);setPermissions(m.actor.permissions);setPolicies(p.data);setControls(g.data.controls||[]);}catch(e){setError(e instanceof Error?e.message:'Unable to load regulatory change center.')}};
  useEffect(()=>{load();const h=()=>load();window.addEventListener('opsiqo:organization-changed',h);return()=>window.removeEventListener('opsiqo:organization-changed',h)},[]);
  const run=async(key:string,fn:()=>Promise<unknown>)=>{try{setBusy(key);setError('');await fn();await load();}catch(e){setError(e instanceof Error?e.message:'Regulatory action failed.')}finally{setBusy('')}};
- if(!data)return <section className="card"><p>{error||'Loading policy & regulatory change management…'}</p></section>;
+ if(!data)return <div ref={translationRoot} className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading policy and regulatory-change evidence…"/></div>;
  const canManage=permissions.includes('regulatory.manage'),canApprove=permissions.includes('regulatory.approve');
  const tabs=['overview','sources','changes','obligations','policy_impact','reattestation','legal_review'];
- return <div className="stack">{error&&<div className="error">{error}</div>}<div className="tabs">{tabs.map(t=><button key={t} className={`tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{t.replaceAll('_',' ')}</button>)}</div>
+ return <div ref={translationRoot} className="stack">{error&&<div className="error">{error}</div>}<div className="tabs">{tabs.map(t=><button key={t} className={`tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{t.replaceAll('_',' ')}</button>)}</div>
  {tab==='overview'&&<Overview data={data} canApprove={canApprove} busy={busy} run={run}/>} 
  {tab==='sources'&&<Sources data={data} controls={controls} canManage={canManage} canApprove={canApprove} busy={busy} run={run}/>} 
  {tab==='changes'&&<Changes data={data} policies={policies} controls={controls} canManage={canManage} canApprove={canApprove} run={run}/>} 

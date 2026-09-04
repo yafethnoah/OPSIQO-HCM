@@ -1,0 +1,14 @@
+{
+  "release": "OPSIQO ONE V7.31",
+  "title": "Runtime Translation Finalization & External Certification Bridge",
+  "overallProgressPercent": 99.97,
+  "sourcePhaseComplete": true,
+  "productionDeploymentPerformed": false,
+  "translation": {
+    "reviewedSourceCandidates": 3320,
+    "remainingMeasuredCandidates": 213,
+    "governedSurfaces": 64,
+    "explicitCatalogEntries": 3081
+  },
+  "boundary": "V7.31 closes additional high-value runtime localization gaps and expands authenticated browser coverage. Overall OPSIQO progress remains below 100 until dependency-backed Windows certification, manual accessibility approval, connector UAT approval, release/change approval and controlled production deployment evidence are actually completed. This metadata is not a production certification claim."
+}

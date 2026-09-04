@@ -1,0 +1,11 @@
+{
+  "product": "OPSIQO ONE",
+  "release": "7.16",
+  "hcmVersion": "8.5",
+  "name": "Accessible Multilingual Program Execution",
+  "date": "2026-08-19",
+  "certificationState": "source-complete pending dependency-backed Windows/CI certification",
+  "deploymentPerformed": false,
+  "wcagConformanceClaim": false,
+  "fullLegacyTranslationClaim": false
+}

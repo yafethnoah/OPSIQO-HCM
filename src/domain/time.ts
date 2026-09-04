@@ -100,6 +100,10 @@ export interface TimePolicy {
   roundingMinutes: number;
   complianceMode: TimeComplianceMode;
   captureGeolocation: boolean;
+  geofenceMode?: GeofenceMode;
+  requireDeviceVerification?: boolean;
+  allowOfflineClock?: boolean;
+  requirePhotoProof?: boolean;
   electronicMonitoringPolicyId?: string;
   enabled: boolean;
   createdAt: string;
@@ -119,7 +123,7 @@ export interface WorkerTimeProfile {
   updatedAt: string;
 }
 
-export type TimeEntrySource = 'web_clock' | 'manual' | 'import';
+export type TimeEntrySource = 'web_clock' | 'offline_sync' | 'manual' | 'import';
 export type TimeEntryStatus = 'open' | 'complete' | 'corrected';
 export interface TimeEntry {
   id: string;
@@ -131,6 +135,11 @@ export interface TimeEntry {
   source: TimeEntrySource;
   status: TimeEntryStatus;
   note?: string;
+  startEvidence?: ClockLocationEvidence;
+  endEvidence?: ClockLocationEvidence;
+  startPhotoEvidenceId?: string;
+  endPhotoEvidenceId?: string;
+  breakState?: 'working' | 'on_break';
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -179,4 +188,107 @@ export interface PayrollExportRun {
   timesheetCount: number;
   generatedBy: string;
   generatedAt: string;
+}
+
+export type GeofenceMode = 'disabled' | 'advisory' | 'enforce';
+export type AttendanceLocationSource = 'browser' | 'native' | 'kiosk' | 'offline_sync';
+export type DeviceVerificationMethod = 'none' | 'platform_authenticator' | 'native_biometric' | 'kiosk_pin';
+
+export interface ClockLocationEvidence {
+  latitude: number;
+  longitude: number;
+  accuracyMeters?: number;
+  capturedAt: string;
+  source: AttendanceLocationSource;
+  locationId?: string;
+  distanceMeters?: number;
+  insideGeofence?: boolean;
+  deviceVerification?: DeviceVerificationMethod;
+  integrityRisk?: 'none' | 'low' | 'medium' | 'high';
+  integritySignals?: string[];
+}
+
+export interface WorkLocation {
+  id: string;
+  code: string;
+  name: string;
+  address?: string;
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
+  timezone: string;
+  enabled: boolean;
+  requireDeviceVerification: boolean;
+  allowOfflineClock: boolean;
+  requirePhotoProof: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ShiftStatus = 'draft' | 'published' | 'cancelled';
+export interface ShiftAssignment {
+  id: string;
+  workerId: string;
+  title: string;
+  startAt: string;
+  endAt: string;
+  locationId?: string;
+  requiredSkillCodes?: string[];
+  minimumRestHours?: number;
+  status: ShiftStatus;
+  note?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BreakEvent {
+  id: string;
+  timeEntryId: string;
+  workerId: string;
+  startAt: string;
+  endAt?: string;
+  paid: boolean;
+  minutes?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ExpenseClaimStatus = 'draft' | 'submitted' | 'manager_approved' | 'finance_approved' | 'rejected' | 'paid' | 'cancelled';
+export interface ExpenseReceipt {
+  id: string;
+  fileName: string;
+  contentType: string;
+  size: number;
+  storagePath: string;
+  sha256: string;
+  uploadedAt: string;
+}
+export interface ExpenseClaim {
+  id: string;
+  workerId: string;
+  expenseDate: string;
+  merchant?: string;
+  category: string;
+  currency: string;
+  amount: number;
+  taxAmount?: number;
+  businessPurpose: string;
+  projectCode?: string;
+  costCenter?: string;
+  receiptRequired: boolean;
+  receipts: ExpenseReceipt[];
+  status: ExpenseClaimStatus;
+  submittedAt?: string;
+  managerApprovedAt?: string;
+  managerApprovedBy?: string;
+  financeApprovedAt?: string;
+  financeApprovedBy?: string;
+  rejectedAt?: string;
+  rejectedBy?: string;
+  rejectionReason?: string;
+  paidAt?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
 }

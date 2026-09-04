@@ -48,6 +48,9 @@ export interface EmployeeDocumentVersion {
   storagePath: string;
   sha256: string;
   scanStatus: ScanStatus;
+  scanEvidenceRef?: string;
+  scanRecordedBy?: string;
+  scanRecordedAt?: string;
   uploadedBy: string;
   uploadedAt: string;
   supersededAt?: string;
@@ -148,5 +151,5 @@ export interface WorkerComplianceRow {
   compliant: number;
   overdue: number;
   expiring: number;
-  score: number;
+  score: number | null;
 }

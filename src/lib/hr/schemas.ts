@@ -6,15 +6,39 @@ export const employeeCreateSchema = z.object({
   legalFirstName: z.string().min(1).max(100),
   legalLastName: z.string().min(1).max(100),
   preferredName: z.string().max(100).optional(),
-  workEmail: z.string().email(),
+  workEmail: z.preprocess((value) => typeof value === 'string' && value.trim() === '' ? undefined : value, z.string().email().optional()),
   personalEmail: z.string().email().optional(),
   phone: z.string().max(40).optional(),
-  employeeNumber: z.string().min(1).max(40),
+  employeeNumber: z.string().trim().min(1).max(40).optional(),
   employmentType: z.enum(['permanent', 'temporary', 'contractor', 'intern', 'volunteer']),
   hireDate: isoDate,
   positionId: z.string().optional(),
   orgUnitId: z.string().optional(),
   managerWorkerId: z.string().optional(),
+});
+
+export const employeeCoreCorrectionSchema = z.object({
+  legalFirstName: z.string().trim().min(1).max(100),
+  legalLastName: z.string().trim().min(1).max(100),
+  preferredName: z.string().trim().max(100).optional().default(''),
+  workEmail: z.preprocess(
+    (value) => typeof value === 'string' && value.trim() === '' ? undefined : value,
+    z.string().email().optional(),
+  ),
+  personalEmail: z.preprocess(
+    (value) => typeof value === 'string' && value.trim() === '' ? undefined : value,
+    z.string().email().optional(),
+  ),
+  phone: z.string().trim().max(40).optional().default(''),
+  employeeNumber: z.string().trim().min(1).max(40),
+  employmentType: z.enum(['permanent', 'temporary', 'contractor', 'intern', 'volunteer']),
+  hireDate: isoDate,
+  reason: z.string().trim().min(3).max(1000),
+});
+
+export const employeeDuplicateDeleteSchema = z.object({
+  reason: z.string().trim().min(3).max(1000),
+  confirmationEmployeeNumber: z.string().trim().min(1).max(40),
 });
 
 export const employeeChangeSchema = z.object({

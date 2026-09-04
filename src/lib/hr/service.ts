@@ -12,14 +12,15 @@ import type {
   WorkerStatus,
   WorkerTimelineEvent,
 } from '@/domain/hr';
-import { FieldValue, type Transaction } from 'firebase-admin/firestore';
+import { FieldValue, type DocumentReference, type Transaction } from 'firebase-admin/firestore';
 import { adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
 import { buildAudit } from '@/lib/audit/service';
 import { buildDomainEvent } from '@/lib/events/build';
 import { systemActor } from '@/lib/automation/system-actor';
 import { getNotificationSettingsForOrg } from '@/lib/notifications/service';
-import { employeeChangeSchema, employeeCreateSchema, orgUnitCreateSchema, positionCreateSchema, secondaryAssignmentCreateSchema, secondaryAssignmentEndSchema, secondaryAssignmentPlanActionSchema } from './schemas';
+import { employeeChangeSchema, employeeCoreCorrectionSchema, employeeCreateSchema, employeeDuplicateDeleteSchema, orgUnitCreateSchema, positionCreateSchema, secondaryAssignmentCreateSchema, secondaryAssignmentEndSchema, secondaryAssignmentPlanActionSchema } from './schemas';
+import { workerDirectoryEntry } from '@/lib/hr/directory';
 
 const now = () => new Date().toISOString();
 const today = () => new Date().toISOString().slice(0, 10);
@@ -204,6 +205,7 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
   if ((input.positionId && !input.orgUnitId) || (!input.positionId && input.orgUnitId)) {
     throw new ApiError(400, 'positionId and orgUnitId must be supplied together.', 'invalid_assignment');
   }
+
   const db = adminDb();
   const personId = randomUUID();
   const workerId = randomUUID();
@@ -216,25 +218,9 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
     legalFirstName: input.legalFirstName,
     legalLastName: input.legalLastName,
     preferredName: input.preferredName,
-    workEmail: input.workEmail,
+    ...(input.workEmail ? { workEmail: input.workEmail.trim().toLowerCase() } : {}),
     personalEmail: input.personalEmail,
     phone: input.phone,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  };
-
-  const worker: Worker = {
-    id: workerId,
-    personId,
-    employeeNumber: input.employeeNumber,
-    displayName: input.preferredName || `${input.legalFirstName} ${input.legalLastName}`,
-    displayNameLower: (input.preferredName || `${input.legalFirstName} ${input.legalLastName}`).trim().toLowerCase(),
-    employeeNumberLower: input.employeeNumber.trim().toLowerCase(),
-    workEmail: input.workEmail,
-    workEmailLower: input.workEmail.trim().toLowerCase(),
-    status: 'active',
-    primaryAssignmentId: assignmentId,
-    hireDate: input.hireDate,
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -250,21 +236,47 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
     updatedAt: timestamp,
   };
 
-  const audit = buildAudit(actor, {
-    action: 'employee.create',
-    entityType: 'worker',
-    entityId: workerId,
-    after: { worker, employment, assignmentId },
-  });
+  let worker!: Worker;
 
   await db.runTransaction(async (tx) => {
-    const normalizedNumber = input.employeeNumber.trim().toLowerCase();
-    const normalizedEmail = input.workEmail.trim().toLowerCase();
-    const indexRef = db.doc(`organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(normalizedNumber)}`);
-    const emailIndexRef = db.doc(`organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(normalizedEmail)}`);
-    const [indexSnap, emailIndexSnap] = await Promise.all([tx.get(indexRef), tx.get(emailIndexRef)]);
-    if (indexSnap.exists) throw new ApiError(409, 'Employee number already exists.', 'duplicate_employee_number');
-    if (emailIndexSnap.exists) throw new ApiError(409, 'Work email already exists.', 'duplicate_work_email');
+    const normalizedEmail = input.workEmail?.trim().toLowerCase() || '';
+    const emailIndexRef = normalizedEmail ? db.doc(`organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(normalizedEmail)}`) : undefined;
+    const emailIndexSnap = emailIndexRef ? await tx.get(emailIndexRef) : undefined;
+    if (emailIndexSnap?.exists) throw new ApiError(409, 'Work email already exists.', 'duplicate_work_email');
+
+    let employeeNumber = String(input.employeeNumber || '').trim();
+    let numberIndexRef: DocumentReference;
+    let counterRef: DocumentReference | undefined;
+    let nextCounterValue: number | undefined;
+
+    if (employeeNumber) {
+      const normalizedNumber = employeeNumber.toLowerCase();
+      numberIndexRef = db.doc(`organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(normalizedNumber)}`);
+      const numberIndexSnap = await tx.get(numberIndexRef);
+      if (numberIndexSnap.exists) throw new ApiError(409, 'Employee number already exists.', 'duplicate_employee_number');
+    } else {
+      counterRef = db.doc(`organizations/${actor.orgId}/counters/employeeNumber`);
+      const counterSnap = await tx.get(counterRef);
+      const rawCounter = Number(counterSnap.data()?.value || 0);
+      let sequence = Number.isFinite(rawCounter) && rawCounter >= 0 ? Math.floor(rawCounter) : 0;
+      let allocated = false;
+
+      for (let attempt = 0; attempt < 1000; attempt += 1) {
+        sequence += 1;
+        const candidate = `EMP-${String(sequence).padStart(6, '0')}`;
+        const candidateRef = db.doc(`organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(candidate.toLowerCase())}`);
+        const candidateSnap = await tx.get(candidateRef);
+        if (!candidateSnap.exists) {
+          employeeNumber = candidate;
+          numberIndexRef = candidateRef;
+          nextCounterValue = sequence;
+          allocated = true;
+          break;
+        }
+      }
+
+      if (!allocated) throw new ApiError(503, 'Unable to allocate an employee number.', 'employee_number_exhausted');
+    }
 
     await assertManagerChain(tx, actor, workerId, input.managerWorkerId);
     if (input.positionId) {
@@ -272,11 +284,39 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
       if (position.orgUnitId !== input.orgUnitId) throw new ApiError(409, 'Position does not belong to the selected organization unit.', 'position_org_mismatch');
     }
 
+    worker = {
+      id: workerId,
+      personId,
+      employeeNumber,
+      displayName: input.preferredName || `${input.legalFirstName} ${input.legalLastName}`,
+      displayNameLower: (input.preferredName || `${input.legalFirstName} ${input.legalLastName}`).trim().toLowerCase(),
+      employeeNumberLower: employeeNumber.toLowerCase(),
+      workEmail: normalizedEmail,
+      ...(normalizedEmail ? { workEmailLower: normalizedEmail } : {}),
+      status: 'active',
+      primaryAssignmentId: assignmentId,
+      hireDate: input.hireDate,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+
+    const audit = buildAudit(actor, {
+      action: 'employee.create',
+      entityType: 'worker',
+      entityId: workerId,
+      after: { worker, employment, assignmentId },
+    });
+
+    if (counterRef && nextCounterValue !== undefined) {
+      tx.set(counterRef, { value: nextCounterValue, updatedAt: timestamp }, { merge: true });
+    }
+
     tx.create(db.doc(`organizations/${actor.orgId}/people/${personId}`), person);
     tx.create(db.doc(`organizations/${actor.orgId}/workers/${workerId}`), worker);
+    tx.create(db.doc(`organizations/${actor.orgId}/workerDirectory/${workerId}`), workerDirectoryEntry(worker));
     tx.create(db.doc(`organizations/${actor.orgId}/employments/${employmentId}`), employment);
-    tx.create(indexRef, { employeeNumber: input.employeeNumber, workerId, createdAt: timestamp });
-    tx.create(emailIndexRef, { workEmail: normalizedEmail, workerId, createdAt: timestamp });
+    tx.create(numberIndexRef!, { employeeNumber, workerId, createdAt: timestamp });
+    if (emailIndexRef) tx.create(emailIndexRef, { workEmail: normalizedEmail, workerId, createdAt: timestamp });
 
     if (assignmentId && input.positionId && input.orgUnitId) {
       const assignment: Assignment = {
@@ -302,6 +342,387 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
   });
 
   return { person, worker, employment, assignmentId };
+}
+
+export async function correctEmployeeCore(actor: ActorContext, workerId: string, raw: unknown) {
+  const input = employeeCoreCorrectionSchema.parse(raw);
+  const db = adminDb();
+  const workerRef = db.doc(`organizations/${actor.orgId}/workers/${workerId}`);
+  const workerSnap = await workerRef.get();
+  if (!workerSnap.exists) throw new ApiError(404, 'Employee not found.', 'employee_not_found');
+
+  const currentWorker = workerSnap.data() as Worker;
+  const personRef = db.doc(`organizations/${actor.orgId}/people/${currentWorker.personId}`);
+  const employmentsSnap = await db.collection(`organizations/${actor.orgId}/employments`)
+    .where('workerId', '==', workerId)
+    .get();
+  const employments = employmentsSnap.docs
+    .map((doc) => ({ ref: doc.ref, data: doc.data() as Employment }))
+    .sort((a, b) => b.data.startDate.localeCompare(a.data.startDate));
+  const employmentRecord = employments[0];
+
+  const timestamp = now();
+  const normalizedEmail = input.workEmail?.trim().toLowerCase() || '';
+  const normalizedNumber = input.employeeNumber.trim();
+  const displayName = (input.preferredName || `${input.legalFirstName} ${input.legalLastName}`).trim();
+
+  await db.runTransaction(async (tx) => {
+    const [workerCurrentSnap, personSnap] = await Promise.all([tx.get(workerRef), tx.get(personRef)]);
+    if (!workerCurrentSnap.exists) throw new ApiError(404, 'Employee not found.', 'employee_not_found');
+    if (!personSnap.exists) throw new ApiError(409, 'Employee person record is missing.', 'person_record_missing');
+
+    const beforeWorker = workerCurrentSnap.data() as Worker;
+    const beforePerson = personSnap.data() as Person;
+
+    const oldEmail = String(beforeWorker.workEmail || '').trim().toLowerCase();
+    const oldNumber = String(beforeWorker.employeeNumber || '').trim();
+
+    const oldEmailIndexRef = oldEmail
+      ? db.doc(`organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(oldEmail)}`)
+      : undefined;
+    const newEmailIndexRef = normalizedEmail
+      ? db.doc(`organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(normalizedEmail)}`)
+      : undefined;
+    const oldNumberIndexRef = db.doc(
+      `organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(oldNumber.toLowerCase())}`,
+    );
+    const newNumberIndexRef = db.doc(
+      `organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(normalizedNumber.toLowerCase())}`,
+    );
+
+    if (normalizedEmail && normalizedEmail !== oldEmail && newEmailIndexRef) {
+      const newEmailIndex = await tx.get(newEmailIndexRef);
+      if (newEmailIndex.exists && newEmailIndex.data()?.workerId !== workerId) {
+        throw new ApiError(409, 'Work email already exists.', 'duplicate_work_email');
+      }
+    }
+
+    if (normalizedNumber.toLowerCase() !== oldNumber.toLowerCase()) {
+      const newNumberIndex = await tx.get(newNumberIndexRef);
+      if (newNumberIndex.exists && newNumberIndex.data()?.workerId !== workerId) {
+        throw new ApiError(409, 'Employee number already exists.', 'duplicate_employee_number');
+      }
+    }
+
+    const personUpdate: Record<string, unknown> = {
+      legalFirstName: input.legalFirstName,
+      legalLastName: input.legalLastName,
+      preferredName: input.preferredName || FieldValue.delete(),
+      workEmail: normalizedEmail || FieldValue.delete(),
+      personalEmail: input.personalEmail || FieldValue.delete(),
+      phone: input.phone || FieldValue.delete(),
+      updatedAt: timestamp,
+    };
+
+    const workerUpdate: Record<string, unknown> = {
+      employeeNumber: normalizedNumber,
+      employeeNumberLower: normalizedNumber.toLowerCase(),
+      displayName,
+      displayNameLower: displayName.toLowerCase(),
+      workEmail: normalizedEmail,
+      workEmailLower: normalizedEmail || FieldValue.delete(),
+      hireDate: input.hireDate,
+      updatedAt: timestamp,
+    };
+
+    tx.set(personRef, personUpdate, { merge: true });
+    tx.set(workerRef, workerUpdate, { merge: true });
+    tx.set(
+      db.doc(`organizations/${actor.orgId}/workerDirectory/${workerId}`),
+      {
+        id: workerId,
+        displayName,
+        ...(normalizedEmail ? { workEmail: normalizedEmail } : {}),
+        status: beforeWorker.status,
+        updatedAt: timestamp,
+      },
+      { merge: true },
+    );
+
+    if (employmentRecord) {
+      tx.set(
+        employmentRecord.ref,
+        {
+          employmentType: input.employmentType,
+          startDate: input.hireDate,
+          updatedAt: timestamp,
+        },
+        { merge: true },
+      );
+    }
+
+    if (oldEmailIndexRef && oldEmail !== normalizedEmail) tx.delete(oldEmailIndexRef);
+    if (newEmailIndexRef) {
+      tx.set(newEmailIndexRef, { workEmail: normalizedEmail, workerId, updatedAt: timestamp }, { merge: true });
+    }
+
+    if (oldNumber.toLowerCase() !== normalizedNumber.toLowerCase()) tx.delete(oldNumberIndexRef);
+    tx.set(
+      newNumberIndexRef,
+      { employeeNumber: normalizedNumber, workerId, updatedAt: timestamp },
+      { merge: true },
+    );
+
+    const audit = buildAudit(actor, {
+      action: 'employee.core.correct',
+      entityType: 'worker',
+      entityId: workerId,
+      before: {
+        worker: beforeWorker,
+        person: beforePerson,
+        employment: employmentRecord?.data || null,
+      },
+      after: {
+        displayName,
+        employeeNumber: normalizedNumber,
+        workEmail: normalizedEmail || null,
+        legalFirstName: input.legalFirstName,
+        legalLastName: input.legalLastName,
+        preferredName: input.preferredName || null,
+        personalEmail: input.personalEmail || null,
+        phone: input.phone || null,
+        employmentType: input.employmentType,
+        hireDate: input.hireDate,
+      },
+      metadata: { reason: input.reason },
+    });
+    tx.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`), audit);
+  });
+
+  return getEmployee(actor, workerId);
+}
+
+const duplicateReferenceCollections = [
+  'employeeDocuments',
+  'leaveRequests',
+  'timeEntries',
+  'timesheets',
+  'performanceReviews',
+  'learningAssignments',
+  'certificates',
+  'careerProfiles',
+  'compensationRecords',
+  'employeeRelationsCases',
+  'safetyIncidents',
+  'surveyResponses',
+  'serviceTickets',
+  'separations',
+  'onboardingCases',
+] as const;
+
+export async function deleteDuplicateEmployee(actor: ActorContext, workerId: string, raw: unknown) {
+  const input = employeeDuplicateDeleteSchema.parse(raw);
+  const db = adminDb();
+  const workerRef = db.doc(`organizations/${actor.orgId}/workers/${workerId}`);
+  const workerSnap = await workerRef.get();
+  if (!workerSnap.exists) throw new ApiError(404, 'Employee not found.', 'employee_not_found');
+  const worker = workerSnap.data() as Worker;
+
+  if (input.confirmationEmployeeNumber !== worker.employeeNumber) {
+    throw new ApiError(
+      409,
+      'Employee-number confirmation did not match the duplicate record.',
+      'duplicate_delete_confirmation_mismatch',
+    );
+  }
+
+  const [membershipSnap, invitationSnap, managedAssignmentsSnap, samePersonWorkersSnap] = await Promise.all([
+    db.collection(`organizations/${actor.orgId}/memberships`).where('workerId', '==', workerId).limit(1).get(),
+    db.collection(`organizations/${actor.orgId}/invitations`).where('workerId', '==', workerId).limit(5).get(),
+    db.collection(`organizations/${actor.orgId}/assignments`).where('managerWorkerId', '==', workerId).limit(1).get(),
+    db.collection(`organizations/${actor.orgId}/workers`).where('personId', '==', worker.personId).limit(2).get(),
+  ]);
+
+  if (!membershipSnap.empty) {
+    throw new ApiError(
+      409,
+      'This worker is linked to an active platform membership. Reconcile the member identity before deleting the duplicate worker.',
+      'duplicate_delete_membership_linked',
+    );
+  }
+
+  const liveInvitation = invitationSnap.docs.find((doc) => {
+    const status = String(doc.data()?.status || '');
+    return status === 'pending' || status === 'accepted';
+  });
+  if (liveInvitation) {
+    throw new ApiError(
+      409,
+      'This worker is linked to a pending or accepted invitation. Revoke/reconcile access before deleting the duplicate worker.',
+      'duplicate_delete_invitation_linked',
+    );
+  }
+
+  if (!managedAssignmentsSnap.empty) {
+    throw new ApiError(
+      409,
+      'This worker is referenced as a manager. Reassign direct reports before deleting the duplicate worker.',
+      'duplicate_delete_manager_referenced',
+    );
+  }
+
+  for (const collectionName of duplicateReferenceCollections) {
+    const snap = await db.collection(`organizations/${actor.orgId}/${collectionName}`)
+      .where('workerId', '==', workerId)
+      .limit(1)
+      .get();
+    if (!snap.empty) {
+      throw new ApiError(
+        409,
+        `This worker has downstream ${collectionName} evidence. Reconcile or merge that evidence before deleting the duplicate worker.`,
+        'duplicate_delete_downstream_reference',
+      );
+    }
+  }
+
+  const [employmentsSnap, assignmentsSnap, changesSnap, plansSnap] = await Promise.all([
+    db.collection(`organizations/${actor.orgId}/employments`).where('workerId', '==', workerId).get(),
+    db.collection(`organizations/${actor.orgId}/assignments`).where('workerId', '==', workerId).get(),
+    db.collection(`organizations/${actor.orgId}/employeeChanges`).where('workerId', '==', workerId).get(),
+    db.collection(`organizations/${actor.orgId}/secondaryAssignmentPlans`).where('workerId', '==', workerId).get(),
+  ]);
+
+  const currentAssignments = assignmentsSnap.docs
+    .map((doc) => doc.data() as Assignment)
+    .filter((assignment) => isCurrent(assignment));
+
+  const positionIds = [...new Set(currentAssignments.map((assignment) => assignment.positionId))];
+  const positionState = new Map<string, {
+    position: Position;
+    occupiedHeadcount: number;
+    occupiedFte: number;
+  }>();
+
+  for (const positionId of positionIds) {
+    const [positionSnap, occupancySnap] = await Promise.all([
+      db.doc(`organizations/${actor.orgId}/positions/${positionId}`).get(),
+      db.doc(`organizations/${actor.orgId}/positionOccupancy/${positionId}`).get(),
+    ]);
+    if (positionSnap.exists) {
+      const position = positionSnap.data() as Position;
+      positionState.set(positionId, {
+        position,
+        occupiedHeadcount: Number(occupancySnap.data()?.occupiedHeadcount || 0),
+        occupiedFte: Number(occupancySnap.data()?.occupiedFte || occupancySnap.data()?.occupiedHeadcount || 0),
+      });
+    }
+  }
+
+  const timestamp = now();
+  const audit = buildAudit(actor, {
+    action: 'employee.duplicate.delete',
+    entityType: 'worker',
+    entityId: workerId,
+    before: {
+      worker,
+      employmentCount: employmentsSnap.size,
+      assignmentCount: assignmentsSnap.size,
+      employeeChangeCount: changesSnap.size,
+      secondaryPlanCount: plansSnap.size,
+    },
+    after: { deleted: true, tombstoneRetained: true },
+    metadata: { reason: input.reason, employeeNumber: worker.employeeNumber },
+  });
+
+  const batch = db.batch();
+
+  for (const [positionId, state] of positionState) {
+    const ended = currentAssignments.filter((assignment) => assignment.positionId === positionId);
+    const nextHeadcount = Math.max(0, state.occupiedHeadcount - ended.length);
+    const nextFte = Math.max(
+      0,
+      state.occupiedFte - ended.reduce((sum, assignment) => sum + assignmentFte(assignment), 0),
+    );
+
+    batch.set(
+      db.doc(`organizations/${actor.orgId}/positionOccupancy/${positionId}`),
+      {
+        positionId,
+        occupiedHeadcount: nextHeadcount,
+        occupiedFte: nextFte,
+        updatedAt: timestamp,
+      },
+      { merge: true },
+    );
+
+    if (!['planned', 'frozen', 'closed'].includes(state.position.status)) {
+      batch.set(
+        db.doc(`organizations/${actor.orgId}/positions/${positionId}`),
+        {
+          status: nextHeadcount >= state.position.headcountLimit ? 'filled' : 'open',
+          updatedAt: timestamp,
+        },
+        { merge: true },
+      );
+    }
+  }
+
+  for (const doc of assignmentsSnap.docs) {
+    const assignment = doc.data() as Assignment;
+    if (!assignment.primary) {
+      batch.delete(
+        db.doc(
+          `organizations/${actor.orgId}/secondaryAssignmentIndex/${encodeURIComponent(
+            `${workerId}__${assignment.positionId}`,
+          )}`,
+        ),
+      );
+    }
+    batch.delete(doc.ref);
+  }
+  for (const doc of employmentsSnap.docs) batch.delete(doc.ref);
+  for (const doc of changesSnap.docs) batch.delete(doc.ref);
+  for (const doc of plansSnap.docs) batch.delete(doc.ref);
+
+  if (worker.workEmail) {
+    batch.delete(
+      db.doc(
+        `organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(
+          worker.workEmail.trim().toLowerCase(),
+        )}`,
+      ),
+    );
+  }
+  batch.delete(
+    db.doc(
+      `organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(
+        worker.employeeNumber.trim().toLowerCase(),
+      )}`,
+    ),
+  );
+
+  batch.delete(db.doc(`organizations/${actor.orgId}/workerDirectory/${workerId}`));
+  batch.delete(workerRef);
+
+  if (samePersonWorkersSnap.size <= 1) {
+    batch.delete(db.doc(`organizations/${actor.orgId}/people/${worker.personId}`));
+  }
+
+  batch.set(
+    db.doc(`organizations/${actor.orgId}/deletedWorkerTombstones/${workerId}`),
+    {
+      id: workerId,
+      displayName: worker.displayName,
+      employeeNumber: worker.employeeNumber,
+      workEmail: worker.workEmail || null,
+      personId: worker.personId,
+      reason: input.reason,
+      deletedBy: actor.uid,
+      deletedAt: timestamp,
+      source: 'duplicate_cleanup',
+    },
+  );
+  batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`), audit);
+
+  await batch.commit();
+
+  return {
+    id: workerId,
+    deleted: true,
+    displayName: worker.displayName,
+    employeeNumber: worker.employeeNumber,
+    tombstoneRetained: true,
+  };
 }
 
 type ParsedEmployeeChange = ReturnType<typeof employeeChangeSchema.parse>;
@@ -371,6 +792,7 @@ async function applyEmployeeChangeInternal(
 
         workerUpdate.primaryAssignmentId = FieldValue.delete();
         tx.update(workerRef, workerUpdate);
+        tx.set(db.doc(`organizations/${actor.orgId}/workerDirectory/${workerId}`), { id: workerId, displayName: currentWorker.displayName, ...(currentWorker.workEmail ? { workEmail: currentWorker.workEmail } : {}), status: nextStatus, updatedAt: timestamp }, { merge: true });
         for (const snap of assignmentSnaps) {
           if (!snap.exists) continue;
           const assignment = snap.data() as Assignment;
@@ -398,6 +820,7 @@ async function applyEmployeeChangeInternal(
         }
       } else {
         tx.update(workerRef, workerUpdate);
+        tx.set(db.doc(`organizations/${actor.orgId}/workerDirectory/${workerId}`), { id: workerId, displayName: currentWorker.displayName, ...(currentWorker.workEmail ? { workEmail: currentWorker.workEmail } : {}), status: nextStatus, updatedAt: timestamp }, { merge: true });
       }
 
       result = {

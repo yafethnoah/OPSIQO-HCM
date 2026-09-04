@@ -1,0 +1,2272 @@
+{
+  "signin": {
+    "file": "src/app/signin/page.tsx",
+    "translations": {
+      "Demo mode active": {
+        "fr": "Mode démo actif",
+        "es": "Modo de demostración activo",
+        "ar": "وضع العرض التجريبي نشط"
+      },
+      "Sign-in is intentionally bypassed for local/demo testing.": {
+        "fr": "La connexion est volontairement contournée pour les essais locaux/démo.",
+        "es": "El inicio de sesión se omite intencionalmente para pruebas locales o de demostración.",
+        "ar": "يتم تجاوز تسجيل الدخول عمداً لاختبارات البيئة المحلية أو التجريبية."
+      },
+      "Continue": {
+        "fr": "Continuer",
+        "es": "Continuar",
+        "ar": "متابعة"
+      },
+      "Evidence aware": {
+        "fr": "Fondé sur les preuves",
+        "es": "Consciente de la evidencia",
+        "ar": "واعٍ بالأدلة"
+      },
+      "Readiness is separated from evidence sufficiency.": {
+        "fr": "L’état de préparation est distingué de la suffisance des preuves.",
+        "es": "La preparación se distingue de la suficiencia de la evidencia.",
+        "ar": "يتم فصل الجاهزية عن كفاية الأدلة."
+      },
+      "Human governed": {
+        "fr": "Sous gouvernance humaine",
+        "es": "Gobernado por personas",
+        "ar": "محكوم بشرياً"
+      },
+      "Consequential employment decisions remain human-authorized.": {
+        "fr": "Les décisions d’emploi à conséquence restent autorisées par une personne.",
+        "es": "Las decisiones laborales de impacto siguen requiriendo autorización humana.",
+        "ar": "تبقى قرارات التوظيف ذات الأثر خاضعة لموافقة بشرية."
+      },
+      "Audit ready": {
+        "fr": "Prêt pour l’audit",
+        "es": "Listo para auditoría",
+        "ar": "جاهز للتدقيق"
+      },
+      "Organization boundaries and privileged actions remain traceable.": {
+        "fr": "Les limites de l’organisation et les actions privilégiées restent traçables.",
+        "es": "Los límites de la organización y las acciones privilegiadas siguen siendo trazables.",
+        "ar": "تبقى حدود المؤسسة والإجراءات ذات الصلاحيات العالية قابلة للتتبع."
+      },
+      "Second factor required": {
+        "fr": "Deuxième facteur requis",
+        "es": "Se requiere un segundo factor",
+        "ar": "يلزم عامل تحقق ثانٍ"
+      },
+      "Verify your authenticator": {
+        "fr": "Vérifiez votre authentificateur",
+        "es": "Verifica tu autenticador",
+        "ar": "تحقق من تطبيق المصادقة"
+      },
+      "Complete the MFA challenge before OPSIQO releases privileged HR access.": {
+        "fr": "Terminez le défi MFA avant qu’OPSIQO n’autorise l’accès RH privilégié.",
+        "es": "Completa el desafío MFA antes de que OPSIQO habilite el acceso privilegiado de RR. HH.",
+        "ar": "أكمل تحدي المصادقة متعددة العوامل قبل أن يتيح OPSIQO وصول الموارد البشرية ذي الصلاحيات العالية."
+      },
+      "Authenticator factor": {
+        "fr": "Facteur d’authentification",
+        "es": "Factor de autenticación",
+        "ar": "عامل المصادقة"
+      },
+      "Authenticator app": {
+        "fr": "Application d’authentification",
+        "es": "Aplicación de autenticación",
+        "ar": "تطبيق المصادقة"
+      },
+      "6-digit authenticator code": {
+        "fr": "Code d’authentification à 6 chiffres",
+        "es": "Código de autenticación de 6 dígitos",
+        "ar": "رمز مصادقة من 6 أرقام"
+      },
+      "Verifying second factor…": {
+        "fr": "Vérification du deuxième facteur…",
+        "es": "Verificando el segundo factor…",
+        "ar": "جارٍ التحقق من العامل الثاني…"
+      },
+      "Verify & continue": {
+        "fr": "Vérifier et continuer",
+        "es": "Verificar y continuar",
+        "ar": "تحقق وتابع"
+      },
+      "Use a different sign-in": {
+        "fr": "Utiliser une autre connexion",
+        "es": "Usar otro método de inicio de sesión",
+        "ar": "استخدم طريقة دخول مختلفة"
+      },
+      "Secure access": {
+        "fr": "Accès sécurisé",
+        "es": "Acceso seguro",
+        "ar": "وصول آمن"
+      },
+      "Sign in to OPSIQO": {
+        "fr": "Se connecter à OPSIQO",
+        "es": "Iniciar sesión en OPSIQO",
+        "ar": "تسجيل الدخول إلى OPSIQO"
+      },
+      "Use your approved organization identity to continue.": {
+        "fr": "Utilisez l’identité approuvée de votre organisation pour continuer.",
+        "es": "Usa la identidad aprobada de tu organización para continuar.",
+        "ar": "استخدم هوية مؤسستك المعتمدة للمتابعة."
+      },
+      "Email/password sign-in is disabled by organization policy. Use an approved SSO provider.": {
+        "fr": "La connexion par courriel et mot de passe est désactivée par la politique de l’organisation. Utilisez un fournisseur SSO approuvé.",
+        "es": "El inicio de sesión con correo y contraseña está deshabilitado por la política de la organización. Usa un proveedor SSO aprobado.",
+        "ar": "تم تعطيل تسجيل الدخول بالبريد الإلكتروني وكلمة المرور وفق سياسة المؤسسة. استخدم موفر تسجيل دخول موحد معتمداً."
+      },
+      "Email": {
+        "fr": "Courriel",
+        "es": "Correo electrónico",
+        "ar": "البريد الإلكتروني"
+      },
+      "Password": {
+        "fr": "Mot de passe",
+        "es": "Contraseña",
+        "ar": "كلمة المرور"
+      },
+      "Signing in…": {
+        "fr": "Connexion…",
+        "es": "Iniciando sesión…",
+        "ar": "جارٍ تسجيل الدخول…"
+      },
+      "Sign in securely": {
+        "fr": "Se connecter en toute sécurité",
+        "es": "Iniciar sesión de forma segura",
+        "ar": "تسجيل الدخول بأمان"
+      },
+      "Forgot password?": {
+        "fr": "Mot de passe oublié?",
+        "es": "¿Olvidaste tu contraseña?",
+        "ar": "هل نسيت كلمة المرور؟"
+      },
+      "Register account": {
+        "fr": "Créer un compte",
+        "es": "Registrar cuenta",
+        "ar": "إنشاء حساب"
+      },
+      "Continue as read-only guest": {
+        "fr": "Continuer comme invité en lecture seule",
+        "es": "Continuar como invitado de solo lectura",
+        "ar": "المتابعة كضيف للقراءة فقط"
+      },
+      "Checking approved enterprise identity providers…": {
+        "fr": "Vérification des fournisseurs d’identité d’entreprise approuvés…",
+        "es": "Comprobando proveedores de identidad empresarial aprobados…",
+        "ar": "جارٍ التحقق من موفري هوية المؤسسة المعتمدين…"
+      },
+      "Enterprise SSO": {
+        "fr": "SSO d’entreprise",
+        "es": "SSO empresarial",
+        "ar": "تسجيل الدخول الموحد للمؤسسة"
+      },
+      "Federation is shown only for active, approved provider profiles. JIT access remains governed.": {
+        "fr": "La fédération n’est affichée que pour les profils de fournisseurs actifs et approuvés. L’accès JIT reste gouverné.",
+        "es": "La federación solo se muestra para perfiles de proveedor activos y aprobados. El acceso JIT sigue gobernado.",
+        "ar": "يظهر الاتحاد فقط لملفات الموفرين النشطة والمعتمدة. يبقى وصول JIT خاضعاً للحوكمة."
+      }
+    }
+  },
+  "setup": {
+    "file": "src/app/setup/page.tsx",
+    "translations": {
+      "One-time bootstrap": {
+        "fr": "Initialisation unique",
+        "es": "Inicialización única",
+        "ar": "تهيئة لمرة واحدة"
+      },
+      "The first tenant claim is server guarded and transactional.": {
+        "fr": "La première création du locataire est protégée côté serveur et transactionnelle.",
+        "es": "La primera creación del tenant está protegida por el servidor y es transaccional.",
+        "ar": "إنشاء المستأجر الأول محمي على الخادم ويتم ضمن معاملة."
+      },
+      "Admin foundation": {
+        "fr": "Fondation administrateur",
+        "es": "Base administrativa",
+        "ar": "أساس الإدارة"
+      },
+      "Creates the initial organization, worker, position and org-admin membership.": {
+        "fr": "Crée l’organisation initiale, le travailleur, le poste et l’adhésion administrateur.",
+        "es": "Crea la organización inicial, el trabajador, el puesto y la membresía de administrador.",
+        "ar": "ينشئ المؤسسة الأولية والعامل والمنصب وعضوية مسؤول المؤسسة."
+      },
+      "Audit evidence": {
+        "fr": "Preuve d’audit",
+        "es": "Evidencia de auditoría",
+        "ar": "دليل التدقيق"
+      },
+      "The bootstrap event is written to the organization audit trail.": {
+        "fr": "L’événement d’initialisation est inscrit dans la piste d’audit de l’organisation.",
+        "es": "El evento de inicialización se registra en la pista de auditoría de la organización.",
+        "ar": "يتم تسجيل حدث التهيئة في سجل تدقيق المؤسسة."
+      },
+      "First organization": {
+        "fr": "Première organisation",
+        "es": "Primera organización",
+        "ar": "المؤسسة الأولى"
+      },
+      "Set up OPSIQO": {
+        "fr": "Configurer OPSIQO",
+        "es": "Configurar OPSIQO",
+        "ar": "إعداد OPSIQO"
+      },
+      "Sign in with the authorized bootstrap administrator account before creating the first organization.": {
+        "fr": "Connectez-vous avec le compte administrateur d’initialisation autorisé avant de créer la première organisation.",
+        "es": "Inicia sesión con la cuenta de administrador de inicialización autorizada antes de crear la primera organización.",
+        "ar": "سجّل الدخول بحساب مسؤول التهيئة المصرح له قبل إنشاء المؤسسة الأولى."
+      },
+      "Sign in to continue": {
+        "fr": "Se connecter pour continuer",
+        "es": "Inicia sesión para continuar",
+        "ar": "سجّل الدخول للمتابعة"
+      },
+      "Create your OPSIQO organization": {
+        "fr": "Créer votre organisation OPSIQO",
+        "es": "Crea tu organización OPSIQO",
+        "ar": "أنشئ مؤسسة OPSIQO الخاصة بك"
+      },
+      "This one-time action establishes the tenant, initial administrator identity and authoritative organization foundation.": {
+        "fr": "Cette action unique établit le locataire, l’identité du premier administrateur et la fondation d’organisation faisant autorité.",
+        "es": "Esta acción única establece el tenant, la identidad del administrador inicial y la base autorizada de la organización.",
+        "ar": "ينشئ هذا الإجراء لمرة واحدة المستأجر وهوية المسؤول الأول والأساس المعتمد للمؤسسة."
+      },
+      "Authenticated administrator": {
+        "fr": "Administrateur authentifié",
+        "es": "Administrador autenticado",
+        "ar": "المسؤول الموثق"
+      },
+      "Organization name": {
+        "fr": "Nom de l’organisation",
+        "es": "Nombre de la organización",
+        "ar": "اسم المؤسسة"
+      },
+      "Your organization": {
+        "fr": "Votre organisation",
+        "es": "Tu organización",
+        "ar": "مؤسستك"
+      },
+      "Administrator first name": {
+        "fr": "Prénom de l’administrateur",
+        "es": "Nombre del administrador",
+        "ar": "الاسم الأول للمسؤول"
+      },
+      "Administrator last name": {
+        "fr": "Nom de famille de l’administrateur",
+        "es": "Apellido del administrador",
+        "ar": "اسم عائلة المسؤول"
+      },
+      "Creating organization…": {
+        "fr": "Création de l’organisation…",
+        "es": "Creando organización…",
+        "ar": "جارٍ إنشاء المؤسسة…"
+      },
+      "Create organization securely": {
+        "fr": "Créer l’organisation en toute sécurité",
+        "es": "Crear organización de forma segura",
+        "ar": "إنشاء المؤسسة بأمان"
+      },
+      "Checking your organization access…": {
+        "fr": "Vérification de votre accès à l’organisation…",
+        "es": "Comprobando tu acceso a la organización…",
+        "ar": "جارٍ التحقق من وصولك إلى المؤسسة…"
+      }
+    }
+  },
+  "notifications": {
+    "file": "src/components/notification-center.tsx",
+    "translations": {
+      "My notification inbox": {
+        "fr": "Ma boîte de notifications",
+        "es": "Mi bandeja de notificaciones",
+        "ar": "صندوق إشعاراتي"
+      },
+      "Mark read": {
+        "fr": "Marquer comme lu",
+        "es": "Marcar como leído",
+        "ar": "وضع علامة كمقروء"
+      },
+      "read": {
+        "fr": "lu",
+        "es": "leído",
+        "ar": "مقروء"
+      },
+      "No notifications in your scope.": {
+        "fr": "Aucune notification dans votre périmètre.",
+        "es": "No hay notificaciones en tu ámbito.",
+        "ar": "لا توجد إشعارات ضمن نطاقك."
+      },
+      "Notification policy": {
+        "fr": "Politique de notification",
+        "es": "Política de notificaciones",
+        "ar": "سياسة الإشعارات"
+      },
+      "In-app notifications": {
+        "fr": "Notifications dans l’application",
+        "es": "Notificaciones en la aplicación",
+        "ar": "إشعارات داخل التطبيق"
+      },
+      "Email delivery": {
+        "fr": "Envoi par courriel",
+        "es": "Entrega por correo electrónico",
+        "ar": "الإرسال عبر البريد الإلكتروني"
+      },
+      "Automation failure alerts": {
+        "fr": "Alertes d’échec d’automatisation",
+        "es": "Alertas de fallos de automatización",
+        "ar": "تنبيهات فشل الأتمتة"
+      },
+      "Workflow SLA escalations": {
+        "fr": "Escalades SLA des flux de travail",
+        "es": "Escalaciones de SLA de flujos de trabajo",
+        "ar": "تصعيدات اتفاقية مستوى الخدمة لسير العمل"
+      },
+      "Digest frequency": {
+        "fr": "Fréquence du sommaire",
+        "es": "Frecuencia del resumen",
+        "ar": "تكرار الملخص"
+      },
+      "Off": {
+        "fr": "Désactivé",
+        "es": "Desactivado",
+        "ar": "إيقاف"
+      },
+      "Daily": {
+        "fr": "Quotidien",
+        "es": "Diario",
+        "ar": "يومي"
+      },
+      "Weekly": {
+        "fr": "Hebdomadaire",
+        "es": "Semanal",
+        "ar": "أسبوعي"
+      },
+      "Save notification policy": {
+        "fr": "Enregistrer la politique de notification",
+        "es": "Guardar política de notificaciones",
+        "ar": "حفظ سياسة الإشعارات"
+      },
+      "Notification administration requires notifications.manage. Your personal inbox remains available.": {
+        "fr": "L’administration des notifications exige notifications.manage. Votre boîte personnelle reste disponible.",
+        "es": "La administración de notificaciones requiere notifications.manage. Tu bandeja personal sigue disponible.",
+        "ar": "تتطلب إدارة الإشعارات صلاحية notifications.manage. يبقى صندوقك الشخصي متاحاً."
+      },
+      "Notification templates": {
+        "fr": "Modèles de notification",
+        "es": "Plantillas de notificación",
+        "ar": "قوالب الإشعارات"
+      },
+      "Reusable governed copy for lifecycle notifications. Variables use": {
+        "fr": "Texte gouverné réutilisable pour les notifications du cycle de vie. Les variables utilisent",
+        "es": "Texto gobernado reutilizable para notificaciones del ciclo de vida. Las variables usan",
+        "ar": "نص خاضع للحوكمة وقابل لإعادة الاستخدام لإشعارات دورة الحياة. تستخدم المتغيرات"
+      },
+      "Edit template": {
+        "fr": "Modifier le modèle",
+        "es": "Editar plantilla",
+        "ar": "تعديل القالب"
+      },
+      "No governed notification templates yet.": {
+        "fr": "Aucun modèle de notification gouverné pour le moment.",
+        "es": "Aún no hay plantillas de notificación gobernadas.",
+        "ar": "لا توجد قوالب إشعارات خاضعة للحوكمة حتى الآن."
+      },
+      "New template": {
+        "fr": "Nouveau modèle",
+        "es": "Nueva plantilla",
+        "ar": "قالب جديد"
+      },
+      "Create template": {
+        "fr": "Créer un modèle",
+        "es": "Crear plantilla",
+        "ar": "إنشاء قالب"
+      },
+      "Template code": {
+        "fr": "Code du modèle",
+        "es": "Código de plantilla",
+        "ar": "رمز القالب"
+      },
+      "Template name": {
+        "fr": "Nom du modèle",
+        "es": "Nombre de plantilla",
+        "ar": "اسم القالب"
+      },
+      "Subject": {
+        "fr": "Objet",
+        "es": "Asunto",
+        "ar": "الموضوع"
+      },
+      "Body": {
+        "fr": "Corps",
+        "es": "Cuerpo",
+        "ar": "المحتوى"
+      },
+      "Allowed variables, comma separated": {
+        "fr": "Variables autorisées, séparées par des virgules",
+        "es": "Variables permitidas, separadas por comas",
+        "ar": "المتغيرات المسموح بها مفصولة بفواصل"
+      },
+      "In-app": {
+        "fr": "Dans l’application",
+        "es": "En la aplicación",
+        "ar": "داخل التطبيق"
+      },
+      "Enabled": {
+        "fr": "Activé",
+        "es": "Habilitado",
+        "ar": "مفعّل"
+      },
+      "Update template": {
+        "fr": "Mettre à jour le modèle",
+        "es": "Actualizar plantilla",
+        "ar": "تحديث القالب"
+      },
+      "Save template": {
+        "fr": "Enregistrer le modèle",
+        "es": "Guardar plantilla",
+        "ar": "حفظ القالب"
+      }
+    }
+  },
+  "settings": {
+    "file": "src/components/settings-workspace.tsx",
+    "translations": {
+      "Privileged access security": {
+        "fr": "Sécurité de l’accès privilégié",
+        "es": "Seguridad de acceso privilegiado",
+        "ar": "أمان الوصول ذي الصلاحيات العالية"
+      },
+      "Multi-factor authentication required": {
+        "fr": "Authentification multifacteur requise",
+        "es": "Se requiere autenticación multifactor",
+        "ar": "المصادقة متعددة العوامل مطلوبة"
+      },
+      "Multi-factor authentication is required for privileged HR access.": {
+        "fr": "L’authentification multifacteur est requise pour l’accès RH privilégié.",
+        "es": "Se requiere autenticación multifactor para el acceso privilegiado de RR. HH.",
+        "ar": "المصادقة متعددة العوامل مطلوبة للوصول إلى الموارد البشرية ذي الصلاحيات العالية."
+      },
+      "Set up multi-factor authentication": {
+        "fr": "Configurer l’authentification multifacteur",
+        "es": "Configurar autenticación multifactor",
+        "ar": "إعداد المصادقة متعددة العوامل"
+      },
+      "Governed configuration": {
+        "fr": "Configuration gouvernée",
+        "es": "Configuración gobernada",
+        "ar": "إعدادات خاضعة للحوكمة"
+      },
+      "My account": {
+        "fr": "Mon compte",
+        "es": "Mi cuenta",
+        "ar": "حسابي"
+      },
+      "Appearance & accessibility": {
+        "fr": "Apparence et accessibilité",
+        "es": "Apariencia y accesibilidad",
+        "ar": "المظهر وإمكانية الوصول"
+      },
+      "Authentication & access policy": {
+        "fr": "Politique d’authentification et d’accès",
+        "es": "Política de autenticación y acceso",
+        "ar": "سياسة المصادقة والوصول"
+      },
+      "Organization defaults": {
+        "fr": "Valeurs par défaut de l’organisation",
+        "es": "Valores predeterminados de la organización",
+        "ar": "الإعدادات الافتراضية للمؤسسة"
+      },
+      "Notification settings": {
+        "fr": "Paramètres de notification",
+        "es": "Configuración de notificaciones",
+        "ar": "إعدادات الإشعارات"
+      },
+      "Data, documents & migration": {
+        "fr": "Données, documents et migration",
+        "es": "Datos, documentos y migración",
+        "ar": "البيانات والمستندات والترحيل"
+      },
+      "Integrations & external resources": {
+        "fr": "Intégrations et ressources externes",
+        "es": "Integraciones y recursos externos",
+        "ar": "التكاملات والموارد الخارجية"
+      },
+      "AI & automation": {
+        "fr": "IA et automatisation",
+        "es": "IA y automatización",
+        "ar": "الذكاء الاصطناعي والأتمتة"
+      },
+      "Security, privacy & assurance": {
+        "fr": "Sécurité, confidentialité et assurance",
+        "es": "Seguridad, privacidad y aseguramiento",
+        "ar": "الأمان والخصوصية والضمان"
+      },
+      "System & diagnostics": {
+        "fr": "Système et diagnostics",
+        "es": "Sistema y diagnósticos",
+        "ar": "النظام والتشخيصات"
+      },
+      "Send password reset": {
+        "fr": "Envoyer la réinitialisation du mot de passe",
+        "es": "Enviar restablecimiento de contraseña",
+        "ar": "إرسال إعادة تعيين كلمة المرور"
+      },
+      "Sign out": {
+        "fr": "Se déconnecter",
+        "es": "Cerrar sesión",
+        "ar": "تسجيل الخروج"
+      },
+      "Reset appearance": {
+        "fr": "Réinitialiser l’apparence",
+        "es": "Restablecer apariencia",
+        "ar": "إعادة ضبط المظهر"
+      },
+      "Session timeout (minutes)": {
+        "fr": "Expiration de session (minutes)",
+        "es": "Tiempo de espera de sesión (minutos)",
+        "ar": "مهلة الجلسة (بالدقائق)"
+      },
+      "Save access policy": {
+        "fr": "Enregistrer la politique d’accès",
+        "es": "Guardar política de acceso",
+        "ar": "حفظ سياسة الوصول"
+      },
+      "Authentication entry points": {
+        "fr": "Points d’entrée d’authentification",
+        "es": "Puntos de entrada de autenticación",
+        "ar": "نقاط دخول المصادقة"
+      },
+      "Timezone": {
+        "fr": "Fuseau horaire",
+        "es": "Zona horaria",
+        "ar": "المنطقة الزمنية"
+      },
+      "Save organization defaults": {
+        "fr": "Enregistrer les valeurs par défaut",
+        "es": "Guardar valores predeterminados",
+        "ar": "حفظ الإعدادات الافتراضية للمؤسسة"
+      },
+      "Save notification settings": {
+        "fr": "Enregistrer les paramètres de notification",
+        "es": "Guardar configuración de notificaciones",
+        "ar": "حفظ إعدادات الإشعارات"
+      },
+      "Not permitted": {
+        "fr": "Non autorisé",
+        "es": "No permitido",
+        "ar": "غير مسموح"
+      },
+      "Loading account and platform settings…": {
+        "fr": "Chargement des paramètres du compte et de la plateforme…",
+        "es": "Cargando configuración de cuenta y plataforma…",
+        "ar": "جارٍ تحميل إعدادات الحساب والمنصة…"
+      },
+      "Loading notification settings…": {
+        "fr": "Chargement des paramètres de notification…",
+        "es": "Cargando configuración de notificaciones…",
+        "ar": "جارٍ تحميل إعدادات الإشعارات…"
+      },
+      "Theme": {
+        "fr": "Thème",
+        "es": "Tema",
+        "ar": "السمة"
+      },
+      "Density": {
+        "fr": "Densité",
+        "es": "Densidad",
+        "ar": "الكثافة"
+      },
+      "Font size": {
+        "fr": "Taille du texte",
+        "es": "Tamaño de texto",
+        "ar": "حجم النص"
+      },
+      "Reduce motion and animation": {
+        "fr": "Réduire les mouvements et animations",
+        "es": "Reducir movimiento y animación",
+        "ar": "تقليل الحركة والرسوم المتحركة"
+      },
+      "High contrast interface": {
+        "fr": "Interface à contraste élevé",
+        "es": "Interfaz de alto contraste",
+        "ar": "واجهة عالية التباين"
+      },
+      "Strong keyboard focus indicators": {
+        "fr": "Indicateurs de focus clavier renforcés",
+        "es": "Indicadores de foco de teclado reforzados",
+        "ar": "مؤشرات تركيز لوحة مفاتيح قوية"
+      },
+      "Underline text links": {
+        "fr": "Souligner les liens texte",
+        "es": "Subrayar enlaces de texto",
+        "ar": "تسطير الروابط النصية"
+      },
+      "Default locale": {
+        "fr": "Langue par défaut",
+        "es": "Idioma predeterminado",
+        "ar": "اللغة الافتراضية"
+      },
+      "Date format": {
+        "fr": "Format de date",
+        "es": "Formato de fecha",
+        "ar": "تنسيق التاريخ"
+      },
+      "Week starts on": {
+        "fr": "Début de semaine",
+        "es": "La semana comienza el",
+        "ar": "بداية الأسبوع"
+      },
+      "Default theme": {
+        "fr": "Thème par défaut",
+        "es": "Tema predeterminado",
+        "ar": "السمة الافتراضية"
+      },
+      "Default density": {
+        "fr": "Densité par défaut",
+        "es": "Densidad predeterminada",
+        "ar": "الكثافة الافتراضية"
+      },
+      "Allow users to override appearance locally": {
+        "fr": "Autoriser les utilisateurs à modifier l’apparence localement",
+        "es": "Permitir que los usuarios cambien la apariencia localmente",
+        "ar": "السماح للمستخدمين بتجاوز إعدادات المظهر محلياً"
+      },
+      "In-app notifications": {
+        "fr": "Notifications dans l’application",
+        "es": "Notificaciones en la aplicación",
+        "ar": "إشعارات داخل التطبيق"
+      },
+      "Email notifications": {
+        "fr": "Notifications par courriel",
+        "es": "Notificaciones por correo electrónico",
+        "ar": "إشعارات البريد الإلكتروني"
+      },
+      "Failure alerts": {
+        "fr": "Alertes d’échec",
+        "es": "Alertas de fallos",
+        "ar": "تنبيهات الفشل"
+      },
+      "Workflow escalations": {
+        "fr": "Escalades de flux de travail",
+        "es": "Escalaciones de flujo de trabajo",
+        "ar": "تصعيدات سير العمل"
+      },
+      "Digest": {
+        "fr": "Sommaire",
+        "es": "Resumen",
+        "ar": "الملخص"
+      }
+    }
+  },
+  "time": {
+    "file": "src/components/time-workspace.tsx",
+    "translations": {
+      "Employee time & leave": {
+        "fr": "Temps et congés des employés",
+        "es": "Tiempo y permisos de empleados",
+        "ar": "وقت الموظفين والإجازات"
+      },
+      "Balances, requests, clocking, timesheets and exceptions.": {
+        "fr": "Soldes, demandes, pointage, feuilles de temps et exceptions.",
+        "es": "Saldos, solicitudes, fichaje, hojas de tiempo y excepciones.",
+        "ar": "الأرصدة والطلبات وتسجيل الوقت وكشوف الدوام والاستثناءات."
+      },
+      "Leave type": {
+        "fr": "Type de congé",
+        "es": "Tipo de permiso",
+        "ar": "نوع الإجازة"
+      },
+      "Request leave": {
+        "fr": "Demander un congé",
+        "es": "Solicitar permiso",
+        "ar": "طلب إجازة"
+      },
+      "Leave": {
+        "fr": "Congé",
+        "es": "Permiso",
+        "ar": "الإجازة"
+      },
+      "Dates": {
+        "fr": "Dates",
+        "es": "Fechas",
+        "ar": "التواريخ"
+      },
+      "Hours": {
+        "fr": "Heures",
+        "es": "Horas",
+        "ar": "الساعات"
+      },
+      "Status": {
+        "fr": "Statut",
+        "es": "Estado",
+        "ar": "الحالة"
+      },
+      "Cancel": {
+        "fr": "Annuler",
+        "es": "Cancelar",
+        "ar": "إلغاء"
+      },
+      "Timecard": {
+        "fr": "Fiche de temps",
+        "es": "Tarjeta de tiempo",
+        "ar": "بطاقة الوقت"
+      },
+      "Clock in": {
+        "fr": "Pointer l’arrivée",
+        "es": "Registrar entrada",
+        "ar": "تسجيل الحضور"
+      },
+      "Break min": {
+        "fr": "Pause (min)",
+        "es": "Descanso (min)",
+        "ar": "الاستراحة (دقيقة)"
+      },
+      "Clock out": {
+        "fr": "Pointer le départ",
+        "es": "Registrar salida",
+        "ar": "تسجيل الانصراف"
+      },
+      "Start": {
+        "fr": "Début",
+        "es": "Inicio",
+        "ar": "البداية"
+      },
+      "End": {
+        "fr": "Fin",
+        "es": "Fin",
+        "ar": "النهاية"
+      },
+      "Source": {
+        "fr": "Source",
+        "es": "Fuente",
+        "ar": "المصدر"
+      },
+      "Submit timesheet": {
+        "fr": "Soumettre la feuille de temps",
+        "es": "Enviar hoja de tiempo",
+        "ar": "إرسال كشف الدوام"
+      },
+      "Approve": {
+        "fr": "Approuver",
+        "es": "Aprobar",
+        "ar": "موافقة"
+      },
+      "Reject": {
+        "fr": "Rejeter",
+        "es": "Rechazar",
+        "ar": "رفض"
+      },
+      "Add audited entry": {
+        "fr": "Ajouter une entrée auditée",
+        "es": "Agregar registro auditado",
+        "ar": "إضافة إدخال موثق بالتدقيق"
+      },
+      "Time exceptions": {
+        "fr": "Exceptions de temps",
+        "es": "Excepciones de tiempo",
+        "ar": "استثناءات الوقت"
+      },
+      "Advisory compliance signals; review exemptions and agreements before action.": {
+        "fr": "Signaux de conformité à titre indicatif; examinez les exemptions et ententes avant d’agir.",
+        "es": "Señales de cumplimiento orientativas; revise exenciones y acuerdos antes de actuar.",
+        "ar": "إشارات امتثال إرشادية؛ راجع الإعفاءات والاتفاقيات قبل اتخاذ إجراء."
+      },
+      "No open exceptions for this week.": {
+        "fr": "Aucune exception ouverte pour cette semaine.",
+        "es": "No hay excepciones abiertas esta semana.",
+        "ar": "لا توجد استثناءات مفتوحة لهذا الأسبوع."
+      },
+      "Approval queue & team calendar": {
+        "fr": "File d’approbation et calendrier d’équipe",
+        "es": "Cola de aprobaciones y calendario del equipo",
+        "ar": "قائمة الموافقات وتقويم الفريق"
+      },
+      "Employee": {
+        "fr": "Employé",
+        "es": "Empleado",
+        "ar": "الموظف"
+      },
+      "Submitted timesheets": {
+        "fr": "Feuilles de temps soumises",
+        "es": "Hojas de tiempo enviadas",
+        "ar": "كشوف الدوام المقدمة"
+      },
+      "Employee ID": {
+        "fr": "ID employé",
+        "es": "ID de empleado",
+        "ar": "معرّف الموظف"
+      },
+      "Week": {
+        "fr": "Semaine",
+        "es": "Semana",
+        "ar": "الأسبوع"
+      },
+      "Worked": {
+        "fr": "Travaillé",
+        "es": "Trabajado",
+        "ar": "ساعات العمل"
+      },
+      "Overtime": {
+        "fr": "Heures supplémentaires",
+        "es": "Horas extra",
+        "ar": "العمل الإضافي"
+      },
+      "HR configuration": {
+        "fr": "Configuration RH",
+        "es": "Configuración de RR. HH.",
+        "ar": "إعدادات الموارد البشرية"
+      },
+      "Jurisdictional rules are configurable; Ontario defaults remain advisory.": {
+        "fr": "Les règles juridictionnelles sont configurables; les valeurs par défaut de l’Ontario restent indicatives.",
+        "es": "Las reglas jurisdiccionales son configurables; los valores predeterminados de Ontario siguen siendo orientativos.",
+        "ar": "قواعد الولاية القضائية قابلة للتهيئة؛ وتبقى إعدادات أونتاريو الافتراضية إرشادية."
+      },
+      "Export approved payroll CSV": {
+        "fr": "Exporter le CSV de paie approuvé",
+        "es": "Exportar CSV de nómina aprobada",
+        "ar": "تصدير CSV للرواتب المعتمدة"
+      },
+      "Accrual": {
+        "fr": "Accumulation",
+        "es": "Acumulación",
+        "ar": "الاستحقاق"
+      },
+      "Annual grant": {
+        "fr": "Octroi annuel",
+        "es": "Asignación anual",
+        "ar": "الاستحقاق السنوي"
+      },
+      "Monthly": {
+        "fr": "Mensuel",
+        "es": "Mensual",
+        "ar": "شهري"
+      },
+      "No balance": {
+        "fr": "Aucun solde",
+        "es": "Sin saldo",
+        "ar": "لا يوجد رصيد"
+      },
+      "Paid leave": {
+        "fr": "Congé payé",
+        "es": "Permiso remunerado",
+        "ar": "إجازة مدفوعة"
+      },
+      "Create leave type": {
+        "fr": "Créer un type de congé",
+        "es": "Crear tipo de permiso",
+        "ar": "إنشاء نوع إجازة"
+      },
+      "Time policy": {
+        "fr": "Politique de temps",
+        "es": "Política de tiempo",
+        "ar": "سياسة الوقت"
+      },
+      "Create advisory policy": {
+        "fr": "Créer une politique indicative",
+        "es": "Crear política orientativa",
+        "ar": "إنشاء سياسة إرشادية"
+      },
+      "Holiday calendar": {
+        "fr": "Calendrier des jours fériés",
+        "es": "Calendario de festivos",
+        "ar": "تقويم العطل"
+      },
+      "Create calendar": {
+        "fr": "Créer un calendrier",
+        "es": "Crear calendario",
+        "ar": "إنشاء تقويم"
+      },
+      "Employee time profile": {
+        "fr": "Profil de temps de l’employé",
+        "es": "Perfil de tiempo del empleado",
+        "ar": "ملف وقت الموظف"
+      },
+      "None": {
+        "fr": "Aucun",
+        "es": "Ninguno",
+        "ar": "لا شيء"
+      },
+      "Overtime eligible": {
+        "fr": "Admissible aux heures supplémentaires",
+        "es": "Elegible para horas extra",
+        "ar": "مؤهل للعمل الإضافي"
+      },
+      "Assign profile": {
+        "fr": "Attribuer le profil",
+        "es": "Asignar perfil",
+        "ar": "تعيين الملف"
+      },
+      "Calendar": {
+        "fr": "Calendrier",
+        "es": "Calendario",
+        "ar": "التقويم"
+      },
+      "Add holiday": {
+        "fr": "Ajouter un jour férié",
+        "es": "Agregar festivo",
+        "ar": "إضافة عطلة"
+      },
+      "My record": {
+        "fr": "Mon dossier",
+        "es": "Mi registro",
+        "ar": "سجلي"
+      },
+      "Note": {
+        "fr": "Note",
+        "es": "Nota",
+        "ar": "ملاحظة"
+      },
+      "Loading time and leave…": {
+        "fr": "Chargement du temps et des congés…",
+        "es": "Cargando tiempo y permisos…",
+        "ar": "جارٍ تحميل الوقت والإجازات…"
+      }
+    }
+  },
+  "learning": {
+    "file": "src/components/learning-workspace.tsx",
+    "translations": {
+      "Phase 3 · Skills Intelligence": {
+        "fr": "Phase 3 · Intelligence des compétences",
+        "es": "Fase 3 · Inteligencia de habilidades",
+        "ar": "المرحلة 3 · ذكاء المهارات"
+      },
+      "Skills → gaps → learning → verified evidence": {
+        "fr": "Compétences → écarts → apprentissage → preuves vérifiées",
+        "es": "Habilidades → brechas → aprendizaje → evidencia verificada",
+        "ar": "المهارات ← الفجوات ← التعلم ← الأدلة المتحققة"
+      },
+      "Self-reported proficiency stays distinct from verified evidence and course-earned capability.": {
+        "fr": "La compétence autodéclarée reste distincte des preuves vérifiées et des capacités acquises par formation.",
+        "es": "La competencia autodeclarada se mantiene separada de la evidencia verificada y de las capacidades adquiridas mediante cursos.",
+        "ar": "تبقى الكفاءة المصرح بها ذاتياً منفصلة عن الأدلة المتحققة والقدرات المكتسبة من الدورات."
+      },
+      "Scope": {
+        "fr": "Portée",
+        "es": "Alcance",
+        "ar": "النطاق"
+      },
+      "Highest-priority skill gaps": {
+        "fr": "Écarts de compétences prioritaires",
+        "es": "Brechas de habilidades de mayor prioridad",
+        "ar": "فجوات المهارات الأعلى أولوية"
+      },
+      "No current position-skill gaps in scope.": {
+        "fr": "Aucun écart actuel poste-compétence dans le périmètre.",
+        "es": "No hay brechas actuales entre puesto y habilidades en el alcance.",
+        "ar": "لا توجد فجوات حالية بين المنصب والمهارات ضمن النطاق."
+      },
+      "Learning safeguards": {
+        "fr": "Mesures de protection de l’apprentissage",
+        "es": "Salvaguardas de aprendizaje",
+        "ar": "ضوابط التعلم"
+      },
+      "✓ Self-reported skills remain visibly unverified": {
+        "fr": "✓ Les compétences autodéclarées restent visiblement non vérifiées",
+        "es": "✓ Las habilidades autodeclaradas permanecen visiblemente sin verificar",
+        "ar": "✓ تبقى المهارات المصرح بها ذاتياً غير متحققة بشكل واضح"
+      },
+      "✓ Position requirements drive gap calculations": {
+        "fr": "✓ Les exigences du poste déterminent le calcul des écarts",
+        "es": "✓ Los requisitos del puesto impulsan el cálculo de brechas",
+        "ar": "✓ متطلبات المنصب هي أساس حساب الفجوات"
+      },
+      "✓ Assessments use the assigned question set exactly": {
+        "fr": "✓ Les évaluations utilisent exactement le jeu de questions attribué",
+        "es": "✓ Las evaluaciones usan exactamente el conjunto de preguntas asignado",
+        "ar": "✓ تستخدم التقييمات مجموعة الأسئلة المخصصة كما هي"
+      },
+      "✓ Course completion can issue verifiable certificates": {
+        "fr": "✓ La réussite d’un cours peut produire des certificats vérifiables",
+        "es": "✓ Completar un curso puede emitir certificados verificables",
+        "ar": "✓ يمكن لإكمال الدورة إصدار شهادات قابلة للتحقق"
+      },
+      "✓ Certificate expiry can expire course-derived skills": {
+        "fr": "✓ L’expiration d’un certificat peut expirer les compétences issues du cours",
+        "es": "✓ El vencimiento de un certificado puede vencer habilidades derivadas del curso",
+        "ar": "✓ قد يؤدي انتهاء الشهادة إلى انتهاء صلاحية المهارات المكتسبة من الدورة"
+      },
+      "✓ Learning changes write central audit evidence": {
+        "fr": "✓ Les changements d’apprentissage écrivent des preuves dans l’audit central",
+        "es": "✓ Los cambios de aprendizaje registran evidencia de auditoría central",
+        "ar": "✓ تُسجل تغييرات التعلم أدلة في سجل التدقيق المركزي"
+      },
+      "Active learning queue": {
+        "fr": "File d’apprentissage active",
+        "es": "Cola de aprendizaje activa",
+        "ar": "قائمة التعلم النشطة"
+      },
+      "Employee": {
+        "fr": "Employé",
+        "es": "Empleado",
+        "ar": "الموظف"
+      },
+      "Course": {
+        "fr": "Cours",
+        "es": "Curso",
+        "ar": "الدورة"
+      },
+      "Status": {
+        "fr": "Statut",
+        "es": "Estado",
+        "ar": "الحالة"
+      },
+      "Progress": {
+        "fr": "Progression",
+        "es": "Progreso",
+        "ar": "التقدم"
+      },
+      "Due": {
+        "fr": "Échéance",
+        "es": "Vencimiento",
+        "ar": "الاستحقاق"
+      },
+      "No learning assignments in scope.": {
+        "fr": "Aucune affectation d’apprentissage dans le périmètre.",
+        "es": "No hay asignaciones de aprendizaje en el alcance.",
+        "ar": "لا توجد مهام تعلم ضمن النطاق."
+      },
+      "Promise": {
+        "fr": "Promesse",
+        "es": "Promesa",
+        "ar": "الوعد"
+      },
+      "Record skill proficiency": {
+        "fr": "Enregistrer le niveau de compétence",
+        "es": "Registrar nivel de habilidad",
+        "ar": "تسجيل مستوى المهارة"
+      },
+      "Skill": {
+        "fr": "Compétence",
+        "es": "Habilidad",
+        "ar": "المهارة"
+      },
+      "Level": {
+        "fr": "Niveau",
+        "es": "Nivel",
+        "ar": "المستوى"
+      },
+      "Evidence": {
+        "fr": "Preuve",
+        "es": "Evidencia",
+        "ar": "الدليل"
+      },
+      "Self-report / claim": {
+        "fr": "Autodéclarer / revendiquer",
+        "es": "Autodeclarar / registrar",
+        "ar": "إقرار ذاتي / مطالبة"
+      },
+      "Verify skill": {
+        "fr": "Vérifier la compétence",
+        "es": "Verificar habilidad",
+        "ar": "التحقق من المهارة"
+      },
+      "Skill evidence": {
+        "fr": "Preuve de compétence",
+        "es": "Evidencia de habilidad",
+        "ar": "دليل المهارة"
+      },
+      "Verification": {
+        "fr": "Vérification",
+        "es": "Verificación",
+        "ar": "التحقق"
+      },
+      "Source": {
+        "fr": "Source",
+        "es": "Fuente",
+        "ar": "المصدر"
+      },
+      "Position-to-person skill gap analysis": {
+        "fr": "Analyse des écarts de compétences poste-personne",
+        "es": "Análisis de brechas de habilidades puesto-persona",
+        "ar": "تحليل فجوة المهارات بين المنصب والشخص"
+      },
+      "Criticality": {
+        "fr": "Criticité",
+        "es": "Criticidad",
+        "ar": "الأهمية الحرجة"
+      },
+      "Reported": {
+        "fr": "Déclaré",
+        "es": "Declarado",
+        "ar": "مُبلغ عنه"
+      },
+      "Verified": {
+        "fr": "Vérifié",
+        "es": "Verificado",
+        "ar": "متحقق"
+      },
+      "Required": {
+        "fr": "Requis",
+        "es": "Requerido",
+        "ar": "مطلوب"
+      },
+      "Gap": {
+        "fr": "Écart",
+        "es": "Brecha",
+        "ar": "الفجوة"
+      },
+      "Recommended learning": {
+        "fr": "Apprentissage recommandé",
+        "es": "Aprendizaje recomendado",
+        "ar": "التعلم الموصى به"
+      },
+      "Assign": {
+        "fr": "Attribuer",
+        "es": "Asignar",
+        "ar": "تعيين"
+      },
+      "No published course currently closes this gap.": {
+        "fr": "Aucun cours publié ne comble actuellement cet écart.",
+        "es": "Ningún curso publicado cierra actualmente esta brecha.",
+        "ar": "لا توجد دورة منشورة تسد هذه الفجوة حالياً."
+      },
+      "Learning catalog": {
+        "fr": "Catalogue d’apprentissage",
+        "es": "Catálogo de aprendizaje",
+        "ar": "دليل التعلم"
+      },
+      "Publish": {
+        "fr": "Publier",
+        "es": "Publicar",
+        "ar": "نشر"
+      },
+      "Learning paths": {
+        "fr": "Parcours d’apprentissage",
+        "es": "Rutas de aprendizaje",
+        "ar": "مسارات التعلم"
+      },
+      "Assign learning": {
+        "fr": "Attribuer un apprentissage",
+        "es": "Asignar aprendizaje",
+        "ar": "تعيين تعلم"
+      },
+      "Published course": {
+        "fr": "Cours publié",
+        "es": "Curso publicado",
+        "ar": "دورة منشورة"
+      },
+      "Assign course": {
+        "fr": "Attribuer le cours",
+        "es": "Asignar curso",
+        "ar": "تعيين دورة"
+      },
+      "Learning path": {
+        "fr": "Parcours d’apprentissage",
+        "es": "Ruta de aprendizaje",
+        "ar": "مسار التعلم"
+      },
+      "Select path": {
+        "fr": "Sélectionner un parcours",
+        "es": "Seleccionar ruta",
+        "ar": "اختر مساراً"
+      },
+      "Assign path": {
+        "fr": "Attribuer le parcours",
+        "es": "Asignar ruta",
+        "ar": "تعيين المسار"
+      },
+      "Learning assignments": {
+        "fr": "Affectations d’apprentissage",
+        "es": "Asignaciones de aprendizaje",
+        "ar": "مهام التعلم"
+      },
+      "Score": {
+        "fr": "Score",
+        "es": "Puntuación",
+        "ar": "النتيجة"
+      },
+      "Action": {
+        "fr": "Action",
+        "es": "Acción",
+        "ar": "الإجراء"
+      },
+      "Start": {
+        "fr": "Démarrer",
+        "es": "Iniciar",
+        "ar": "بدء"
+      },
+      "Submit assessment": {
+        "fr": "Soumettre l’évaluation",
+        "es": "Enviar evaluación",
+        "ar": "إرسال التقييم"
+      },
+      "Completion requires authorized evidence verification.": {
+        "fr": "La réalisation exige une vérification autorisée des preuves.",
+        "es": "La finalización requiere verificación autorizada de la evidencia.",
+        "ar": "يتطلب الإكمال تحققاً معتمداً من الأدلة."
+      },
+      "Certificates & renewal evidence": {
+        "fr": "Certificats et preuves de renouvellement",
+        "es": "Certificados y evidencia de renovación",
+        "ar": "الشهادات وأدلة التجديد"
+      },
+      "Credential": {
+        "fr": "Titre de compétence",
+        "es": "Credencial",
+        "ar": "بيان الاعتماد"
+      },
+      "Certificate #": {
+        "fr": "Nº de certificat",
+        "es": "N.º de certificado",
+        "ar": "رقم الشهادة"
+      },
+      "Issued": {
+        "fr": "Émis",
+        "es": "Emitido",
+        "ar": "تاريخ الإصدار"
+      },
+      "Expires": {
+        "fr": "Expire",
+        "es": "Vence",
+        "ar": "ينتهي"
+      },
+      "No learning certificates in scope.": {
+        "fr": "Aucun certificat d’apprentissage dans le périmètre.",
+        "es": "No hay certificados de aprendizaje en el alcance.",
+        "ar": "لا توجد شهادات تعلم ضمن النطاق."
+      },
+      "Learning administration is restricted to authorized HR administrators.": {
+        "fr": "L’administration de l’apprentissage est réservée aux administrateurs RH autorisés.",
+        "es": "La administración de aprendizaje está restringida a administradores autorizados de RR. HH.",
+        "ar": "إدارة التعلم مقصورة على مسؤولي الموارد البشرية المخولين."
+      },
+      "Skill library": {
+        "fr": "Bibliothèque de compétences",
+        "es": "Biblioteca de habilidades",
+        "ar": "مكتبة المهارات"
+      },
+      "Add skill": {
+        "fr": "Ajouter une compétence",
+        "es": "Agregar habilidad",
+        "ar": "إضافة مهارة"
+      },
+      "Position skill requirement": {
+        "fr": "Exigence de compétence du poste",
+        "es": "Requisito de habilidad del puesto",
+        "ar": "متطلب مهارة المنصب"
+      },
+      "Position": {
+        "fr": "Poste",
+        "es": "Puesto",
+        "ar": "المنصب"
+      },
+      "Required level": {
+        "fr": "Niveau requis",
+        "es": "Nivel requerido",
+        "ar": "المستوى المطلوب"
+      },
+      "Map requirement": {
+        "fr": "Associer l’exigence",
+        "es": "Mapear requisito",
+        "ar": "ربط المتطلب"
+      },
+      "Course authoring": {
+        "fr": "Création de cours",
+        "es": "Creación de cursos",
+        "ar": "تأليف الدورات"
+      },
+      "Create draft course": {
+        "fr": "Créer un cours brouillon",
+        "es": "Crear curso borrador",
+        "ar": "إنشاء مسودة دورة"
+      },
+      "Create path": {
+        "fr": "Créer un parcours",
+        "es": "Crear ruta",
+        "ar": "إنشاء مسار"
+      },
+      "Overview": {
+        "fr": "Vue d’ensemble",
+        "es": "Resumen",
+        "ar": "نظرة عامة"
+      },
+      "Skills": {
+        "fr": "Compétences",
+        "es": "Habilidades",
+        "ar": "المهارات"
+      },
+      "Gaps": {
+        "fr": "Écarts",
+        "es": "Brechas",
+        "ar": "الفجوات"
+      },
+      "Catalog": {
+        "fr": "Catalogue",
+        "es": "Catálogo",
+        "ar": "الدليل"
+      },
+      "Assignments": {
+        "fr": "Affectations",
+        "es": "Asignaciones",
+        "ar": "التعيينات"
+      },
+      "Certificates": {
+        "fr": "Certificats",
+        "es": "Certificados",
+        "ar": "الشهادات"
+      },
+      "Setup": {
+        "fr": "Configuration",
+        "es": "Configuración",
+        "ar": "الإعداد"
+      },
+      "No description.": {
+        "fr": "Aucune description.",
+        "es": "Sin descripción.",
+        "ar": "لا يوجد وصف."
+      },
+      "Evidence-based completion": {
+        "fr": "Achèvement fondé sur les preuves",
+        "es": "Finalización basada en evidencia",
+        "ar": "إكمال قائم على الأدلة"
+      },
+      "No expiry": {
+        "fr": "Sans expiration",
+        "es": "Sin vencimiento",
+        "ar": "لا تنتهي الصلاحية"
+      },
+      "Observable evidence, assessment, credential or work sample": {
+        "fr": "Preuve observable, évaluation, titre ou échantillon de travail",
+        "es": "Evidencia observable, evaluación, credencial o muestra de trabajo",
+        "ar": "دليل ملحوظ أو تقييم أو اعتماد أو عينة عمل"
+      },
+      "Course code": {
+        "fr": "Code du cours",
+        "es": "Código del curso",
+        "ar": "رمز الدورة"
+      },
+      "Course title": {
+        "fr": "Titre du cours",
+        "es": "Título del curso",
+        "ar": "عنوان الدورة"
+      }
+    }
+  },
+  "recruiting": {
+    "file": "src/components/recruiting-workspace.tsx",
+    "translations": {
+      "Create requisition": {
+        "fr": "Créer une demande de recrutement",
+        "es": "Crear solicitud de contratación",
+        "ar": "إنشاء طلب توظيف"
+      },
+      "Requisition title": {
+        "fr": "Titre de la demande",
+        "es": "Título de la solicitud",
+        "ar": "عنوان طلب التوظيف"
+      },
+      "Position": {
+        "fr": "Poste",
+        "es": "Puesto",
+        "ar": "المنصب"
+      },
+      "Select": {
+        "fr": "Sélectionner",
+        "es": "Seleccionar",
+        "ar": "اختر"
+      },
+      "Org unit": {
+        "fr": "Unité organisationnelle",
+        "es": "Unidad organizativa",
+        "ar": "الوحدة التنظيمية"
+      },
+      "Hiring manager": {
+        "fr": "Gestionnaire recruteur",
+        "es": "Responsable de contratación",
+        "ar": "مدير التوظيف"
+      },
+      "Employment type": {
+        "fr": "Type d'emploi",
+        "es": "Tipo de empleo",
+        "ar": "نوع التوظيف"
+      },
+      "Headcount": {
+        "fr": "Effectif",
+        "es": "Dotación",
+        "ar": "عدد الموظفين"
+      },
+      "Location": {
+        "fr": "Emplacement",
+        "es": "Ubicación",
+        "ar": "الموقع"
+      },
+      "Requirements · one per line": {
+        "fr": "Exigences · une par ligne",
+        "es": "Requisitos · uno por línea",
+        "ar": "المتطلبات · متطلب واحد في كل سطر"
+      },
+      "Role description": {
+        "fr": "Description du rôle",
+        "es": "Descripción del puesto",
+        "ar": "وصف الدور"
+      },
+      "Create draft": {
+        "fr": "Créer un brouillon",
+        "es": "Crear borrador",
+        "ar": "إنشاء مسودة"
+      },
+      "Add candidate application": {
+        "fr": "Ajouter une candidature",
+        "es": "Agregar candidatura",
+        "ar": "إضافة طلب مرشح"
+      },
+      "Open requisition": {
+        "fr": "Demande ouverte",
+        "es": "Solicitud abierta",
+        "ar": "طلب توظيف مفتوح"
+      },
+      "Resume / profile text": {
+        "fr": "Texte du CV / profil",
+        "es": "Texto del currículum / perfil",
+        "ar": "نص السيرة الذاتية / الملف"
+      },
+      "I confirm the candidate has consented to storage and recruitment processing of the submitted information.": {
+        "fr": "Je confirme que la personne candidate a consenti au stockage et au traitement de recrutement des renseignements soumis.",
+        "es": "Confirmo que la persona candidata ha consentido al almacenamiento y tratamiento de contratación de la información enviada.",
+        "ar": "أؤكد أن المرشح وافق على تخزين ومعالجة معلوماته المقدمة لأغراض التوظيف."
+      },
+      "Add application": {
+        "fr": "Ajouter la candidature",
+        "es": "Agregar candidatura",
+        "ar": "إضافة الطلب"
+      },
+      "Requisitions": {
+        "fr": "Demandes de recrutement",
+        "es": "Solicitudes de contratación",
+        "ar": "طلبات التوظيف"
+      },
+      "Approval-controlled headcount demand": {
+        "fr": "Demande d'effectif soumise à approbation",
+        "es": "Demanda de dotación controlada por aprobación",
+        "ar": "طلب عدد موظفين خاضع للموافقة"
+      },
+      "Requisition": {
+        "fr": "Demande",
+        "es": "Solicitud",
+        "ar": "طلب التوظيف"
+      },
+      "Manager": {
+        "fr": "Gestionnaire",
+        "es": "Responsable",
+        "ar": "المدير"
+      },
+      "Openings": {
+        "fr": "Postes ouverts",
+        "es": "Vacantes",
+        "ar": "الشواغر"
+      },
+      "Status": {
+        "fr": "Statut",
+        "es": "Estado",
+        "ar": "الحالة"
+      },
+      "Actions": {
+        "fr": "Actions",
+        "es": "Acciones",
+        "ar": "الإجراءات"
+      },
+      "No requisitions yet.": {
+        "fr": "Aucune demande de recrutement pour le moment.",
+        "es": "Aún no hay solicitudes de contratación.",
+        "ar": "لا توجد طلبات توظيف حتى الآن."
+      },
+      "Candidate pipeline": {
+        "fr": "Parcours des candidatures",
+        "es": "Canal de candidaturas",
+        "ar": "مسار المرشحين"
+      },
+      "One candidate identity · requisition-specific applications": {
+        "fr": "Une identité candidate · candidatures propres à chaque demande",
+        "es": "Una identidad de candidato · solicitudes específicas por requisición",
+        "ar": "هوية مرشح واحدة · طلبات خاصة بكل طلب توظيف"
+      },
+      "Schedule interview": {
+        "fr": "Planifier une entrevue",
+        "es": "Programar entrevista",
+        "ar": "جدولة مقابلة"
+      },
+      "Application": {
+        "fr": "Candidature",
+        "es": "Candidatura",
+        "ar": "طلب التوظيف"
+      },
+      "Type": {
+        "fr": "Type",
+        "es": "Tipo",
+        "ar": "النوع"
+      },
+      "Interviewers": {
+        "fr": "Intervieweurs",
+        "es": "Entrevistadores",
+        "ar": "المقابلون"
+      },
+      "Schedule": {
+        "fr": "Planifier",
+        "es": "Programar",
+        "ar": "جدولة"
+      },
+      "Structured scorecard": {
+        "fr": "Grille d'évaluation structurée",
+        "es": "Ficha de evaluación estructurada",
+        "ar": "بطاقة تقييم منظمة"
+      },
+      "Interview": {
+        "fr": "Entrevue",
+        "es": "Entrevista",
+        "ar": "المقابلة"
+      },
+      "Recommendation": {
+        "fr": "Recommandation",
+        "es": "Recomendación",
+        "ar": "التوصية"
+      },
+      "Overall comment": {
+        "fr": "Commentaire global",
+        "es": "Comentario general",
+        "ar": "تعليق عام"
+      },
+      "Submit immutable scorecard": {
+        "fr": "Soumettre la grille d'évaluation immuable",
+        "es": "Enviar ficha de evaluación inmutable",
+        "ar": "إرسال بطاقة تقييم غير قابلة للتعديل"
+      },
+      "Prepare offer": {
+        "fr": "Préparer l'offre",
+        "es": "Preparar oferta",
+        "ar": "إعداد العرض"
+      },
+      "Notes": {
+        "fr": "Notes",
+        "es": "Notas",
+        "ar": "ملاحظات"
+      },
+      "Create offer draft": {
+        "fr": "Créer un brouillon d'offre",
+        "es": "Crear borrador de oferta",
+        "ar": "إنشاء مسودة عرض"
+      },
+      "Offer governance": {
+        "fr": "Gouvernance de l'offre",
+        "es": "Gobernanza de la oferta",
+        "ar": "حوكمة العرض"
+      },
+      "Compensation": {
+        "fr": "Rémunération",
+        "es": "Compensación",
+        "ar": "التعويض"
+      },
+      "Action": {
+        "fr": "Action",
+        "es": "Acción",
+        "ar": "إجراء"
+      },
+      "Convert accepted offer to employee": {
+        "fr": "Convertir l'offre acceptée en employé",
+        "es": "Convertir oferta aceptada en empleado",
+        "ar": "تحويل العرض المقبول إلى موظف"
+      },
+      "Accepted offer": {
+        "fr": "Offre acceptée",
+        "es": "Oferta aceptada",
+        "ar": "عرض مقبول"
+      },
+      "Create employee": {
+        "fr": "Créer l'employé",
+        "es": "Crear empleado",
+        "ar": "إنشاء الموظف"
+      }
+    }
+  },
+  "performance": {
+    "file": "src/components/performance-workspace.tsx",
+    "translations": {
+      "Phase 3 · Talent Performance": {
+        "fr": "Phase 3 · Performance des talents",
+        "es": "Fase 3 · Desempeño del talento",
+        "ar": "المرحلة 3 · أداء المواهب"
+      },
+      "Scope": {
+        "fr": "Portée",
+        "es": "Alcance",
+        "ar": "النطاق"
+      },
+      "Rating distribution": {
+        "fr": "Répartition des évaluations",
+        "es": "Distribución de calificaciones",
+        "ar": "توزيع التقييمات"
+      },
+      "Final calibrated/completed ratings only. Self and manager ratings are preserved separately.": {
+        "fr": "Évaluations finales calibrées/terminées seulement. Les évaluations de soi et du gestionnaire sont conservées séparément.",
+        "es": "Solo calificaciones finales calibradas/completadas. Las autoevaluaciones y las del responsable se conservan por separado.",
+        "ar": "التقييمات النهائية المعايرة/المكتملة فقط. يتم الاحتفاظ بتقييمات الموظف والمدير بشكل منفصل."
+      },
+      "Performance safeguards": {
+        "fr": "Mesures de protection du rendement",
+        "es": "Salvaguardas de desempeño",
+        "ar": "ضوابط حماية الأداء"
+      },
+      "Current review queue": {
+        "fr": "File d'évaluations actuelle",
+        "es": "Cola actual de evaluaciones",
+        "ar": "قائمة المراجعات الحالية"
+      },
+      "Employee": {
+        "fr": "Employé",
+        "es": "Empleado",
+        "ar": "الموظف"
+      },
+      "Status": {
+        "fr": "Statut",
+        "es": "Estado",
+        "ar": "الحالة"
+      },
+      "Self": {
+        "fr": "Autoévaluation",
+        "es": "Autoevaluación",
+        "ar": "التقييم الذاتي"
+      },
+      "Manager": {
+        "fr": "Gestionnaire",
+        "es": "Responsable",
+        "ar": "المدير"
+      },
+      "Calibrated": {
+        "fr": "Calibrée",
+        "es": "Calibrada",
+        "ar": "معاير"
+      },
+      "Final": {
+        "fr": "Finale",
+        "es": "Final",
+        "ar": "نهائي"
+      },
+      "No performance reviews in scope.": {
+        "fr": "Aucune évaluation de rendement dans la portée.",
+        "es": "No hay evaluaciones de desempeño en el alcance.",
+        "ar": "لا توجد مراجعات أداء ضمن النطاق."
+      },
+      "Create SMART / OKR goal": {
+        "fr": "Créer un objectif SMART / OKR",
+        "es": "Crear objetivo SMART / OKR",
+        "ar": "إنشاء هدف SMART / OKR"
+      },
+      "Goal title": {
+        "fr": "Titre de l'objectif",
+        "es": "Título del objetivo",
+        "ar": "عنوان الهدف"
+      },
+      "Due date": {
+        "fr": "Date d'échéance",
+        "es": "Fecha de vencimiento",
+        "ar": "تاريخ الاستحقاق"
+      },
+      "Weight %": {
+        "fr": "Pondération %",
+        "es": "Peso %",
+        "ar": "الوزن %"
+      },
+      "Create goal": {
+        "fr": "Créer l'objectif",
+        "es": "Crear objetivo",
+        "ar": "إنشاء الهدف"
+      },
+      "Goals": {
+        "fr": "Objectifs",
+        "es": "Objetivos",
+        "ar": "الأهداف"
+      },
+      "Goal": {
+        "fr": "Objectif",
+        "es": "Objetivo",
+        "ar": "الهدف"
+      },
+      "Due": {
+        "fr": "Échéance",
+        "es": "Vence",
+        "ar": "الاستحقاق"
+      },
+      "Progress": {
+        "fr": "Progression",
+        "es": "Progreso",
+        "ar": "التقدم"
+      },
+      "Update": {
+        "fr": "Mettre à jour",
+        "es": "Actualizar",
+        "ar": "تحديث"
+      },
+      "Save": {
+        "fr": "Enregistrer",
+        "es": "Guardar",
+        "ar": "حفظ"
+      },
+      "Review queue": {
+        "fr": "File d'évaluations",
+        "es": "Cola de evaluaciones",
+        "ar": "قائمة المراجعات"
+      },
+      "Overall rating": {
+        "fr": "Évaluation globale",
+        "es": "Calificación general",
+        "ar": "التقييم العام"
+      },
+      "Evidence summary": {
+        "fr": "Résumé des preuves",
+        "es": "Resumen de evidencias",
+        "ar": "ملخص الأدلة"
+      },
+      "HR calibration": {
+        "fr": "Calibration RH",
+        "es": "Calibración de RR. HH.",
+        "ar": "معايرة الموارد البشرية"
+      },
+      "The manager rating is preserved. Calibration creates a separate final rating with evidence.": {
+        "fr": "L'évaluation du gestionnaire est conservée. La calibration crée une évaluation finale distincte avec preuves.",
+        "es": "La calificación del responsable se conserva. La calibración crea una calificación final separada con evidencia.",
+        "ar": "يتم الاحتفاظ بتقييم المدير. تنشئ المعايرة تقييماً نهائياً منفصلاً مع الأدلة."
+      },
+      "Finalize calibration": {
+        "fr": "Finaliser la calibration",
+        "es": "Finalizar calibración",
+        "ar": "إنهاء المعايرة"
+      },
+      "Continuous check-in": {
+        "fr": "Suivi continu",
+        "es": "Seguimiento continuo",
+        "ar": "متابعة مستمرة"
+      },
+      "Discussion note": {
+        "fr": "Note de discussion",
+        "es": "Nota de conversación",
+        "ar": "ملاحظة النقاش"
+      },
+      "Next check-in": {
+        "fr": "Prochain suivi",
+        "es": "Próximo seguimiento",
+        "ar": "المتابعة القادمة"
+      },
+      "Record check-in": {
+        "fr": "Enregistrer le suivi",
+        "es": "Registrar seguimiento",
+        "ar": "تسجيل المتابعة"
+      },
+      "Date": {
+        "fr": "Date",
+        "es": "Fecha",
+        "ar": "التاريخ"
+      },
+      "Topics": {
+        "fr": "Sujets",
+        "es": "Temas",
+        "ar": "الموضوعات"
+      },
+      "Employee note": {
+        "fr": "Note de l'employé",
+        "es": "Nota del empleado",
+        "ar": "ملاحظة الموظف"
+      },
+      "Manager note": {
+        "fr": "Note du gestionnaire",
+        "es": "Nota del responsable",
+        "ar": "ملاحظة المدير"
+      },
+      "Request 360 feedback": {
+        "fr": "Demander une rétroaction 360",
+        "es": "Solicitar feedback 360",
+        "ar": "طلب تغذية راجعة 360"
+      },
+      "Subject": {
+        "fr": "Sujet",
+        "es": "Sujeto",
+        "ar": "الموضوع"
+      },
+      "Raters": {
+        "fr": "Évaluateurs",
+        "es": "Evaluadores",
+        "ar": "المقيّمون"
+      },
+      "Request feedback": {
+        "fr": "Demander la rétroaction",
+        "es": "Solicitar feedback",
+        "ar": "طلب التغذية الراجعة"
+      },
+      "My feedback assignments": {
+        "fr": "Mes demandes de rétroaction",
+        "es": "Mis asignaciones de feedback",
+        "ar": "مهام التغذية الراجعة الخاصة بي"
+      },
+      "Evidence-based comment": {
+        "fr": "Commentaire fondé sur des preuves",
+        "es": "Comentario basado en evidencia",
+        "ar": "تعليق قائم على الأدلة"
+      },
+      "Submit immutable feedback": {
+        "fr": "Soumettre la rétroaction immuable",
+        "es": "Enviar feedback inmutable",
+        "ar": "إرسال تغذية راجعة غير قابلة للتعديل"
+      },
+      "Released 360 summaries": {
+        "fr": "Résumés 360 publiés",
+        "es": "Resúmenes 360 publicados",
+        "ar": "ملخصات 360 المنشورة"
+      },
+      "Responses": {
+        "fr": "Réponses",
+        "es": "Respuestas",
+        "ar": "الردود"
+      },
+      "Threshold": {
+        "fr": "Seuil",
+        "es": "Umbral",
+        "ar": "الحد الأدنى"
+      },
+      "Average": {
+        "fr": "Moyenne",
+        "es": "Promedio",
+        "ar": "المتوسط"
+      },
+      "Released comments": {
+        "fr": "Commentaires publiés",
+        "es": "Comentarios publicados",
+        "ar": "التعليقات المنشورة"
+      },
+      "Release summary": {
+        "fr": "Publier le résumé",
+        "es": "Publicar resumen",
+        "ar": "نشر الملخص"
+      },
+      "Individual development plan": {
+        "fr": "Plan de développement individuel",
+        "es": "Plan de desarrollo individual",
+        "ar": "خطة التطوير الفردية"
+      },
+      "Plan title": {
+        "fr": "Titre du plan",
+        "es": "Título del plan",
+        "ar": "عنوان الخطة"
+      },
+      "Objective": {
+        "fr": "Objectif",
+        "es": "Objetivo",
+        "ar": "الهدف"
+      },
+      "Create plan": {
+        "fr": "Créer le plan",
+        "es": "Crear plan",
+        "ar": "إنشاء الخطة"
+      },
+      "Mark complete": {
+        "fr": "Marquer terminé",
+        "es": "Marcar completado",
+        "ar": "وضع علامة مكتمل"
+      },
+      "Performance cycle": {
+        "fr": "Cycle de rendement",
+        "es": "Ciclo de desempeño",
+        "ar": "دورة الأداء"
+      },
+      "Competency library": {
+        "fr": "Bibliothèque de compétences",
+        "es": "Biblioteca de competencias",
+        "ar": "مكتبة الكفاءات"
+      },
+      "Configuration guardrails": {
+        "fr": "Garde-fous de configuration",
+        "es": "Salvaguardas de configuración",
+        "ar": "ضوابط التكوين"
+      }
+    }
+  },
+  "compensation": {
+    "file": "src/components/compensation-workspace.tsx",
+    "translations": {
+      "Phase 3 · Compensation Intelligence": {
+        "fr": "Phase 3 · Intelligence de rémunération",
+        "es": "Fase 3 · Inteligencia de compensación",
+        "ar": "المرحلة 3 · ذكاء التعويضات"
+      },
+      "Structure → position → pay → planning → rewards": {
+        "fr": "Structure → poste → rémunération → planification → récompenses",
+        "es": "Estructura → puesto → pago → planificación → recompensas",
+        "ar": "الهيكل → المنصب → الأجر → التخطيط → المكافآت"
+      },
+      "Scope": {
+        "fr": "Portée",
+        "es": "Alcance",
+        "ar": "النطاق"
+      },
+      "Pay-position snapshot": {
+        "fr": "Aperçu rémunération-poste",
+        "es": "Resumen de pago y puesto",
+        "ar": "ملخص الأجر والمنصب"
+      },
+      "Governance safeguards": {
+        "fr": "Mesures de gouvernance",
+        "es": "Salvaguardas de gobernanza",
+        "ar": "ضوابط الحوكمة"
+      },
+      "Compensation positioning": {
+        "fr": "Positionnement de la rémunération",
+        "es": "Posicionamiento de compensación",
+        "ar": "تموضع التعويض"
+      },
+      "Employee": {
+        "fr": "Employé",
+        "es": "Empleado",
+        "ar": "الموظف"
+      },
+      "Position": {
+        "fr": "Poste",
+        "es": "Puesto",
+        "ar": "المنصب"
+      },
+      "Base": {
+        "fr": "Base",
+        "es": "Base",
+        "ar": "الأساسي"
+      },
+      "Band": {
+        "fr": "Bande",
+        "es": "Banda",
+        "ar": "النطاق"
+      },
+      "Compa-ratio": {
+        "fr": "Ratio comparatif",
+        "es": "Compa-ratio",
+        "ar": "نسبة المقارنة"
+      },
+      "Range penetration": {
+        "fr": "Position dans la fourchette",
+        "es": "Penetración del rango",
+        "ar": "الموقع ضمن النطاق"
+      },
+      "Market P50": {
+        "fr": "Marché P50",
+        "es": "Mercado P50",
+        "ar": "السوق P50"
+      },
+      "Performance context": {
+        "fr": "Contexte de rendement",
+        "es": "Contexto de desempeño",
+        "ar": "سياق الأداء"
+      },
+      "Controlled off-cycle compensation record": {
+        "fr": "Enregistrement contrôlé de rémunération hors cycle",
+        "es": "Registro controlado de compensación fuera de ciclo",
+        "ar": "سجل تعويض مضبوط خارج الدورة"
+      },
+      "Apply reviewed record": {
+        "fr": "Appliquer l'enregistrement révisé",
+        "es": "Aplicar registro revisado",
+        "ar": "تطبيق السجل الذي تمت مراجعته"
+      },
+      "Job family": {
+        "fr": "Famille d'emplois",
+        "es": "Familia de puestos",
+        "ar": "عائلة الوظائف"
+      },
+      "Create family": {
+        "fr": "Créer la famille",
+        "es": "Crear familia",
+        "ar": "إنشاء العائلة"
+      },
+      "Job level": {
+        "fr": "Niveau d'emploi",
+        "es": "Nivel de puesto",
+        "ar": "مستوى الوظيفة"
+      },
+      "Create level": {
+        "fr": "Créer le niveau",
+        "es": "Crear nivel",
+        "ar": "إنشاء المستوى"
+      },
+      "Salary band": {
+        "fr": "Bande salariale",
+        "es": "Banda salarial",
+        "ar": "النطاق الراتبي"
+      },
+      "Create band": {
+        "fr": "Créer la bande",
+        "es": "Crear banda",
+        "ar": "إنشاء النطاق"
+      },
+      "Salary bands": {
+        "fr": "Bandes salariales",
+        "es": "Bandas salariales",
+        "ar": "النطاقات الراتبية"
+      },
+      "Code": {
+        "fr": "Code",
+        "es": "Código",
+        "ar": "الرمز"
+      },
+      "Name": {
+        "fr": "Nom",
+        "es": "Nombre",
+        "ar": "الاسم"
+      },
+      "Min": {
+        "fr": "Min",
+        "es": "Mín",
+        "ar": "الحد الأدنى"
+      },
+      "Mid": {
+        "fr": "Milieu",
+        "es": "Medio",
+        "ar": "المنتصف"
+      },
+      "Max": {
+        "fr": "Max",
+        "es": "Máx",
+        "ar": "الحد الأقصى"
+      },
+      "Effective": {
+        "fr": "En vigueur",
+        "es": "Vigente",
+        "ar": "ساري"
+      },
+      "Map position to band": {
+        "fr": "Associer le poste à la bande",
+        "es": "Asignar puesto a banda",
+        "ar": "ربط المنصب بالنطاق"
+      },
+      "Save mapping": {
+        "fr": "Enregistrer l'association",
+        "es": "Guardar asignación",
+        "ar": "حفظ الربط"
+      },
+      "Create cycle": {
+        "fr": "Créer un cycle",
+        "es": "Crear ciclo",
+        "ar": "إنشاء دورة"
+      },
+      "Budget %": {
+        "fr": "Budget %",
+        "es": "Presupuesto %",
+        "ar": "الميزانية %"
+      },
+      "Create draft cycle": {
+        "fr": "Créer un cycle brouillon",
+        "es": "Crear ciclo borrador",
+        "ar": "إنشاء مسودة دورة"
+      },
+      "Create recommendation": {
+        "fr": "Créer une recommandation",
+        "es": "Crear recomendación",
+        "ar": "إنشاء توصية"
+      },
+      "Increase %": {
+        "fr": "Augmentation %",
+        "es": "Aumento %",
+        "ar": "الزيادة %"
+      },
+      "Save recommendation": {
+        "fr": "Enregistrer la recommandation",
+        "es": "Guardar recomendación",
+        "ar": "حفظ التوصية"
+      },
+      "Cycles": {
+        "fr": "Cycles",
+        "es": "Ciclos",
+        "ar": "الدورات"
+      },
+      "Cycle": {
+        "fr": "Cycle",
+        "es": "Ciclo",
+        "ar": "الدورة"
+      },
+      "Status": {
+        "fr": "Statut",
+        "es": "Estado",
+        "ar": "الحالة"
+      },
+      "Budget": {
+        "fr": "Budget",
+        "es": "Presupuesto",
+        "ar": "الميزانية"
+      },
+      "Actions": {
+        "fr": "Actions",
+        "es": "Acciones",
+        "ar": "الإجراءات"
+      },
+      "Open": {
+        "fr": "Ouvrir",
+        "es": "Abrir",
+        "ar": "فتح"
+      },
+      "HR review": {
+        "fr": "Révision RH",
+        "es": "Revisión de RR. HH.",
+        "ar": "مراجعة الموارد البشرية"
+      },
+      "Approve cycle": {
+        "fr": "Approuver le cycle",
+        "es": "Aprobar ciclo",
+        "ar": "اعتماد الدورة"
+      },
+      "Recommendations": {
+        "fr": "Recommandations",
+        "es": "Recomendaciones",
+        "ar": "التوصيات"
+      },
+      "Type": {
+        "fr": "Type",
+        "es": "Tipo",
+        "ar": "النوع"
+      },
+      "Current": {
+        "fr": "Actuel",
+        "es": "Actual",
+        "ar": "الحالي"
+      },
+      "Increase": {
+        "fr": "Augmentation",
+        "es": "Aumento",
+        "ar": "الزيادة"
+      },
+      "Proposed": {
+        "fr": "Proposé",
+        "es": "Propuesto",
+        "ar": "المقترح"
+      },
+      "Action": {
+        "fr": "Action",
+        "es": "Acción",
+        "ar": "الإجراء"
+      },
+      "Submit": {
+        "fr": "Soumettre",
+        "es": "Enviar",
+        "ar": "إرسال"
+      },
+      "Approve": {
+        "fr": "Approuver",
+        "es": "Aprobar",
+        "ar": "اعتماد"
+      },
+      "Total rewards inputs": {
+        "fr": "Données de rémunération globale",
+        "es": "Datos de recompensas totales",
+        "ar": "مدخلات المكافآت الإجمالية"
+      },
+      "Employer benefits value": {
+        "fr": "Valeur des avantages de l'employeur",
+        "es": "Valor de beneficios del empleador",
+        "ar": "قيمة مزايا صاحب العمل"
+      },
+      "Employer retirement value": {
+        "fr": "Valeur de retraite de l'employeur",
+        "es": "Valor de jubilación del empleador",
+        "ar": "قيمة تقاعد صاحب العمل"
+      },
+      "Save inputs": {
+        "fr": "Enregistrer les données",
+        "es": "Guardar datos",
+        "ar": "حفظ المدخلات"
+      },
+      "Statement preview": {
+        "fr": "Aperçu du relevé",
+        "es": "Vista previa del estado",
+        "ar": "معاينة البيان"
+      },
+      "Pay-equity job-class evidence": {
+        "fr": "Preuves de catégorie d'emploi pour l'équité salariale",
+        "es": "Evidencia de clase laboral para equidad salarial",
+        "ar": "أدلة فئة الوظيفة للمساواة في الأجور"
+      },
+      "Save job class": {
+        "fr": "Enregistrer la catégorie d'emploi",
+        "es": "Guardar clase laboral",
+        "ar": "حفظ فئة الوظيفة"
+      },
+      "Job classes": {
+        "fr": "Catégories d'emploi",
+        "es": "Clases laborales",
+        "ar": "فئات الوظائف"
+      },
+      "Class": {
+        "fr": "Catégorie",
+        "es": "Clase",
+        "ar": "الفئة"
+      },
+      "Predominance": {
+        "fr": "Prédominance",
+        "es": "Predominio",
+        "ar": "الغلبة"
+      },
+      "Job rate": {
+        "fr": "Taux du poste",
+        "es": "Tarifa del puesto",
+        "ar": "معدل الوظيفة"
+      },
+      "Value points": {
+        "fr": "Points de valeur",
+        "es": "Puntos de valor",
+        "ar": "نقاط القيمة"
+      },
+      "Method": {
+        "fr": "Méthode",
+        "es": "Método",
+        "ar": "الطريقة"
+      },
+      "Review indicators": {
+        "fr": "Indicateurs de révision",
+        "es": "Indicadores de revisión",
+        "ar": "مؤشرات المراجعة"
+      },
+      "Configured reference policy": {
+        "fr": "Politique de référence configurée",
+        "es": "Política de referencia configurada",
+        "ar": "سياسة المرجع المكوّنة"
+      },
+      "Jurisdiction": {
+        "fr": "Juridiction",
+        "es": "Jurisdicción",
+        "ar": "الاختصاص القضائي"
+      },
+      "Employee threshold": {
+        "fr": "Seuil d'employés",
+        "es": "Umbral de empleados",
+        "ar": "حد عدد الموظفين"
+      },
+      "Range spread reference": {
+        "fr": "Référence d'écart de fourchette",
+        "es": "Referencia de amplitud del rango",
+        "ar": "مرجع اتساع النطاق"
+      },
+      "Exception above": {
+        "fr": "Exception au-dessus de",
+        "es": "Excepción por encima de",
+        "ar": "استثناء أعلى من"
+      },
+      "Requisition compensation disclosure": {
+        "fr": "Divulgation de rémunération de la demande",
+        "es": "Divulgación de compensación de la solicitud",
+        "ar": "إفصاح تعويض طلب التوظيف"
+      },
+      "Validate & save disclosure": {
+        "fr": "Valider et enregistrer la divulgation",
+        "es": "Validar y guardar divulgación",
+        "ar": "التحقق من الإفصاح وحفظه"
+      },
+      "Requisition": {
+        "fr": "Demande",
+        "es": "Solicitud",
+        "ar": "طلب التوظيف"
+      },
+      "Range": {
+        "fr": "Fourchette",
+        "es": "Rango",
+        "ar": "النطاق"
+      },
+      "Vacancy": {
+        "fr": "Poste vacant",
+        "es": "Vacante",
+        "ar": "شاغر"
+      },
+      "Review notes": {
+        "fr": "Notes de révision",
+        "es": "Notas de revisión",
+        "ar": "ملاحظات المراجعة"
+      }
+    }
+  }
+}

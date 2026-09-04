@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server';import { actorFromRequest } from '@/lib/auth/session';import { apiErrorResponse } from '@/lib/http/errors';import { policyIntelligence } from '@/lib/opsiqo-one/policy-intelligence';
+export async function GET(request:Request,context:{params:Promise<{orgId:string}>}){try{const{orgId}=await context.params,actor=await actorFromRequest(request,orgId);return NextResponse.json({data:await policyIntelligence(actor)});}catch(e){return apiErrorResponse(e)}}

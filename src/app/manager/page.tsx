@@ -1,3 +1,3 @@
 import { PageHeader } from '@/components/page-header';
-import { ManagerTeam } from '@/components/manager-team';
-export default function ManagerPage() { return <><PageHeader title="Manager Workspace" subtitle="The manager hierarchy is derived from effective-dated primary assignments and organization membership." /><ManagerTeam /></>; }
+import { ManagerPortalWorkspace } from '@/components/manager-portal-workspace';
+export default function ManagerPage(){return <><PageHeader title="Manager Self-Service" subtitle="Approvals, team actions, people risks and manager services in one governed workspace."/><ManagerPortalWorkspace/></>}

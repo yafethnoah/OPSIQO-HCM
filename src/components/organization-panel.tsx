@@ -1,12 +1,15 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState, useRef } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 type Unit = { id: string; name: string; code: string; type: string; status: string; parentId?: string };
 type Position = { id: string; title: string; positionCode: string; orgUnitId: string; status: string; fte: number; headcountLimit:number; occupiedHeadcount:number; availableHeadcount:number; occupancyPercent:number; capacityState:string };
 
 export function OrganizationPanel() {
+  const translationRoot = useRef<HTMLDivElement>(null);
+  useLegacySurfaceTranslation('organization_admin', translationRoot);
   const [units, setUnits] = useState<Unit[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [error, setError] = useState('');
@@ -24,27 +27,29 @@ export function OrganizationPanel() {
 
   async function addUnit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setError('');
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     try {
       await apiFetch(`/api/organizations/${activeOrgId()}/org-units`, { method: 'POST', body: JSON.stringify({ name: f.get('name'), code: f.get('code'), type: f.get('type'), parentId: f.get('parentId') || undefined }) });
-      e.currentTarget.reset(); await load();
+      form.reset(); await load();
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to create unit.'); }
   }
 
   async function addPosition(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setError('');
-    const f = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const f = new FormData(form);
     try {
       await apiFetch(`/api/organizations/${activeOrgId()}/positions`, { method: 'POST', body: JSON.stringify({
         positionCode: f.get('positionCode'), title: f.get('title'), orgUnitId: f.get('orgUnitId'),
         reportsToPositionId: f.get('reportsToPositionId') || undefined,
         status: 'open', fte: Number(f.get('fte') || 1), headcountLimit: Number(f.get('headcountLimit') || 1),
       }) });
-      e.currentTarget.reset(); await load();
+      form.reset(); await load();
     } catch (e) { setError(e instanceof Error ? e.message : 'Unable to create position.'); }
   }
 
-  return <div className="stack">
+  return <div ref={translationRoot} className="stack">
     {error && <div className="error">{error}</div>}
     <div className="grid2">
       <form className="card stack" onSubmit={addUnit}>

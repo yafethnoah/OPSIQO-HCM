@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+const read = p => fs.readFileSync(p, 'utf8');
+const identity = read('src/lib/release/identity.ts');
+const tsconfig = JSON.parse(read('mobile/tsconfig.json'));
+const pkg = JSON.parse(read('mobile/package.json'));
+const runner = read('RUN_OPSIQO_H47_1C_VALIDATION.ps1');
+const checks=[]; const add=(name,ok)=>checks.push({name,ok:Boolean(ok)});
+add('H47.1C-or-later patch lineage is explicit', /OPSIQO_PATCH_RELEASE = process\.env\.OPSIQO_PATCH_RELEASE \|\| 'H47\.1[C-Z]'/.test(identity));
+add('mobile TypeScript no longer uses deprecated baseUrl', !Object.hasOwn(tsconfig.compilerOptions || {}, 'baseUrl'));
+add('mobile @ alias remains explicit relative to tsconfig', JSON.stringify(tsconfig.compilerOptions?.paths?.['@/*']) === JSON.stringify(['./src/*']));
+add('React Native matches Expo SDK 57 expected patch', pkg.dependencies?.['react-native'] === '0.86.3');
+add('safe-area-context matches Expo SDK 57 range', pkg.dependencies?.['react-native-safe-area-context'] === '~5.7.0');
+add('react-native-screens matches Expo SDK 57 range', pkg.dependencies?.['react-native-screens'] === '~4.26.0');
+add('mobile dependency install is isolated and does not create a lockfile during validation', /Push-Location \.\\mobile[\s\S]*npm install --no-package-lock --no-audit --no-fund/.test(runner));
+add('Expo dependency check is non-interactive in CI mode', runner.includes("$env:CI = '1'") && runner.includes('expo install --check'));
+add('Expo dependency check does not invoke --fix', !/expo install --fix/.test(runner));
+add('mobile TypeScript remains a mandatory certification gate', runner.includes('npm run typecheck') && runner.includes("throw 'Mobile TypeScript failed.'"));
+add('Expo Doctor remains a mandatory certification gate', runner.includes('expo-doctor') && runner.includes("throw 'Expo Doctor failed.'"));
+let pass=0; for(const c of checks){console.log(`${c.ok?'PASS':'FAIL'}  ${c.name}`); if(c.ok)pass++;}
+console.log(`\nH47.1C audit: ${pass}/${checks.length} PASS`); if(pass!==checks.length) process.exit(1);

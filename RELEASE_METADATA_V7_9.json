@@ -1,0 +1,17 @@
+{
+  "product": "OPSIQO HCM",
+  "experienceRelease": "8.5-v7.9",
+  "productionEvidenceFoundation": "3.6.1",
+  "releaseName": "Enterprise Self-Service",
+  "date": "2026-08-15",
+  "majorImprovements": [
+    "Employee Portal 2.0 quick HR transactions",
+    "Standard governed HR service catalog",
+    "Manager Self-Service action center",
+    "Role-aware manager landing",
+    "Automation Designer 2.0 event conditions",
+    "Schema-validated workflow condition model",
+    "Condition-aware domain-event dispatch"
+  ],
+  "consequentialDecisionsRemainHumanGoverned": true
+}

@@ -28,8 +28,14 @@ jobs:
     env:
       NODE_ENV: production
       OPSIQO_RELEASE_VERSION: '3.6.1'
+      OPSIQO_PRODUCT_RELEASE: '8.5-v7.9.3'
+      OPSIQO_RELEASE_COMMIT: ${{ github.sha }}
       FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
       NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+      NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+      NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
+      NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
       OPSIQO_FIREBASE_ADMIN_AUTH_MODE: adc
       FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
       NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ vars.FIREBASE_STORAGE_BUCKET }}
@@ -62,6 +68,8 @@ jobs:
       OPSIQO_PRODUCTION_EVIDENCE_REF: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
       OPSIQO_CLOUD_DR_EVIDENCE_REF: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#cloud-dr
       OPSIQO_DR_EXERCISE_EVIDENCE_REF: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}#restore-exercise
+      OPSIQO_DEPLOYMENT_PLATFORM: firebase_app_hosting
+      OPSIQO_APP_HOSTING_FRAMEWORK_EVIDENCE_REF: ${{ vars.OPSIQO_APP_HOSTING_FRAMEWORK_EVIDENCE_REF }}
       OPSIQO_AI_PROVIDER: ${{ vars.OPSIQO_AI_PROVIDER }}
       OPSIQO_REQUIRE_GOVERNED_AI_CONFIG: 'true'
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

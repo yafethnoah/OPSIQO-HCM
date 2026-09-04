@@ -1,5 +1,5 @@
 import { z } from 'zod';
-export const aiQuestionSchema=z.object({question:z.string().trim().min(3).max(4000)});
+export const aiQuestionSchema=z.object({question:z.string().trim().min(3).max(4000),responseLocale:z.enum(['auto','en','fr','es','ar']).optional()});
 export const aiPromptCreateSchema=z.object({code:z.string().trim().min(2).max(80).regex(/^[A-Z0-9_-]+$/),name:z.string().trim().min(2).max(160),systemInstruction:z.string().trim().min(50).max(20000)});
 export const aiPromptActionSchema=z.object({action:z.enum(['activate','retire'])});
 export const aiActionPlanSchema=z.object({recommendationId:z.string().min(1),title:z.string().trim().min(3).max(240).optional(),ownerRole:z.string().trim().min(2).max(80).default('hr_admin'),dueDays:z.number().int().min(1).max(365).default(30)});

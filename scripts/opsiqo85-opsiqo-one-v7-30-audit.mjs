@@ -1,0 +1,48 @@
+import fs from 'node:fs';
+const read=p=>fs.readFileSync(p,'utf8');const exists=p=>fs.existsSync(p);const checks=[];const add=(name,passed,detail='')=>checks.push({name,passed:Boolean(passed),detail});
+const catalog=JSON.parse(read('src/lib/opsiqo-one/legacy-surface-translations-v7-30.json'));const inv=JSON.parse(read('src/generated/opsiqo-v7-30-translation-inventory.json'));const metadata=JSON.parse(read('RELEASE_METADATA_V7_30.json'));const pkg=JSON.parse(read('package.json'));
+const legacy=read('src/lib/opsiqo-one/legacy-surface-i18n.ts'),nav=read('src/components/nav.tsx'),ready=read('src/lib/opsiqo-one/translation-readiness.ts'),runner=read('RUN_OPSIQO_ONE_V7_30_VALIDATION.ps1'),pre=read('scripts/opsiqo85-v7-30-certification-preflight.mjs'),summary=read('scripts/opsiqo85-v7-30-certification-summary.mjs'),deploy=read('scripts/opsiqo85-v7-30-deployment-readiness-summary.mjs'),attest=read('scripts/opsiqo85-v7-30-final-release-attestation.mjs'),signoff=read('scripts/opsiqo85-v7-30-human-signoff-core.mjs'),validator=read('scripts/opsiqo85-v7-30-human-signoff-validate.mjs'),template=read('PRODUCTION_SIGNOFF_TEMPLATE_V7_30.json'),safe=read('src/lib/opsiqo-one/safe-execution.ts'),router=read('src/lib/opsiqo-one/command-router.ts'),cortex=read('src/lib/opsiqo-one/cortex.ts');
+add('Product badge is V7.30 or later',/v7\.(?:30|31|32) · HCM v8\.5/.test(nav));
+add('Legacy i18n uses V7.30 or later catalog',/legacy-surface-translations-v7-(?:30|31|32)\.json/.test(legacy));
+add('Translation readiness uses V7.30 or later snapshot',/opsiqo-v7-(?:30|31|32)-translation-inventory\.json/.test(ready));
+add('V7.30 catalog covers at least 50 governed surfaces',Object.keys(catalog).length>=50,String(Object.keys(catalog).length));
+add('V7.30 catalog contains at least 2850 explicit translations',inv.catalogEntries>=2850,String(inv.catalogEntries));
+add('V7.30 reviewed coverage exceeds 3100 candidates',inv.reviewedSourceCandidates>=3100,String(inv.reviewedSourceCandidates));
+add('V7.30 remaining measured translation backlog is at most 450',inv.legacyCandidateCountRemaining<=450,String(inv.legacyCandidateCountRemaining));
+add('V7.30 catalog is structurally complete',inv.catalogCompleteness==='complete');
+for(const [surface,file] of Object.entries({org_design:'src/components/org-design-center.tsx',ats_studio:'src/components/ats-recruiting-panel.tsx',organization_admin:'src/components/organization-panel.tsx',program_workforce:'src/components/program-workforce-workspace.tsx',invitations:'src/components/invitation-panel.tsx',governed_gantt:'src/components/governed-gantt.tsx',strategy:'src/components/strategy-center.tsx'})){
+  add(`Catalog includes ${surface}`,catalog[surface]?.file===file);
+  add(`${surface} is wired to governed surface translation`,read(file).includes(`useLegacySurfaceTranslation('${surface}'`)||read(file).includes(`useLegacySurfaceTranslation("${surface}"`));
+}
+for(const surface of ['performance','compensation','experience'])add(`${surface} retains direct V7.30 catalog coverage`,Boolean(catalog[surface]&&Object.keys(catalog[surface].translations||{}).length));
+add('Human signoff template is V7.30',JSON.parse(template).version==='7.30');
+for(const token of ['manualAccessibility','connectorUat','releaseChangeApproval','productionDeployment'])add(`Signoff template includes ${token}`,template.includes(`"${token}"`));
+add('Approved human signoff requires evidence refs',signoff.includes('at least one non-empty evidenceRefs entry is required when approved'));
+add('Human signoff validator requires ISO timestamps',signoff.includes('reviewedAt must be an ISO timestamp when approved'));
+add('Human signoff validation rejects secret-like field names',signoff.includes('secret-like field names are not permitted'));
+add('Human signoff validation rejects private-key/token patterns',signoff.includes('PRIVATE KEY')&&signoff.includes('sk-'));
+add('Deployment readiness trusts validated approvals only',deploy.includes('validateHumanSignoff')&&deploy.includes('validApproved'));
+add('Final attestation trusts validated approvals only',attest.includes('validateHumanSignoff')&&attest.includes('validApproved'));
+add('Final attestation cannot deploy production',!/(firebase\s+deploy|apphosting:rollouts:create|gcloud\s+(?:run\s+)?deploy)/i.test(attest));
+add('Runner certification ledger version is V7.30',runner.includes("version = '7.30'"));
+add('Runner banner is V7.30',runner.includes('OPSIQO ONE v7.30 local certification'));
+add('Runner includes V7.29 regression',runner.includes('opsiqo85:opsiqo-one-v7.29:audit'));
+add('Runner includes V7.29 targeted tests',runner.includes('test:opsiqo-one-v7.29'));
+add('Runner runs V7.30 translation verification',runner.includes('opsiqo85:v7.30:translation-inventory:verify'));
+add('Runner runs V7.30 authenticated browser UAT',runner.includes('opsiqo85:v7.30:browser-a11y-auth'));
+add('Runner validates human signoff schema',runner.includes('opsiqo85:v7.30:human-signoff:validate'));
+add('Runner emits V7.30 deployment readiness',runner.includes('opsiqo85:v7.30:deployment-readiness'));
+add('Runner emits V7.30 final attestation',runner.includes('opsiqo85:v7.30:final-attestation'));
+add('Runner performs no production deployment',!/(firebase\s+deploy|apphosting:rollouts:create|gcloud\s+(?:run\s+)?deploy)/i.test(runner));
+add('Preflight targets V7.30 runner',pre.includes('RUN_OPSIQO_ONE_V7_30_VALIDATION.ps1'));
+add('Certification summary is dependency-free',summary.includes("from 'node:fs'")&&!summary.includes('node_modules'));
+add('Safe Execute allowlist remains exactly one notification action',(safe.match(/id:'notifications\.mark_visible_read'/g)||[]).length===1&&!safe.includes("id:'preference.locale.update'")&&!safe.includes("id:'preference.appearance.update'"));
+add('Consequential firewall remains before normal routing',router.indexOf('for(const item of blockedConsequential)')<router.indexOf('for(const item of patterns)'));
+add('No Cortex agent has unrestricted execute',!cortex.includes("maxActionLevel:'execute'"));
+add('V7.30 metadata reports source-complete but not production deployed',metadata.sourcePhaseComplete===true&&metadata.productionDeploymentPerformed===false);
+add('V7.30 metadata overall progress is below 100 until external signoff',metadata.overallProgressPercent<100&&metadata.overallProgressPercent>=99.8,String(metadata.overallProgressPercent));
+for(const [name,script] of Object.entries({'audit':'opsiqo85:opsiqo-one-v7.30:audit','inventory verify':'opsiqo85:v7.30:translation-inventory:verify','auth browser':'opsiqo85:v7.30:browser-a11y-auth','preflight':'opsiqo85:v7.30:certification-preflight','summary':'opsiqo85:v7.30:certification-summary','human signoff':'opsiqo85:v7.30:human-signoff:validate','deployment readiness':'opsiqo85:v7.30:deployment-readiness','final attestation':'opsiqo85:v7.30:final-attestation','targeted test':'test:opsiqo-one-v7.30'}))add(`Package exposes V7.30 ${name}`,Boolean(pkg.scripts?.[script]));
+for(const file of ['RUN_OPSIQO_ONE_V7_30_VALIDATION.ps1','RUN_OPSIQO_ONE_V7_30_VALIDATION.cmd','START_HERE_OPSIQO_ONE_V7_30.md','OPSIQO_ONE_V7_30.md','CHANGE_MANIFEST_OPSIQO_ONE_V7_30.md','VALIDATION_REPORT_OPSIQO_ONE_V7_30.md','RELEASE_METADATA_V7_30.json','PRODUCTION_SIGNOFF_TEMPLATE_V7_30.json','tests/opsiqo85/opsiqo-one-v7-30.test.ts'])add(`${file} exists`,exists(file));
+add('Root START_HERE points to V7.30 or later',exists('START_HERE.md')&&/START_HERE_OPSIQO_ONE_V7_(?:30|31|32)\.md/.test(read('START_HERE.md')));
+add('NEXT_PHASE points to final external certification/signoff',exists('NEXT_PHASE.md')&&(read('NEXT_PHASE.md').includes('External Certification')||read('NEXT_PHASE.md').includes('RUN_OPSIQO_ONE_V7_32_VALIDATION.ps1')));
+const passed=checks.filter(x=>x.passed).length,failed=checks.filter(x=>!x.passed);for(const c of checks)console.log(`${c.passed?'PASS':'FAIL'} ${c.name}${c.detail?` — ${c.detail}`:''}`);console.log(`\nOPSIQO ONE V7.30 audit: ${passed}/${checks.length} PASS`);if(failed.length){console.log('\nFailures:');for(const f of failed)console.log(`- ${f.name}${f.detail?`: ${f.detail}`:''}`);process.exit(1)}

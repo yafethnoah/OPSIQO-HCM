@@ -1,11 +1,23 @@
 'use client';
 
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 type Position = { id:string; title:string; orgUnitId:string; availableHeadcount:number; availableFte:number; capacityState:string };
 type Unit = { id:string; name:string };
 type Worker = { id:string; displayName:string; employeeNumber:string; workEmail:string; status:string; hireDate?:string };
+type AccountAccess = {
+  workerId:string;
+  email:string;
+  status:'active'|'provisioned'|'invited'|'suspended'|'not_invited';
+  firebaseIdentity:'missing'|'ready'|'disabled';
+  emailVerified:boolean;
+  lastSignInAt?:string;
+  membership:{role:string;status:string}|null;
+  invitation:{id:string;status:string;accountStatus?:string;deliveryStatus?:string;expiresAt:string;sendCount?:number}|null;
+  downloadUrl:string;
+};
 type AssignmentDetail = {id:string;primary:boolean;assignmentType?:string;allocationFte?:number;startDate:string;endDate?:string;current:boolean;position?:{id:string;title:string};orgUnit?:{id:string;name:string};manager?:{displayName:string}};
 type Detail = {
   worker: Worker;
@@ -18,6 +30,8 @@ type Detail = {
 };
 
 export function EmployeeProfile({ workerId }: { workerId: string }) {
+  const translationRoot=useRef<HTMLDivElement>(null);
+  useLegacySurfaceTranslation('employee_profile',translationRoot);
   const [detail,setDetail]=useState<Detail|null>(null);
   const [positions,setPositions]=useState<Position[]>([]);
   const [units,setUnits]=useState<Unit[]>([]);
@@ -28,6 +42,10 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
   const [error,setError]=useState('');
   const [message,setMessage]=useState('');
   const [canManage,setCanManage]=useState(false);
+  const [canInvite,setCanInvite]=useState(false);
+  const [access,setAccess]=useState<AccountAccess|null>(null);
+  const [accessRole,setAccessRole]=useState('employee');
+  const [accessBusy,setAccessBusy]=useState('');
 
   const load=async()=>{
     try {
@@ -38,7 +56,14 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
         apiFetch<{data:Worker[]}>(`/api/organizations/${activeOrgId()}/employees`),
         apiFetch<{actor:{permissions:string[]}}>('/api/me'),
       ]);
-      setDetail(d.data);setPositions(p.data);setUnits(u.data);setWorkers(w.data);setCanManage(me.actor.permissions.includes('people.manage'));
+      setDetail(d.data);setPositions(p.data);setUnits(u.data);setWorkers(w.data);setCanManage(me.actor.permissions.includes('people.manage'));setCanInvite(me.actor.permissions.includes('membership.invite'));
+      if(me.actor.permissions.includes('membership.read')){
+        try{
+          const accessResult=await apiFetch<{data:AccountAccess}>(`/api/organizations/${activeOrgId()}/employees/${workerId}/access`);
+          setAccess(accessResult.data);
+          if(accessResult.data.membership?.role)setAccessRole(accessResult.data.membership.role);
+        }catch{setAccess(null)}
+      }
     } catch(e){setError(e instanceof Error?e.message:'Unable to load employee.');}
   };
   useEffect(()=>{load();},[workerId]);
@@ -90,13 +115,36 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
     catch(e){setError(e instanceof Error?e.message:'Unable to update scheduled secondary assignment change.');}
   }
 
-  if(!detail)return <div className="card">{error?<span className="error">{error}</span>:<span className="muted">Loading employee profile…</span>}</div>;
-  return <div className="stack">
+  async function inviteEmployeeAccess(){
+    if(!detail?.worker.workEmail)return setError('A work email is required before OPSIQO account access can be provisioned.');
+    setError('');setMessage('');setAccessBusy('invite');
+    try{
+      const result=await apiFetch<{data:{delivery:string;deliveryError?:string}}>(`/api/organizations/${activeOrgId()}/invitations`,{method:'POST',body:JSON.stringify({email:detail.worker.workEmail,role:accessRole,workerId,expiresInDays:7})});
+      setMessage(result.data.delivery==='email'?'OPSIQO access was provisioned and the invitation email was sent.':'OPSIQO access was provisioned. Email delivery is not configured, so use Members & Invitations for the secure manual setup links.');
+      await load();
+    }catch(e){setError(e instanceof Error?e.message:'Unable to provision OPSIQO access.');}
+    finally{setAccessBusy('')}
+  }
+
+  async function accessInvitationAction(action:'resend'|'revoke'){
+    const invitationId=access?.invitation?.id;
+    if(!invitationId)return;
+    setError('');setMessage('');setAccessBusy(action);
+    try{
+      await apiFetch(`/api/organizations/${activeOrgId()}/invitations/${invitationId}`,{method:'POST',body:JSON.stringify(action==='resend'?{action:'resend',expiresInDays:7}:{action:'revoke',reason:'Revoked from employee profile'})});
+      setMessage(action==='resend'?'Invitation and password-setup access were resent.':'Pending invitation was revoked and invitation-provisioned organization access was deactivated.');
+      await load();
+    }catch(e){setError(e instanceof Error?e.message:`Unable to ${action} invitation.`);}
+    finally{setAccessBusy('')}
+  }
+
+  if(!detail)return <div ref={translationRoot} className="card">{error?<span className="error">{error}</span>:<span className="muted">Loading employee profile…</span>}</div>;
+  return <div ref={translationRoot} className="stack">
     {error&&<div className="error">{error}</div>}{message&&<div className="notice">{message}</div>}
     <div className="grid4">
       <div className="card"><div className="metricLabel">Employee</div><div className="profileName">{detail.worker.displayName}</div><div className="muted">{detail.worker.employeeNumber}</div></div>
       <div className="card"><div className="metricLabel">Primary position</div><div className="profileValue">{currentAssignment?.position?.title||'Unassigned'}</div><div className="muted">{currentAssignment?.orgUnit?.name||'—'}</div></div>
-      <div className="card"><div className="metricLabel">Manager</div><div className="profileValue">{currentAssignment?.manager?.displayName||'No manager'}</div><div className="muted">{secondaryAssignments.length} concurrent assignment(s)</div></div>
+      <div className="card"><div className="metricLabel">Manager</div><div className="profileValue">{currentAssignment?.manager?.displayName||'No manager'}</div><div className="muted">{secondaryAssignments.length} secondary assignment(s)</div></div>
       <div className="card"><div className="metricLabel">Employment status</div><div><span className="badge">{detail.worker.status}</span></div><div className="muted">Hired {detail.worker.hireDate||'—'}</div></div>
     </div>
 
@@ -114,7 +162,14 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
     </div>
 
     <section className="card stack">
-      <div className="toolbar"><div><h2 className="sectionTitle">Concurrent assignments</h2><div className="muted">Secondary responsibilities remain independent from the primary assignment.</div></div></div>
+      <div className="toolbar"><div><h2 className="sectionTitle">Account & app access</h2><div className="muted">H48 provisions Firebase identity, organization membership, password setup and mobile download access from the employee record.</div></div>{access&&<span className="badge">{access.status.replaceAll('_',' ')}</span>}</div>
+      {!detail.worker.workEmail?<div className="notice">Add a valid work email before inviting this employee to OPSIQO.</div>:<div className="grid4"><div><div className="metricLabel">Work email</div><strong>{detail.worker.workEmail}</strong></div><div><div className="metricLabel">Firebase identity</div><strong>{access?.firebaseIdentity||'not checked'}</strong></div><div><div className="metricLabel">Membership</div><strong>{access?.membership?`${access.membership.role.replaceAll('_',' ')} · ${access.membership.status}`:'not provisioned'}</strong></div><div><div className="metricLabel">Last sign-in</div><strong>{access?.lastSignInAt?new Date(access.lastSignInAt).toLocaleString():'Not yet'}</strong></div></div>}
+      {canInvite&&detail.worker.workEmail&&<div className="row wrap"><label className="field"><span>Access role</span><select className="input" value={accessRole} onChange={e=>setAccessRole(e.target.value)}><option value="employee">Employee</option><option value="manager">Manager</option><option value="hr_partner">HR Partner</option><option value="hr_admin">HR Admin</option><option value="org_admin">Organization Admin</option></select></label>{(!access?.invitation||['accepted','revoked','expired'].includes(access.invitation.status))&&<button className="button" disabled={!!accessBusy} onClick={inviteEmployeeAccess}>{accessBusy==='invite'?'Provisioning…':access?.status==='active'?'Send new access email':'Provision access & send invitation'}</button>}{access?.invitation?.status==='pending'&&<><button className="button secondary" disabled={!!accessBusy} onClick={()=>accessInvitationAction('resend')}>{accessBusy==='resend'?'Sending…':'Resend invitation'}</button><button className="button dangerButton" disabled={!!accessBusy} onClick={()=>accessInvitationAction('revoke')}>{accessBusy==='revoke'?'Revoking…':'Revoke pending access'}</button></>}</div>}
+      {access?.downloadUrl&&<div className="notice">Employee download page: <a className="textLink" href={access.downloadUrl} target="_blank" rel="noreferrer">Open OPSIQO download page</a>. Android/iOS store links can be configured later without changing the invitation workflow.</div>}
+    </section>
+
+    <section className="card stack">
+      <div className="toolbar"><div><h2 className="sectionTitle">Additional assignments</h2><div className="muted">Secondary responsibilities remain independent from the primary assignment.</div></div></div>
       <div className="tableWrap"><table><thead><tr><th>Type</th><th>Position</th><th>Unit</th><th>Manager</th><th>Allocation</th><th>Start</th><th>Status</th><th></th></tr></thead><tbody>{detail.assignments.filter(a=>a.current).map(a=><tr key={a.id}><td>{a.primary?'Primary':'Secondary'}</td><td>{a.position?.title||'—'}</td><td>{a.orgUnit?.name||'—'}</td><td>{a.manager?.displayName||'—'}</td><td>{a.allocationFte??(a.primary?1:0.25)} FTE</td><td>{a.startDate}</td><td><span className="badge">current</span></td><td>{canManage&&!a.primary&&<button className="button secondary" onClick={()=>endSecondary(a.id)}>End</button>}</td></tr>)}{!detail.assignments.some(a=>a.current)&&<tr><td colSpan={8} className="muted">No current assignments.</td></tr>}</tbody></table></div>
       {canManage&&<form className="formGrid" onSubmit={addSecondary}><label className="field"><span>Secondary unit</span><select required className="input" name="orgUnitId" value={secondaryUnit} onChange={e=>setSecondaryUnit(e.target.value)}><option value="">Select unit</option>{units.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}</select></label><label className="field"><span>Secondary position</span><select required className="input" name="positionId" defaultValue=""><option value="">Select available position</option>{secondaryPositions.map(p=><option key={p.id} value={p.id}>{p.title} · {p.availableHeadcount} seat(s)</option>)}</select></label><label className="field"><span>Allocation FTE</span><input className="input" name="allocationFte" type="number" min="0.05" max="1" step="0.05" defaultValue="0.25" /></label><label className="field"><span>Start date</span><input className="input" name="startDate" type="date" required defaultValue={new Date().toISOString().slice(0,10)} /></label><label className="field"><span>Manager</span><select className="input" name="managerWorkerId" defaultValue=""><option value="">No separate manager</option>{workers.filter(w=>w.id!==workerId).map(w=><option key={w.id} value={w.id}>{w.displayName}</option>)}</select></label><div className="field"><span>&nbsp;</span><button className="button">Add secondary assignment</button></div></form>}
       {canManage&&secondaryAssignments.length>0&&<form className="formGrid" onSubmit={scheduleSecondaryEnd}><label className="field"><span>Assignment to end</span><select required className="input" name="assignmentId"><option value="">Select secondary assignment</option>{secondaryAssignments.map(a=><option key={a.id} value={a.id}>{a.position?.title||a.id}</option>)}</select></label><label className="field"><span>Effective end date</span><input required className="input" name="endDate" type="date" min={new Date().toISOString().slice(0,10)} /></label><label className="field"><span>Reason</span><input className="input" name="note" /></label><div className="field"><span>&nbsp;</span><button className="button secondary">Apply or schedule end</button></div></form>}

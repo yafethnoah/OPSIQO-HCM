@@ -1,0 +1,38 @@
+{
+  "cli": {
+    "version": ">= 16.18.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development",
+      "environment": "development",
+      "env": {
+        "EXPO_PUBLIC_OPSIQO_ENVIRONMENT": "development"
+      }
+    },
+    "uat": {
+      "distribution": "internal",
+      "channel": "uat",
+      "environment": "preview",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_OPSIQO_ENVIRONMENT": "uat",
+        "EXPO_PUBLIC_OPSIQO_API_BASE_URL": "https://uat.opsiqo.ca"
+      }
+    },
+    "production": {
+      "channel": "production",
+      "environment": "production",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_OPSIQO_ENVIRONMENT": "production"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

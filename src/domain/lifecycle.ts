@@ -3,7 +3,7 @@ export type LifecycleSeverity = 'info' | 'warning' | 'high' | 'critical';
 export interface LifecycleMetric {
   key: string;
   label: string;
-  value: number;
+  value: number | string;
   helper: string;
   href: string;
 }

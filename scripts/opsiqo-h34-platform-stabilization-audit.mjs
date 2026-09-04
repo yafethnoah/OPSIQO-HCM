@@ -1,0 +1,30 @@
+import fs from 'node:fs';
+const checks=[];
+function text(file){return fs.readFileSync(file,'utf8')}
+function check(name,ok){checks.push({name,ok:Boolean(ok)});console.log(`${ok?'PASS':'FAIL'}  ${name}`)}
+const imp=text('src/components/import-center-workspace.tsx');
+const maint=text('src/lib/admin-maintenance/service.ts');
+const nav=text('src/components/nav.tsx');
+const launch=text('src/lib/opsiqo-one/organization-launchpad.ts');
+const agent=text('src/components/agent-builder-workspace.tsx');
+check('Import staging captures form before await',imp.includes('const form=e.currentTarget;'));
+check('No async e.currentTarget.reset call remains',!imp.includes('e.currentTarget.reset()'));
+check('Universal document import supports governed multi-file batches',imp.includes('type="file" multiple required'));
+check('Exact duplicate imports reconcile instead of restaging',imp.includes('exact duplicate(s) already existed'));
+check('Generic HR documents default to employee-independent association',imp.includes('Not employee-specific (default)'));
+check('Clean scan requires explicit evidence reference in UI',imp.includes('scanEvidenceRef')&&imp.includes('Record clean evidence'));
+check('AI governance recovery link exists',imp.includes('Open AI Governance'));
+check('Admin maintenance route is in navigation',nav.includes("href:'/admin-maintenance'"));
+check('Maintenance protects audit/security/provenance evidence',maint.includes('protectedEvidence')&&maint.includes('release/certification provenance'));
+check('Safe cleanup is narrowly restricted to old rejected unpromoted imports',maint.includes("reviewStatus === 'rejected'")&&maint.includes('!r.promotedEntityId'));
+check('Tenant reset is environment gated',maint.includes("OPSIQO_ALLOW_UAT_TENANT_RESET === 'true'"));
+check('Tenant reset confirmation is organization-specific',maint.includes('confirmationText')&&maint.includes('RESET'));
+check('Organization root and audit logs are preserved by reset',maint.includes('organizationRootPreserved')&&maint.includes('auditLogsPreserved'));
+check('Organization Launchpad has full implementation checklist',launch.includes("id:'maintenance'")&&launch.includes("id:'agents'")&&launch.includes("id:'privacy'"));
+check('Agent Builder retains Prepare hard ceiling guidance',agent.includes('Execute remains unavailable')&&agent.includes('independent approval'));
+check('Housekeeping runner exists',fs.existsSync('scripts/run-admin-housekeeping.ts'));
+check('Admin maintenance API exists',fs.existsSync('src/app/api/organizations/[orgId]/admin-maintenance/route.ts'));
+check('Admin maintenance page exists',fs.existsSync('src/app/admin-maintenance/page.tsx'));
+const failed=checks.filter(c=>!c.ok);
+console.log(`\nH34 PLATFORM STABILIZATION AUDIT: ${checks.length-failed.length}/${checks.length} PASS`);
+if(failed.length)process.exitCode=1;

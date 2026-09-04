@@ -1,0 +1,24 @@
+{
+  "product": "OPSIQO ONE",
+  "hcmVersion": "8.5",
+  "release": "7.26",
+  "releaseName": "Certification Environment & Translation Closure",
+  "date": "2026-08-19",
+  "overallProgressPercent": 98,
+  "safeExecuteAllowlist": ["notifications.mark_visible_read"],
+  "translation": {
+    "supportedLocales": ["en", "fr", "es", "ar"],
+    "cataloguedSurfaces": 35,
+    "catalogEntries": 2277,
+    "reviewedSourceCandidates": 2238,
+    "remainingHeuristicCandidates": 1389,
+    "totalSourceCandidates": 3627
+  },
+  "certification": {
+    "isolatedFirebaseConfig": "firebase.test.json",
+    "emulatorProject": "demo-opsiqo-local",
+    "sanitizedLedger": "artifacts/v7-26-certification-ledger.json",
+    "restoresCallerEnvironment": true
+  },
+  "certificationBoundary": "Source-complete/source-audited; dependency-backed Windows certification required before deployment-certified status."
+}

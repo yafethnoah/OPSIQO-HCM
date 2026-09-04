@@ -49,6 +49,10 @@ export interface Application {
   candidateId: string;
   stage: ApplicationStage;
   dispositionReason?: string;
+  dispositionNote?: string;
+  dispositionAction?: 'reject' | 'withdraw';
+  disposedBy?: string;
+  disposedAt?: string;
   ownerUid?: string;
   source?: string;
   appliedAt: string;
@@ -92,6 +96,46 @@ export interface InterviewScorecard {
   overallComment?: string;
   submittedAt: string;
   updatedAt: string;
+}
+
+
+export interface InterviewQuestionAnchor { rating: 1 | 3 | 5; description: string; }
+export interface InterviewQuestion {
+  id: string;
+  type: 'core' | 'behavioral' | 'situational' | 'technical' | 'verification' | 'candidate_questions';
+  competency: string;
+  question: string;
+  probes: string[];
+  expectedEvidence: string[];
+  anchors: InterviewQuestionAnchor[];
+  standardized: boolean;
+  source: 'requisition' | 'ats_gap' | 'system';
+}
+export interface InterviewKit {
+  id: string;
+  interviewId: string;
+  applicationId: string;
+  requisitionId: string;
+  candidateId: string;
+  version: number;
+  status: 'draft' | 'locked';
+  generationMode: 'deterministic' | 'governed_ai';
+  questions: InterviewQuestion[];
+  decisionBoundary: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  lockedBy?: string;
+  lockedAt?: string;
+}
+export interface InterviewPanelSummary {
+  interviewId: string;
+  scorecardCount: number;
+  averageRating?: number;
+  recommendationCounts: Record<string, number>;
+  varianceWarning: boolean;
+  ratingSpread?: number;
+  decisionBoundary: string;
 }
 
 export interface Offer {

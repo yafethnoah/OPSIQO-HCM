@@ -1,0 +1,29 @@
+{
+  "release": "V7.32",
+  "hcmVersion": "8.5",
+  "hotfixRevision": 11,
+  "hotfixName": "Document Scan and UAT Hardening",
+  "date": "2026-08-20",
+  "sourceBaseline": "V7.32 Production Promotion Governance Hotfix 10",
+  "sourceDevelopmentComplete": true,
+  "productionDeploymentPerformed": false,
+  "measuredStaticTranslationCandidates": 3528,
+  "measuredStaticTranslationBacklog": 0,
+  "safety": {
+    "safeExecuteExpanded": false,
+    "consequentialHrExecutionExpanded": false,
+    "productionDeployCommandAdded": false,
+    "documentCleanStateRequiresEvidenceInGovernedProduction": true,
+    "prehireLatestEvidenceAuthoritative": true
+  },
+  "packagingValidation": {
+    "hotfixAudit": "22/22 PASS",
+    "v732Audit": "101/101 PASS",
+    "historicalSourceAudits": "V7.10-V7.32 PASS",
+    "typescriptSyntax": "1064 files / 0 diagnostics",
+    "staticSecurity": "1164 files / 0 findings",
+    "windowsPowerShellEncoding": "38 scripts PASS",
+    "dependencyBackedRecertification": "required_on_windows"
+  },
+  "overallProgressPercent": 99.99
+}

@@ -1,0 +1,2 @@
+import { NextResponse } from 'next/server';import { actorFromRequest } from '@/lib/auth/session';import { apiErrorResponse } from '@/lib/http/errors';import { actCustomAgent } from '@/lib/opsiqo-one/agent-builder';
+export async function POST(request:Request,context:{params:Promise<{orgId:string;agentId:string}>}){try{const{orgId,agentId}=await context.params,actor=await actorFromRequest(request,orgId);return NextResponse.json({data:await actCustomAgent(actor,agentId,await request.json())});}catch(e){return apiErrorResponse(e)}}

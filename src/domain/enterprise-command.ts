@@ -13,8 +13,9 @@ export type EnterpriseDomainKey =
   | 'security_ops'
   | 'platform_reliability';
 
-export type EnterpriseRiskStatus = 'low' | 'medium' | 'high' | 'critical';
-export type EnterpriseReadinessLevel = 'fragile' | 'developing' | 'controlled' | 'strategic';
+export type EnterpriseRiskStatus = 'not_assessed' | 'low' | 'medium' | 'high' | 'critical';
+export type EnterpriseReadinessLevel = 'not_assessed' | 'fragile' | 'developing' | 'controlled' | 'strategic';
+export type EvidenceSufficiency = 'not_evaluated' | 'insufficient' | 'partial' | 'sufficient';
 export type EnterpriseLifecycle = 'draft' | 'in_review' | 'approved' | 'retired';
 
 export interface EnterpriseRiskNode {
@@ -23,6 +24,9 @@ export interface EnterpriseRiskNode {
   href: string;
   readinessScore: number;
   status: EnterpriseRiskStatus;
+  assessed: boolean;
+  evidenceCoverage: number;
+  evidenceStatus: EvidenceSufficiency;
   open: number;
   overdue: number;
   highCritical: number;
@@ -40,6 +44,9 @@ export interface EnterpriseHcmIndex {
   score: number;
   level: EnterpriseReadinessLevel;
   explanation: string;
+  assessedDomains: number;
+  totalDomains: number;
+  evidenceCoverage: number;
 }
 
 export interface CommandCenterActionTask {
@@ -181,6 +188,8 @@ export interface EnterpriseCommandDashboard {
   notifications: Array<{ id: string; title: string; message: string; priority?: string; createdAt: string; status: string }>;
   metrics: {
     highCriticalDomains: number;
+    insufficientEvidenceDomains: number;
+    assessedDomains: number;
     openActions: number;
     overdueActions: number;
     highCriticalActions: number;

@@ -30,6 +30,21 @@ export async function identityFromRequest(request: Request): Promise<IdentityCon
   return { uid: decoded.uid, email: decoded.email, emailVerified: decoded.email_verified === true, demo: false, mfaVerified:Boolean(firebase?.sign_in_second_factor), signInProvider:firebase?.sign_in_provider, groups, authTime: decoded.auth_time ? new Date(Number(decoded.auth_time)*1000).toISOString() : undefined, deviceCompliant, tenantId };
 }
 
+async function platformPolicyForOrg(orgId:string){
+  const snap=await adminDb().doc(`organizations/${orgId}/settings/platform`).get();
+  return snap.exists ? (snap.data() as Record<string,unknown>) : null;
+}
+
+function enforcePlatformIdentityPolicy(identity:IdentityContext,role:Role,platform:Record<string,unknown>|null){
+  if(!platform||identity.demo) return;
+  if(platform.allowPasswordSignIn===false&&identity.signInProvider==='password') throw new ApiError(403,'Email/password sign-in is disabled by organization policy.','password_signin_disabled');
+  const mfaPolicy=String(platform.mfaPolicy||'optional');
+  const privileged=['super_admin','org_admin','hr_admin'].includes(role);
+  if((mfaPolicy==='all_required'||(mfaPolicy==='privileged_required'&&privileged))&&!identity.mfaVerified) throw new ApiError(403,'Multi-factor authentication is required by organization policy.','mfa_required');
+  const timeout=typeof platform.sessionTimeoutMinutes==='number'&&Number.isFinite(platform.sessionTimeoutMinutes)?Math.max(15,Math.min(1440,platform.sessionTimeoutMinutes)):null;
+  if(timeout&&identity.authTime){const ageMs=Date.now()-Date.parse(identity.authTime);if(Number.isFinite(ageMs)&&ageMs>timeout*60_000)throw new ApiError(401,'Your organization session has expired. Sign in again.','session_expired');}
+}
+
 function enforcePrivilegedIdentityPolicy(identity:IdentityContext, role:Role){
   const privileged=['super_admin','org_admin','hr_admin'].includes(role); if(!privileged||identity.demo) return;
   if(process.env.OPSIQO_REQUIRE_ADMIN_MFA==='true'&&!identity.mfaVerified) throw new ApiError(403,'Multi-factor authentication is required for privileged HR access.','mfa_required');
@@ -38,15 +53,59 @@ function enforcePrivilegedIdentityPolicy(identity:IdentityContext, role:Role){
 }
 
 export async function actorFromRequest(request: Request, orgId?: string): Promise<ActorContext> {
-  const resolvedOrgId = orgId || request.headers.get('x-org-id') || process.env.OPSIQO_DEMO_ORG_ID;
+  const demo = process.env.OPSIQO_DEMO_MODE === 'true';
+  const routeOrgId = String(orgId || '').trim() || undefined;
+  const headerOrgId = String(request.headers.get('x-org-id') || '').trim() || undefined;
+
+  if (routeOrgId && headerOrgId && routeOrgId !== headerOrgId) {
+    throw new ApiError(400, 'Organization context does not match the requested resource.', 'org_context_mismatch');
+  }
+
+  const demoOrgId = demo ? String(process.env.OPSIQO_DEMO_ORG_ID || '').trim() || undefined : undefined;
+  const resolvedOrgId = routeOrgId || headerOrgId || demoOrgId;
   if (!resolvedOrgId) throw new ApiError(400, 'Organization context is required.', 'missing_org');
-  if (process.env.OPSIQO_DEMO_MODE === 'true' && !request.headers.get('authorization')) return demoContext(resolvedOrgId);
+
+  if (demo && !request.headers.get('authorization')) return demoContext(resolvedOrgId);
+
   const identity = await identityFromRequest(request);
+  const platform = await platformPolicyForOrg(resolvedOrgId);
+
+  // Anonymous access is deliberately read-only and organization-scoped.
+  if (identity.signInProvider === 'anonymous') {
+    if (!platform || platform.guestAccessEnabled !== true || platform.guestReadOnly !== true) {
+      throw new ApiError(403, 'Guest access is not enabled for this organization.', 'guest_access_disabled');
+    }
+    return {
+      uid: identity.uid,
+      orgId: resolvedOrgId,
+      role: 'employee',
+      permissions: ['organization.read','positions.read'],
+      guest: true,
+    };
+  }
+
   const memberSnap = await adminDb().doc(`organizations/${resolvedOrgId}/memberships/${identity.uid}`).get();
   if (!memberSnap.exists) throw new ApiError(403, 'No membership for this organization.', 'membership_required');
   const membership = memberSnap.data() as Membership;
   if (membership.status !== 'active') throw new ApiError(403, 'Membership is inactive.', 'membership_inactive');
-  const role = membership.role as Role; enforcePrivilegedIdentityPolicy(identity,role);
+  const role = membership.role as Role;
+  enforcePrivilegedIdentityPolicy(identity,role);
+  enforcePlatformIdentityPolicy(identity,role,platform);
   return { uid: identity.uid, orgId: resolvedOrgId, role, workerId: membership.workerId, permissions: permissionsForRole(role) };
 }
-export function requirePermission(actor: ActorContext, permission: Permission) { if (!actor.permissions.includes(permission)) throw new ApiError(403, `Permission required: ${permission}`, 'forbidden'); }
+
+const TEAM_PERMISSION_FALLBACK: Partial<Record<Permission, Permission>> = {
+  'recruiting.manage': 'recruiting.manage.team',
+  'onboarding.manage': 'onboarding.manage.team',
+  'time.manage': 'time.manage.team',
+  'performance.pip': 'performance.pip.team',
+  'learning.verify': 'learning.verify.team',
+};
+
+export function hasPermission(actor: ActorContext, permission: Permission) {
+  return actor.permissions.includes(permission) || Boolean(TEAM_PERMISSION_FALLBACK[permission] && actor.permissions.includes(TEAM_PERMISSION_FALLBACK[permission]!));
+}
+
+export function requirePermission(actor: ActorContext, permission: Permission) {
+  if (!hasPermission(actor, permission)) throw new ApiError(403, `Permission required: ${permission}`, 'forbidden');
+}

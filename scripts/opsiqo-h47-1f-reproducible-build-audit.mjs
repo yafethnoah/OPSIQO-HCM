@@ -1,0 +1,20 @@
+import fs from 'node:fs';
+const read = p => fs.readFileSync(p, 'utf8');
+const pkg = JSON.parse(read('mobile/package.json'));
+const lockPath = 'mobile/package-lock.json';
+const runner = read('RUN_OPSIQO_H47_1F_VALIDATION.ps1');
+const checks=[]; const add=(name,ok)=>checks.push({name,ok:Boolean(ok)});
+add('mobile package-lock is committed into certified source', fs.existsSync(lockPath));
+let lock={}; if(fs.existsSync(lockPath)) lock=JSON.parse(read(lockPath));
+add('package-lock uses modern lockfile v3', Number(lock.lockfileVersion) === 3);
+add('package-lock root package matches employee mobile package', lock.packages?.['']?.name === pkg.name && lock.packages?.['']?.version === pkg.version);
+add('package-lock root dependencies match package.json dependency set', JSON.stringify(lock.packages?.['']?.dependencies||{}) === JSON.stringify(pkg.dependencies||{}));
+add('package-lock root devDependencies match package.json devDependency set', JSON.stringify(lock.packages?.['']?.devDependencies||{}) === JSON.stringify(pkg.devDependencies||{}));
+add('validator copies frozen lock into isolated workspace', runner.includes("Copy-Item -LiteralPath $MobileLock"));
+add('validator installs exactly from frozen lock with npm ci', runner.includes('npm ci --no-audit --no-fund'));
+add('validator checks Expo dependency alignment in CI mode', runner.includes("$env:CI = '1'") && runner.includes('expo install --check'));
+add('validator runs mobile TypeScript and Expo Doctor', runner.includes('npm run typecheck') && runner.includes('npx expo-doctor'));
+add('validator verifies immutable source manifest at the end', runner.includes('source-manifest.mjs verify'));
+let pass=0; for(const c of checks){console.log(`${c.ok?'PASS':'FAIL'}  ${c.name}`); if(c.ok)pass++;}
+console.log(`\nH47.1F reproducible-build audit: ${pass}/${checks.length} PASS`);
+if(pass!==checks.length) process.exit(1);

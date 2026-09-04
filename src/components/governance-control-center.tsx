@@ -1,18 +1,21 @@
 'use client';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import type { GovernanceDashboard } from '@/domain/governance';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
+import { LoadingState } from '@/components/data-states';
+import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 
 type Me={actor:{permissions:string[]}};
 const iso=(days=0)=>{const d=new Date();d.setDate(d.getDate()+days);return d.toISOString().slice(0,10)};
 export function GovernanceControlCenter(){
+ const translationRoot=useRef<HTMLDivElement>(null); useLegacySurfaceTranslation('governance',translationRoot);
  const[data,setData]=useState<GovernanceDashboard|null>(null),[permissions,setPermissions]=useState<string[]>([]),[tab,setTab]=useState('overview'),[error,setError]=useState(''),[busy,setBusy]=useState('');
  const load=async()=>{try{setError('');const[d,m]=await Promise.all([apiFetch<{data:GovernanceDashboard}>(`/api/organizations/${activeOrgId()}/governance/dashboard`),apiFetch<Me>('/api/me')]);setData(d.data);setPermissions(m.actor.permissions);}catch(e){setError(e instanceof Error?e.message:'Unable to load governance control center.')}};
  useEffect(()=>{load();const h=()=>load();window.addEventListener('opsiqo:organization-changed',h);return()=>window.removeEventListener('opsiqo:organization-changed',h)},[]);
  const run=async(key:string,fn:()=>Promise<unknown>)=>{try{setBusy(key);setError('');await fn();await load();}catch(e){setError(e instanceof Error?e.message:'Governance action failed.')}finally{setBusy('')}};
- if(!data)return <section className="card"><p>{error||'Loading governance control center…'}</p></section>;
+ if(!data)return <div ref={translationRoot} className="stack">{error&&<div className="error">{error}</div>}<LoadingState label="Loading governance controls, attestations and risk evidence…"/></div>;
  const canManage=permissions.includes('governance.manage'),canApprove=permissions.includes('governance.approve');
- return <div className="stack">{error&&<div className="error">{error}</div>}<div className="tabs">{['overview','control_register','attestations','exceptions','risk_register'].map(t=><button key={t} className={`tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{t.replaceAll('_',' ')}</button>)}</div>
+ return <div ref={translationRoot} className="stack">{error&&<div className="error">{error}</div>}<div className="tabs">{['overview','control_register','attestations','exceptions','risk_register'].map(t=><button key={t} className={`tab ${tab===t?'active':''}`} onClick={()=>setTab(t)}>{t.replaceAll('_',' ')}</button>)}</div>
  {tab==='overview'&&<Overview data={data} canApprove={canApprove} busy={busy} run={run}/>} 
  {tab==='control_register'&&<ControlRegister data={data} canManage={canManage} canApprove={canApprove} busy={busy} run={run}/>} 
  {tab==='attestations'&&<Attestations data={data} canManage={canManage} canApprove={canApprove} busy={busy} run={run}/>} 

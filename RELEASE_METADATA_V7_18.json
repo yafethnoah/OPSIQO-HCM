@@ -1,0 +1,15 @@
+{
+  "product": "OPSIQO ONE",
+  "hcmBaseline": "8.5",
+  "version": "7.18",
+  "releaseName": "UAT Accessibility Translation Certification",
+  "releaseDate": "2026-08-19",
+  "status": "source_complete_pending_dependency_backed_certification",
+  "safety": {
+    "safeExecuteAllowlistExpanded": false,
+    "currentExecuteAction": "notifications.mark_visible_read",
+    "consequentialEmploymentFirewallPreserved": true,
+    "customCortexAgentsHaveUnrestrictedExecute": false
+  },
+  "truthBoundary": "The packaged source is source-audited. Full dependency-backed TypeScript, Vitest, Firestore Rules, production-build and browser UAT certification must pass in the included Windows runner before deployment certification is claimed."
+}

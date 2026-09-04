@@ -24,10 +24,18 @@ beforeEach(async () => {
     await setDoc(doc(db, `organizations/${orgId}/memberships/hr-1`), { uid:'hr-1', workerId:'worker-3', role:'hr_admin', status:'active' });
     await setDoc(doc(db, `organizations/${orgId}/memberships/hrp-1`), { uid:'hrp-1', workerId:'worker-4', role:'hr_partner', status:'active' });
     await setDoc(doc(db, `organizations/${orgId}/workflowDefinitions/wf-1`), { id:'wf-1', name:'Existing workflow', trigger:'manual', enabled:true });
+    await setDoc(doc(db, `organizations/${orgId}/workflowRuns/wfr-1`), { id:'wfr-1', workflowId:'wf-1', status:'running' });
+    await setDoc(doc(db, `organizations/${orgId}/workflowStepRuns/wfs-1`), { id:'wfs-1', workflowRunId:'wfr-1', status:'pending' });
     await setDoc(doc(db, `organizations/${orgId}/workers/worker-1`), { id:'worker-1', displayName:'Employee One' });
+    await setDoc(doc(db, `organizations/${orgId}/workers/worker-99`), { id:'worker-99', employeeNumber:'PRIVATE-99', displayName:'Directory Colleague', hireDate:'2025-01-01' });
+    await setDoc(doc(db, `organizations/${orgId}/workerDirectory/worker-1`), { id:'worker-1', displayName:'Employee One', status:'active' });
+    await setDoc(doc(db, `organizations/${orgId}/workerDirectory/worker-99`), { id:'worker-99', displayName:'Directory Colleague', status:'active' });
+    await setDoc(doc(db, `organizations/${orgId}/assignments/assignment-own`), { id:'assignment-own', workerId:'worker-1', managerWorkerId:'worker-2' });
+    await setDoc(doc(db, `organizations/${orgId}/assignments/assignment-other`), { id:'assignment-other', workerId:'worker-99', managerWorkerId:'worker-88' });
     await setDoc(doc(db, `organizations/${orgId}/people/person-1`), { id:'person-1', authUid:'employee-1', legalFirstName:'Employee', legalLastName:'One' });
     await setDoc(doc(db, `organizations/${orgId}/people/person-2`), { id:'person-2', authUid:'other-user', legalFirstName:'Other', legalLastName:'Person' });
     await setDoc(doc(db, `organizations/${orgId}/employments/employment-1`), { id:'employment-1', workerId:'worker-1' });
+    await setDoc(doc(db, `organizations/${orgId}/employments/employment-99`), { id:'employment-99', workerId:'worker-99' });
     await setDoc(doc(db, `organizations/${orgId}/auditLogs/audit-1`), { id:'audit-1', action:'test' });
     await setDoc(doc(db, `organizations/${orgId}/domainEvents/event-1`), { id:'event-1', status:'pending' });
     await setDoc(doc(db, `organizations/${orgId}/automationRuns/run-1`), { id:'run-1', status:'completed' });
@@ -78,10 +86,18 @@ beforeEach(async () => {
 });
 
 describe('Firestore tenant and role boundaries', () => {
-  it('lets an employee read directory worker data but not mutate it', async () => {
-    const db = testEnv.authenticatedContext('employee-1').firestore();
-    await assertSucceeds(getDoc(doc(db, `organizations/${orgId}/workers/worker-1`)));
-    await assertFails(setDoc(doc(db, `organizations/${orgId}/workers/worker-1`), { id:'worker-1', displayName:'Tampered' }));
+  it('separates the privacy-minimized worker directory from private worker records', async () => {
+    const employeeDb = testEnv.authenticatedContext('employee-1').firestore();
+    const managerDb = testEnv.authenticatedContext('manager-1').firestore();
+    const hrDb = testEnv.authenticatedContext('hr-1').firestore();
+    await assertSucceeds(getDoc(doc(employeeDb, `organizations/${orgId}/workerDirectory/worker-99`)));
+    await assertSucceeds(getDoc(doc(employeeDb, `organizations/${orgId}/workers/worker-1`)));
+    await assertFails(getDoc(doc(employeeDb, `organizations/${orgId}/workers/worker-99`)));
+    await assertSucceeds(getDoc(doc(hrDb, `organizations/${orgId}/workers/worker-99`)));
+    await assertFails(setDoc(doc(employeeDb, `organizations/${orgId}/workerDirectory/worker-1`), { id:'worker-1', displayName:'Tampered' }));
+    await assertSucceeds(getDoc(doc(employeeDb, `organizations/${orgId}/assignments/assignment-own`)));
+    await assertSucceeds(getDoc(doc(managerDb, `organizations/${orgId}/assignments/assignment-own`)));
+    await assertFails(getDoc(doc(employeeDb, `organizations/${orgId}/assignments/assignment-other`)));
   });
 
   it('lets an employee read only their linked person record', async () => {
@@ -90,10 +106,25 @@ describe('Firestore tenant and role boundaries', () => {
     await assertFails(getDoc(doc(db, `organizations/${orgId}/people/person-2`)));
   });
 
-  it('lets managers read employment data but not audit evidence', async () => {
-    const db = testEnv.authenticatedContext('manager-1').firestore();
-    await assertSucceeds(getDoc(doc(db, `organizations/${orgId}/employments/employment-1`)));
-    await assertFails(getDoc(doc(db, `organizations/${orgId}/auditLogs/audit-1`)));
+  it('limits direct employment reads to HR or the employee who owns the record', async () => {
+    const employeeDb = testEnv.authenticatedContext('employee-1').firestore();
+    const managerDb = testEnv.authenticatedContext('manager-1').firestore();
+    const hrDb = testEnv.authenticatedContext('hr-1').firestore();
+    await assertSucceeds(getDoc(doc(employeeDb, `organizations/${orgId}/employments/employment-1`)));
+    await assertFails(getDoc(doc(employeeDb, `organizations/${orgId}/employments/employment-99`)));
+    await assertFails(getDoc(doc(managerDb, `organizations/${orgId}/employments/employment-1`)));
+    await assertSucceeds(getDoc(doc(hrDb, `organizations/${orgId}/employments/employment-1`)));
+    await assertFails(getDoc(doc(managerDb, `organizations/${orgId}/auditLogs/audit-1`)));
+  });
+
+  it('keeps workflow definitions, runs and step internals behind governed server APIs', async () => {
+    const managerDb = testEnv.authenticatedContext('manager-1').firestore();
+    const hrDb = testEnv.authenticatedContext('hr-1').firestore();
+    for (const db of [managerDb, hrDb]) {
+      await assertFails(getDoc(doc(db, `organizations/${orgId}/workflowDefinitions/wf-1`)));
+      await assertFails(getDoc(doc(db, `organizations/${orgId}/workflowRuns/wfr-1`)));
+      await assertFails(getDoc(doc(db, `organizations/${orgId}/workflowStepRuns/wfs-1`)));
+    }
   });
 
   it('keeps domain-event writes server-only even for HR admins', async () => {

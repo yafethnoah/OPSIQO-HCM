@@ -1,0 +1,10 @@
+{
+  "release": "OPSIQO ONE V7.29",
+  "hcmVersion": "8.5",
+  "phase": "Final Release Attestation",
+  "overallProgressPercent": 99.75,
+  "sourceStatus": "complete_and_audited_pending_dependency_and_human_signoff",
+  "safeExecuteAllowlist": ["notifications.mark_visible_read"],
+  "productionDeploymentPerformed": false,
+  "boundary": "99.75% is an overall project estimate, not a production certification claim. Final completion requires dependency-backed certification, manual accessibility sign-off, approved connector UAT, change approval and controlled production deployment evidence."
+}

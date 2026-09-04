@@ -33,7 +33,7 @@ export interface OnboardingCase {
   managerWorkerId: string;
   candidateDisplayName: string;
   candidateEmail: string;
-  employeeNumber: string;
+  employeeNumber?: string;
   workEmail: string;
   employmentType: 'permanent' | 'temporary' | 'contractor' | 'intern' | 'volunteer';
   startDate: string;
@@ -87,6 +87,9 @@ export interface PrehireDocument {
   storagePath: string;
   sha256: string;
   scanStatus: 'not_scanned' | 'clean' | 'blocked';
+  scanEvidenceRef?: string;
+  scanRecordedBy?: string;
+  scanRecordedAt?: string;
   uploadedAt: string;
   uploadedBy: 'candidate' | string;
 }

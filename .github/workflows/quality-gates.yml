@@ -3,7 +3,11 @@ name: OPSIQO HCM Quality Gates
 on:
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
+      - 'release/**'
+      - 'production-*'
+  workflow_dispatch:
 
 permissions:
   contents: read

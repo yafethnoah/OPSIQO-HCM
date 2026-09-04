@@ -1,0 +1,13 @@
+{
+  "name": "OPSIQO H37 Platform Tenant Creation",
+  "baseline": "OPSIQO H36 FULL",
+  "changes": [
+    "Governed super-admin tenant creation API",
+    "Platform Companies administration screen",
+    "Transactional tenant, worker, position and membership foundation",
+    "Duplicate-name and authorization controls",
+    "Tenant creation audit evidence",
+    "Navigation and settings entry points",
+    "Targeted H37 regression tests"
+  ]
+}

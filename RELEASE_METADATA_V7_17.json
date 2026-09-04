@@ -1,0 +1,12 @@
+{
+  "product": "OPSIQO ONE",
+  "release": "7.17",
+  "hcmBaseline": "8.5",
+  "title": "Accessibility Translation Portfolio Execution",
+  "date": "2026-08-19",
+  "status": "source-complete_pending_dependency-backed_certification",
+  "safeExecuteAllowlistExpanded": false,
+  "wcagConformanceClaim": false,
+  "fullTranslationClaim": false,
+  "productionDeploymentPerformed": false
+}

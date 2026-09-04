@@ -1,0 +1,29 @@
+{
+  "product": "OPSIQO ONE",
+  "hcmVersion": "8.5",
+  "release": "7.28",
+  "releaseName": "Deployment Readiness & Translation Closure",
+  "date": "2026-08-19",
+  "overallProgressPercent": 99.5,
+  "safeExecuteAllowlist": ["notifications.mark_visible_read"],
+  "translation": {
+    "supportedLocales": ["en", "fr", "es", "ar"],
+    "cataloguedSurfaces": 44,
+    "catalogEntries": 2666,
+    "reviewedSourceCandidates": 2650,
+    "remainingHeuristicCandidates": 904,
+    "totalSourceCandidates": 3554
+  },
+  "certification": {
+    "isolatedFirebaseConfig": "firebase.test.json",
+    "emulatorProject": "demo-opsiqo-local",
+    "sanitizedLedger": "artifacts/v7-28-certification-ledger.json",
+    "bootstrapLedger": "%TEMP%/opsiqo-v7-28-certification-ledger.json",
+    "deploymentReadiness": "artifacts/v7-28-deployment-readiness.json",
+    "restoresCallerEnvironment": true,
+    "safeFailureSummary": "scripts/opsiqo85-v7-28-certification-summary.mjs",
+    "publicBrowserPort": 31732,
+    "authenticatedBrowserPort": 31733
+  },
+  "certificationBoundary": "Source-complete/source-audited. Dependency-backed Windows certification, manual accessibility sign-off, approved connector UAT and controlled production deployment evidence remain distinct requirements before deployment-certified status."
+}

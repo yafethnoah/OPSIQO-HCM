@@ -1,0 +1,15 @@
+{
+  "release": "OPSIQO HCM 8.5 V7.32",
+  "hotfix": 12,
+  "date": "2026-08-20",
+  "title": "Production Readiness Secret-Summary Repair",
+  "baseline": "V7.32 Hotfix 11",
+  "sourceComplete": true,
+  "productionDeployed": false,
+  "overallProgressPercent": 99.99,
+  "fixes": [
+    "Removes credential-field terminology that triggered the readiness no-secret regression despite no secret value being exposed.",
+    "Strengthens readiness tests to assert that exact configured secret values are absent from serialized readiness output.",
+    "Adds Hotfix 12 audit and targeted-test gates to the canonical Windows certification runner."
+  ]
+}

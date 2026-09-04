@@ -1,0 +1,426 @@
+{
+  "version": "7.32",
+  "supportedLocales": [
+    "en",
+    "fr",
+    "es",
+    "ar"
+  ],
+  "scannedFiles": 185,
+  "cataloguedSurfaceCount": 68,
+  "catalogEntries": 3351,
+  "globalReviewedExactPoolSize": 2515,
+  "conflictedExactSourceCount": 69,
+  "directReviewedSourceCandidates": 3101,
+  "globalReuseReviewedCandidates": 417,
+  "reviewedSourceCandidates": 3518,
+  "legacyCandidateCountRemaining": 0,
+  "totalSourceCandidates": 3518,
+  "catalogCompleteness": "complete",
+  "incompleteCatalog": [],
+  "topBacklog": [
+    {
+      "file": "src/components/privacy-governance-center.tsx",
+      "totalCandidates": 128,
+      "reviewedCandidates": 128,
+      "directReviewedCandidates": 114,
+      "globalReuseReviewedCandidates": 14,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/performance-workspace.tsx",
+      "totalCandidates": 124,
+      "reviewedCandidates": 124,
+      "directReviewedCandidates": 115,
+      "globalReuseReviewedCandidates": 9,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/assurance-center.tsx",
+      "totalCandidates": 117,
+      "reviewedCandidates": 117,
+      "directReviewedCandidates": 110,
+      "globalReuseReviewedCandidates": 7,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/safety-workspace.tsx",
+      "totalCandidates": 113,
+      "reviewedCandidates": 113,
+      "directReviewedCandidates": 113,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/platform-reliability-center.tsx",
+      "totalCandidates": 112,
+      "reviewedCandidates": 112,
+      "directReviewedCandidates": 109,
+      "globalReuseReviewedCandidates": 3,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/compensation-workspace.tsx",
+      "totalCandidates": 103,
+      "reviewedCandidates": 103,
+      "directReviewedCandidates": 103,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/career-workspace.tsx",
+      "totalCandidates": 96,
+      "reviewedCandidates": 96,
+      "directReviewedCandidates": 96,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/hr-diagnostic-workspace.tsx",
+      "totalCandidates": 94,
+      "reviewedCandidates": 94,
+      "directReviewedCandidates": 94,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/regulatory-change-center.tsx",
+      "totalCandidates": 93,
+      "reviewedCandidates": 93,
+      "directReviewedCandidates": 92,
+      "globalReuseReviewedCandidates": 1,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/workforce-planning-workspace.tsx",
+      "totalCandidates": 93,
+      "reviewedCandidates": 93,
+      "directReviewedCandidates": 90,
+      "globalReuseReviewedCandidates": 3,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/learning-workspace.tsx",
+      "totalCandidates": 92,
+      "reviewedCandidates": 92,
+      "directReviewedCandidates": 92,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/resilience-center.tsx",
+      "totalCandidates": 89,
+      "reviewedCandidates": 89,
+      "directReviewedCandidates": 86,
+      "globalReuseReviewedCandidates": 3,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/security-operations-center.tsx",
+      "totalCandidates": 86,
+      "reviewedCandidates": 86,
+      "directReviewedCandidates": 81,
+      "globalReuseReviewedCandidates": 5,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/governance-control-center.tsx",
+      "totalCandidates": 77,
+      "reviewedCandidates": 77,
+      "directReviewedCandidates": 74,
+      "globalReuseReviewedCandidates": 3,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/enterprise-command-center.tsx",
+      "totalCandidates": 76,
+      "reviewedCandidates": 76,
+      "directReviewedCandidates": 73,
+      "globalReuseReviewedCandidates": 3,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/ai-copilot-workspace.tsx",
+      "totalCandidates": 74,
+      "reviewedCandidates": 74,
+      "directReviewedCandidates": 74,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/identity-command-center.tsx",
+      "totalCandidates": 73,
+      "reviewedCandidates": 73,
+      "directReviewedCandidates": 72,
+      "globalReuseReviewedCandidates": 1,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/compliance-workspace.tsx",
+      "totalCandidates": 71,
+      "reviewedCandidates": 71,
+      "directReviewedCandidates": 56,
+      "globalReuseReviewedCandidates": 15,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/employee-profile.tsx",
+      "totalCandidates": 70,
+      "reviewedCandidates": 70,
+      "directReviewedCandidates": 70,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/people-analytics-workspace.tsx",
+      "totalCandidates": 70,
+      "reviewedCandidates": 70,
+      "directReviewedCandidates": 70,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/separation-workspace.tsx",
+      "totalCandidates": 70,
+      "reviewedCandidates": 70,
+      "directReviewedCandidates": 70,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/recruiting-workspace.tsx",
+      "totalCandidates": 69,
+      "reviewedCandidates": 69,
+      "directReviewedCandidates": 49,
+      "globalReuseReviewedCandidates": 20,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/import-center-workspace.tsx",
+      "totalCandidates": 68,
+      "reviewedCandidates": 68,
+      "directReviewedCandidates": 68,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/integration-command-center.tsx",
+      "totalCandidates": 67,
+      "reviewedCandidates": 67,
+      "directReviewedCandidates": 66,
+      "globalReuseReviewedCandidates": 1,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/experience-workspace.tsx",
+      "totalCandidates": 63,
+      "reviewedCandidates": 63,
+      "directReviewedCandidates": 63,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/time-workspace.tsx",
+      "totalCandidates": 63,
+      "reviewedCandidates": 63,
+      "directReviewedCandidates": 63,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/integration-runtime-center.tsx",
+      "totalCandidates": 59,
+      "reviewedCandidates": 59,
+      "directReviewedCandidates": 54,
+      "globalReuseReviewedCandidates": 5,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/employee-relations-workspace.tsx",
+      "totalCandidates": 54,
+      "reviewedCandidates": 54,
+      "directReviewedCandidates": 54,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/employee-portal-workspace.tsx",
+      "totalCandidates": 49,
+      "reviewedCandidates": 49,
+      "directReviewedCandidates": 49,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/org-design-center.tsx",
+      "totalCandidates": 48,
+      "reviewedCandidates": 48,
+      "directReviewedCandidates": 31,
+      "globalReuseReviewedCandidates": 17,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/intelligence-hub-workspace.tsx",
+      "totalCandidates": 45,
+      "reviewedCandidates": 45,
+      "directReviewedCandidates": 45,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/workflow-panel.tsx",
+      "totalCandidates": 45,
+      "reviewedCandidates": 45,
+      "directReviewedCandidates": 45,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/onboarding-workspace.tsx",
+      "totalCandidates": 39,
+      "reviewedCandidates": 39,
+      "directReviewedCandidates": 37,
+      "globalReuseReviewedCandidates": 2,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/scenario-lab-workspace.tsx",
+      "totalCandidates": 39,
+      "reviewedCandidates": 39,
+      "directReviewedCandidates": 39,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/strategy-center.tsx",
+      "totalCandidates": 35,
+      "reviewedCandidates": 35,
+      "directReviewedCandidates": 19,
+      "globalReuseReviewedCandidates": 16,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/ai-value-workspace.tsx",
+      "totalCandidates": 34,
+      "reviewedCandidates": 34,
+      "directReviewedCandidates": 34,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/ats-recruiting-panel.tsx",
+      "totalCandidates": 33,
+      "reviewedCandidates": 33,
+      "directReviewedCandidates": 26,
+      "globalReuseReviewedCandidates": 7,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/organization-panel.tsx",
+      "totalCandidates": 32,
+      "reviewedCandidates": 32,
+      "directReviewedCandidates": 22,
+      "globalReuseReviewedCandidates": 10,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/governed-gantt.tsx",
+      "totalCandidates": 31,
+      "reviewedCandidates": 31,
+      "directReviewedCandidates": 20,
+      "globalReuseReviewedCandidates": 11,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/invitation-panel.tsx",
+      "totalCandidates": 30,
+      "reviewedCandidates": 30,
+      "directReviewedCandidates": 21,
+      "globalReuseReviewedCandidates": 9,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/agent-builder-workspace.tsx",
+      "totalCandidates": 29,
+      "reviewedCandidates": 29,
+      "directReviewedCandidates": 29,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/ai-governance-center.tsx",
+      "totalCandidates": 29,
+      "reviewedCandidates": 29,
+      "directReviewedCandidates": 29,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/program-workforce-workspace.tsx",
+      "totalCandidates": 28,
+      "reviewedCandidates": 28,
+      "directReviewedCandidates": 24,
+      "globalReuseReviewedCandidates": 4,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/app/signin/page.tsx",
+      "totalCandidates": 27,
+      "reviewedCandidates": 27,
+      "directReviewedCandidates": 27,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/settings-workspace.tsx",
+      "totalCandidates": 27,
+      "reviewedCandidates": 27,
+      "directReviewedCandidates": 25,
+      "globalReuseReviewedCandidates": 2,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/people-table.tsx",
+      "totalCandidates": 26,
+      "reviewedCandidates": 26,
+      "directReviewedCandidates": 16,
+      "globalReuseReviewedCandidates": 10,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/skills-passport-workspace.tsx",
+      "totalCandidates": 25,
+      "reviewedCandidates": 25,
+      "directReviewedCandidates": 18,
+      "globalReuseReviewedCandidates": 7,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/app/mfa/setup/page.tsx",
+      "totalCandidates": 24,
+      "reviewedCandidates": 24,
+      "directReviewedCandidates": 24,
+      "globalReuseReviewedCandidates": 0,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/automation-control.tsx",
+      "totalCandidates": 24,
+      "reviewedCandidates": 24,
+      "directReviewedCandidates": 17,
+      "globalReuseReviewedCandidates": 7,
+      "remainingCandidates": 0
+    },
+    {
+      "file": "src/components/manager-copilot-workspace.tsx",
+      "totalCandidates": 23,
+      "reviewedCandidates": 23,
+      "directReviewedCandidates": 16,
+      "globalReuseReviewedCandidates": 7,
+      "remainingCandidates": 0
+    }
+  ],
+  "candidateExamples": [],
+  "generatedAt": "2026-08-26T02:36:10.105Z",
+  "boundary": "Reviewed means either the exact source string is present in its V7.32 surface catalog with explicit French, Spanish and Arabic translations, or the same exact source has one unambiguous approved FR/ES/AR translation across the reviewed catalog. Exact-source conflicts are never globally reused. Explicit technical identifiers and obvious JSX/code fragments are excluded from the UI localization backlog. This inventory is not a linguistic-quality, dynamic-content or formal accessibility-completeness claim."
+}

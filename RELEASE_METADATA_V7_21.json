@@ -1,0 +1,31 @@
+{
+  "release": "OPSIQO ONE v7.21 \u00b7 HCM v8.5",
+  "codename": "Document Policy Learning Knowledge",
+  "date": "2026-08-19",
+  "sourceAudit": {
+    "passed": 123,
+    "failed": 0
+  },
+  "translation": {
+    "surfaces": 15,
+    "catalogEntries": 643,
+    "reviewedExactCandidates": 635,
+    "heuristicRemaining": 3160
+  },
+  "authenticatedAccessibilityRoutes": 19,
+  "safeExecuteAllowlistCount": 1,
+  "deploymentCertified": false,
+  "certificationBoundary": "Dependency-backed Windows/CI validation required before deployment certification.",
+  "sourceIntegrity": {
+    "tsTsxFiles": 1098,
+    "tsTsxParseErrors": 0,
+    "jsMjsCjsFiles": 57,
+    "jsSyntaxErrors": 0,
+    "jsonFiles": 36,
+    "jsonParseErrors": 0,
+    "yamlFiles": 10,
+    "yamlParseErrors": 0,
+    "cleanRelease": "PASS",
+    "sourceManifestEntries": 1445
+  }
+}
