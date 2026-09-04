@@ -1,7 +1,7 @@
 'use client';
 import { apiFetch } from '@/lib/http/client';
 
-type OfflineClockPayload={action:'clock_in'|'clock_out';breakMinutes?:number;location:{latitude:number;longitude:number;accuracyMeters?:number;capturedAt:string;source:'offline_sync';deviceVerification:'none'|'platform_authenticator'|'native_biometric'|'kiosk_pin';integritySignals?:string[]};offlineEventId:string;clientCapturedAt:string};
+type OfflineClockPayload={action:'clock_in'|'clock_out';breakMinutes?:number;location?:{latitude:number;longitude:number;accuracyMeters?:number;capturedAt:string;source:'offline_sync';deviceVerification:'none'|'platform_authenticator'|'native_biometric'|'kiosk_pin';integritySignals?:string[]};offlineEventId:string;clientCapturedAt:string};
 type StoredEvent={id:string;iv:string;ciphertext:string;createdAt:string};
 const DB='opsiqo-secure-attendance-v1',EVENTS='events',KEYS='keys',KEY_ID='attendance-aes-v1';
 const b64=(bytes:Uint8Array)=>{let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s)};

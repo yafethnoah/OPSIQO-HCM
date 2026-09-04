@@ -67,24 +67,26 @@ export async function assignTimeProfile(actor:ActorContext,raw:unknown){if(!hrRo
 export async function clock(actor:ActorContext,raw:unknown){
   if(!actor.workerId)throw new ApiError(409,'Membership is not linked to an employee.','worker_link_required');
   const input=clockSchema.parse(raw),db=adminDb(),workerId=actor.workerId,profile=await timeProfile(actor.orgId,workerId),policy=await policyForProfile(actor.orgId,profile);
+  const offlineSync=Boolean(input.offlineEventId||input.clientCapturedAt);
+  if(offlineSync&&(!input.offlineEventId||!input.clientCapturedAt))throw new ApiError(400,'Offline synchronized clock events require both a unique event identifier and the client capture time.','offline_event_metadata_required');
+  if(offlineSync&&input.location&&input.location.source!=='offline_sync')throw new ApiError(400,'Offline synchronized location evidence must use the offline_sync source.','offline_location_source_invalid');
   const location=await validateClockLocation(actor,workerId,policy,input.location as any);
   let photoRequired=Boolean(policy.requirePhotoProof);
   if(location?.locationId){const ls=await db.doc(`organizations/${actor.orgId}/workLocations/${location.locationId}`).get();if(ls.exists)photoRequired=photoRequired||Boolean((ls.data() as {requirePhotoProof?:boolean}).requirePhotoProof);}
   let eventAt=now();
-  if(input.clientCapturedAt&&input.location?.source==='offline_sync'){
+  if(offlineSync){
     if(!policy.allowOfflineClock)throw new ApiError(409,'Offline clock synchronization is not enabled by the active policy.','offline_clock_disabled');
-    if(!input.offlineEventId)throw new ApiError(400,'Offline synchronized clock events require a unique event identifier.','offline_event_id_required');
-    const age=Math.abs(Date.now()-new Date(input.clientCapturedAt).getTime());
+    const age=Math.abs(Date.now()-new Date(input.clientCapturedAt!).getTime());
     if(age>24*60*60*1000)throw new ApiError(409,'Offline clock events older than 24 hours require a manager correction instead of automatic synchronization.','offline_event_stale');
-    const indexRef=db.doc(`organizations/${actor.orgId}/attendanceOfflineEventIndex/${input.offlineEventId}`),prior=await indexRef.get();
+    const indexRef=db.doc(`organizations/${actor.orgId}/attendanceOfflineEventIndex/${input.offlineEventId!}`),prior=await indexRef.get();
     if(prior.exists)throw new ApiError(409,'This offline clock event has already been synchronized.','offline_event_duplicate');
-    eventAt=input.clientCapturedAt;
+    eventAt=input.clientCapturedAt!;
   }
   const openSnap=await db.collection(`organizations/${actor.orgId}/timeEntries`).where('workerId','==',workerId).where('status','==','open').limit(2).get();
   if(input.action==='clock_in'){
     if(!openSnap.empty)throw new ApiError(409,'You are already clocked in.','already_clocked_in');
     const photoEvidenceId=await consumeAttendancePhoto(actor,workerId,photoRequired);
-    const id=randomUUID(),timestamp=now(),row:TimeEntry={id,workerId,startAt:eventAt,breakMinutes:0,source:input.location?.source==='offline_sync'?'offline_sync':'web_clock',status:'open',note:input.note,startEvidence:location,startPhotoEvidenceId:photoEvidenceId,breakState:'working',createdBy:actor.uid,createdAt:timestamp,updatedAt:timestamp};
+    const id=randomUUID(),timestamp=now(),row:TimeEntry={id,workerId,startAt:eventAt,breakMinutes:0,source:offlineSync?'offline_sync':'web_clock',status:'open',note:input.note,startEvidence:location,startPhotoEvidenceId:photoEvidenceId,breakState:'working',createdBy:actor.uid,createdAt:timestamp,updatedAt:timestamp};
     const audit=buildAudit(actor,{action:'time.clock_in',entityType:'timeEntry',entityId:id,after:row}),b=db.batch();
     b.create(db.doc(`organizations/${actor.orgId}/timeEntries/${id}`),row);b.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
     if(input.offlineEventId)b.create(db.doc(`organizations/${actor.orgId}/attendanceOfflineEventIndex/${input.offlineEventId}`),{id:input.offlineEventId,workerId,action:input.action,timeEntryId:id,syncedAt:timestamp});

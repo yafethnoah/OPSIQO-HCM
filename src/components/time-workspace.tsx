@@ -1,9 +1,10 @@
 'use client';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { activeOrgId, apiDownload, apiFetch } from '@/lib/http/client';
+import { activeOrgId, apiDownload, apiFetch, ApiRequestError } from '@/lib/http/client';
 import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 import { FrontlineOperationsPanel } from '@/components/frontline-operations-panel';
 import { flushOfflineClock, queueOfflineClock } from '@/lib/time/offline-attendance';
+import { clockControlState, policyRequiresClockLocation, timecardBlockingMessage } from '@/lib/time/clock-preflight';
 
 type Worker={id:string;displayName:string;employeeNumber:string};
 type LeaveType={id:string;code:string;name:string;paid:boolean;statutory:boolean;annualEntitlementHours:number;accrualMethod:string;evidencePolicy?:string;enabled:boolean};
@@ -16,22 +17,73 @@ type TimePolicy={id:string;name:string;jurisdiction:string;overtimeThresholdHour
 type Calendar={id:string;name:string;jurisdiction:string};
 type Holiday={id:string;calendarId:string;date:string;name:string};
 type Timecard={weekStart:string;weekEnd:string;entries:TimeEntry[];timesheet:Timesheet;exceptions:Exception[];policy:TimePolicy;profile:any};
+type TimecardAvailability={status:'loading'|'ready'|'unavailable';code?:string;message?:string};
 type Dashboard={metrics:{pendingLeave:number;submittedTimesheets:number;openExceptions:number;approvedLeaveHoursYtd:number};absence:{year:number;approvedHoursYtd:number;byLeaveType:Array<{leaveTypeId:string;hours:number}>};leave:LeaveRequest[];timesheets:Timesheet[];exceptions:Exception[]};
 const hours=(m:number=0)=>(m/60).toFixed(2);
 const isoDate=(d:Date)=>d.toISOString().slice(0,10);
 
 export function TimeWorkspace(){
  const translationRoot=useRef<HTMLDivElement>(null);useLegacySurfaceTranslation('time',translationRoot);
- const[breakMinutes,setBreakMinutes]=useState(0),[permissions,setPermissions]=useState<string[]>([]),[myWorkerId,setMyWorkerId]=useState(''),[workerId,setWorkerId]=useState(''),[workers,setWorkers]=useState<Worker[]>([]),[types,setTypes]=useState<LeaveType[]>([]),[balances,setBalances]=useState<Balance[]>([]),[requests,setRequests]=useState<LeaveRequest[]>([]),[teamLeave,setTeamLeave]=useState<LeaveRequest[]>([]),[timecard,setTimecard]=useState<Timecard|null>(null),[dashboard,setDashboard]=useState<Dashboard|null>(null),[config,setConfig]=useState<{policies:TimePolicy[];calendars:Calendar[];holidays:Holiday[];profiles:any[]}|null>(null),[notice,setNotice]=useState(''),[error,setError]=useState('');
+ const[breakMinutes,setBreakMinutes]=useState(0),[permissions,setPermissions]=useState<string[]>([]),[myWorkerId,setMyWorkerId]=useState(''),[workerId,setWorkerId]=useState(''),[workers,setWorkers]=useState<Worker[]>([]),[types,setTypes]=useState<LeaveType[]>([]),[balances,setBalances]=useState<Balance[]>([]),[requests,setRequests]=useState<LeaveRequest[]>([]),[teamLeave,setTeamLeave]=useState<LeaveRequest[]>([]),[timecard,setTimecard]=useState<Timecard|null>(null),[timecardAvailability,setTimecardAvailability]=useState<TimecardAvailability>({status:'loading'}),[clockError,setClockError]=useState(''),[clockBusy,setClockBusy]=useState(false),[dashboard,setDashboard]=useState<Dashboard|null>(null),[config,setConfig]=useState<{policies:TimePolicy[];calendars:Calendar[];holidays:Holiday[];profiles:any[]}|null>(null),[notice,setNotice]=useState(''),[error,setError]=useState('');
  const org=()=>activeOrgId(),can=(p:string)=>permissions.includes(p),selected=workerId||myWorkerId,browserTimezone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
  const load=async()=>{try{setError('');const me=await apiFetch<{actor:{permissions:string[];workerId?:string}}>('/api/me');setPermissions(me.actor.permissions);setMyWorkerId(me.actor.workerId||'');let people:Worker[]=[];if(me.actor.permissions.includes('leave.manage')){people=(await apiFetch<{data:Worker[]}>(`/api/organizations/${org()}/employees?pageSize=100`)).data;}else if(me.actor.permissions.includes('team.read')){const team=(await apiFetch<{data:Array<{worker:Worker}>}>(`/api/organizations/${org()}/manager/team`)).data;people=[...(me.actor.workerId?[{id:me.actor.workerId,displayName:'My record',employeeNumber:''}]:[]),...team.map(r=>r.worker).filter(Boolean)];}else if(me.actor.workerId)people=[{id:me.actor.workerId,displayName:'My record',employeeNumber:''}];setWorkers(people);const target=workerId||me.actor.workerId||people[0]?.id||'';if(target&&!workerId)setWorkerId(target);const d=await apiFetch<{data:Dashboard}>(`/api/organizations/${org()}/time/dashboard`);setDashboard(d.data);if(me.actor.permissions.includes('time.configure'))setConfig((await apiFetch<{data:any}>(`/api/organizations/${org()}/time/config`)).data);if(me.actor.permissions.includes('leave.approve'))setTeamLeave((await apiFetch<{data:LeaveRequest[]}>(`/api/organizations/${org()}/leave/team`)).data);if(target)await loadWorker(target);}catch(e){setError(e instanceof Error?e.message:'Unable to load time and leave workspace.');}};
- const loadWorker=async(id:string)=>{setWorkerId(id);const [l,t]=await Promise.all([apiFetch<{data:{types:LeaveType[];balances:Balance[];requests:LeaveRequest[]}}>(`/api/organizations/${org()}/leave/requests?workerId=${encodeURIComponent(id)}`),apiFetch<{data:Timecard}>(`/api/organizations/${org()}/time/timecard?workerId=${encodeURIComponent(id)}`)]);setTypes(l.data.types);setBalances(l.data.balances);setRequests(l.data.requests);setTimecard(t.data);};
+ const loadWorker=async(id:string)=>{
+  setWorkerId(id);setClockError('');setTimecard(null);setTimecardAvailability({status:'loading'});
+  const l=await apiFetch<{data:{types:LeaveType[];balances:Balance[];requests:LeaveRequest[]}}>(`/api/organizations/${org()}/leave/requests?workerId=${encodeURIComponent(id)}`);
+  setTypes(l.data.types);setBalances(l.data.balances);setRequests(l.data.requests);
+  try{
+   const t=await apiFetch<{data:Timecard}>(`/api/organizations/${org()}/time/timecard?workerId=${encodeURIComponent(id)}`);
+   setTimecard(t.data);setTimecardAvailability({status:'ready'});
+  }catch(e){
+   if(e instanceof ApiRequestError&&['time_policy_required','time_policy_missing'].includes(e.code)){
+    setTimecard(null);
+    setTimecardAvailability({status:'unavailable',code:e.code,message:timecardBlockingMessage(e.code)});
+    return;
+   }
+   throw e;
+  }
+ };
  useEffect(()=>{load();const f=()=>{setWorkerId('');load();};const online=()=>{void flushOfflineClock(org()).then(r=>{if(r.synced>0){setNotice(`${r.synced} offline attendance event(s) synchronized.`);void load();}})};window.addEventListener('opsiqo:organization-changed',f);window.addEventListener('online',online);if(navigator.onLine)void online();return()=>{window.removeEventListener('opsiqo:organization-changed',f);window.removeEventListener('online',online);};},[]);
  const submit=async(path:string,method:string,body:any,msg:string)=>{try{setNotice('');setError('');await apiFetch(path,{method,body:JSON.stringify(body)});setNotice(msg);await load();}catch(e){setError(e instanceof Error?e.message:'Operation failed.');}};
  const requestLeave=async(e:FormEvent<HTMLFormElement>)=>{e.preventDefault();const f=new FormData(e.currentTarget);await submit(`/api/organizations/${org()}/leave/requests`,'POST',{workerId:selected,leaveTypeId:f.get('leaveTypeId'),startDate:f.get('startDate'),endDate:f.get('endDate'),requestedHours:Number(f.get('requestedHours')||0)||undefined,note:f.get('note')},'Leave request submitted.');e.currentTarget.reset();};
  const actLeave=(id:string,action:string)=>submit(`/api/organizations/${org()}/leave/requests/${id}`,'PATCH',{action},`Leave request ${action}d.`);
- const clockContext=async()=>{if(typeof navigator==='undefined'||!navigator.geolocation)return undefined;try{return await new Promise<any>((resolve,reject)=>navigator.geolocation.getCurrentPosition(p=>resolve({latitude:p.coords.latitude,longitude:p.coords.longitude,accuracyMeters:p.coords.accuracy,capturedAt:new Date(p.timestamp).toISOString(),source:'browser',deviceVerification:'none'}),reject,{enableHighAccuracy:true,timeout:10000,maximumAge:30000}))}catch{return undefined}};
- const clock=async(action:'clock_in'|'clock_out')=>{const location=await clockContext(),payload={action,breakMinutes:action==='clock_out'?breakMinutes:undefined,location};setNotice('');setError('');try{await apiFetch(`/api/organizations/${org()}/time/clock`,{method:'POST',body:JSON.stringify(payload)});setNotice(action==='clock_in'?'Clocked in.':'Clocked out.');await load();}catch(e){const offline=typeof navigator!=='undefined'&&!navigator.onLine;if(offline&&timecard?.policy.allowOfflineClock&&location){const id=crypto.randomUUID(),clientCapturedAt=new Date().toISOString();await queueOfflineClock({action,breakMinutes:action==='clock_out'?breakMinutes:undefined,location:{...location,source:'offline_sync'},offlineEventId:id,clientCapturedAt});setNotice('Encrypted offline attendance event saved on this device. OPSIQO will synchronize it when connectivity returns.');return;}setError(e instanceof Error?e.message:'Clock operation failed.');}};
+ const openClockEntry=timecard?.entries.find(e=>e.status==='open'&&!e.endAt);
+ const clockLocationRequired=policyRequiresClockLocation(timecard?.policy);
+ const {available:clockingAvailable,canClockIn,canClockOut}=clockControlState({isSelf:selected===myWorkerId,timecardReady:timecardAvailability.status==='ready'&&Boolean(timecard?.policy&&timecard?.profile),hasOpenEntry:Boolean(openClockEntry),busy:clockBusy});
+ const clockContext=async(required:boolean)=>{
+  if(!required)return undefined;
+  if(typeof navigator==='undefined'||!navigator.geolocation)throw new Error('Location is required by the active time policy, but this browser does not provide geolocation.');
+  return await new Promise<any>((resolve,reject)=>navigator.geolocation.getCurrentPosition(
+   p=>resolve({latitude:p.coords.latitude,longitude:p.coords.longitude,accuracyMeters:p.coords.accuracy,capturedAt:new Date(p.timestamp).toISOString(),source:'browser',deviceVerification:'none'}),
+   reason=>{const code=Number(reason?.code||0);reject(new Error(code===1?'Location permission was denied. Enable location for OPSIQO and try again.':code===2?'Your location is currently unavailable. Check device location services and try again.':code===3?'Location capture timed out. Try again from a place with a stronger location signal.':'Unable to capture the location required by the active time policy.'));},
+   {enableHighAccuracy:true,timeout:10000,maximumAge:30000}
+  ));
+ };
+ const clock=async(action:'clock_in'|'clock_out')=>{
+  setNotice('');setError('');setClockError('');
+  if(!timecard||timecardAvailability.status!=='ready'){setClockError(timecardAvailability.message||'Clocking is unavailable until HR configures an active time policy for this employee.');return;}
+  const currentOpen=timecard.entries.find(e=>e.status==='open'&&!e.endAt);
+  if(action==='clock_in'&&currentOpen){setClockError('You are already clocked in. Clock out before starting another shift.');return;}
+  if(action==='clock_out'&&!currentOpen){setClockError('Clock out is unavailable because there is no open clock-in entry.');return;}
+  setClockBusy(true);
+  let location:any;
+  try{
+   location=await clockContext(clockLocationRequired);
+   const payload={action,breakMinutes:action==='clock_out'?breakMinutes:undefined,location};
+   await apiFetch(`/api/organizations/${org()}/time/clock`,{method:'POST',body:JSON.stringify(payload)});
+   setNotice(action==='clock_in'?'Clocked in.':'Clocked out.');
+   await load();
+  }catch(e){
+   const offline=typeof navigator!=='undefined'&&!navigator.onLine;
+   if(offline&&timecard.policy.allowOfflineClock&&(!clockLocationRequired||location)){
+    const id=crypto.randomUUID(),clientCapturedAt=new Date().toISOString();
+    await queueOfflineClock({action,breakMinutes:action==='clock_out'?breakMinutes:undefined,location:location?{...location,source:'offline_sync'}:undefined,offlineEventId:id,clientCapturedAt});
+    setNotice('Encrypted offline attendance event saved on this device. OPSIQO will synchronize it when connectivity returns.');
+    return;
+   }
+   setClockError(e instanceof Error?e.message:'Clock operation failed.');
+  }finally{setClockBusy(false);}
+ };
  const timesheet=(action:string)=>timecard&&submit(`/api/organizations/${org()}/time/timesheets`,'PATCH',{action,workerId:selected,weekStart:timecard.weekStart},`Timesheet ${action}ed.`);
  const createLeaveType=async(e:FormEvent<HTMLFormElement>)=>{e.preventDefault();const f=new FormData(e.currentTarget);await submit(`/api/organizations/${org()}/leave/types`,'POST',{code:f.get('code'),name:f.get('name'),paid:f.get('paid')==='on',statutory:false,jobProtected:false,unit:'hours',accrualMethod:f.get('accrualMethod'),annualEntitlementHours:Number(f.get('annualEntitlementHours')||0),monthlyAccrualHours:Number(f.get('monthlyAccrualHours')||0)||undefined,carryoverLimitHours:Number(f.get('carryoverLimitHours')||0),negativeBalanceAllowed:false,partialDayCharging:'actual_hours',requiresApproval:true,enabled:true},'Leave type created.');e.currentTarget.reset();};
  const createPolicy=async(e:FormEvent<HTMLFormElement>)=>{e.preventDefault();const f=new FormData(e.currentTarget),geofenceMode=String(f.get('geofenceMode')||'disabled'),captureGeolocation=geofenceMode!=='disabled'||f.get('captureGeolocation')==='on';await submit(`/api/organizations/${org()}/time/config`,'POST',{action:'create_policy',payload:{name:f.get('name'),jurisdiction:f.get('jurisdiction'),timezone:String(f.get('timezone')||browserTimezone),weekStartsOn:1,standardDailyHours:Number(f.get('standardDailyHours')||8),regularWeeklyHours:Number(f.get('regularWeeklyHours')||40),overtimeThresholdHours:Number(f.get('overtimeThresholdHours')||44),overtimeMultiplier:1.5,maxDailyHours:Number(f.get('maxDailyHours')||8),maxWeeklyHours:Number(f.get('maxWeeklyHours')||48),minDailyRestHours:11,minBetweenShiftsHours:8,weeklyRestHours:24,mealBreakAfterHours:5,mealBreakMinutes:30,roundingMinutes:15,complianceMode:String(f.get('complianceMode')||'advisory'),captureGeolocation,geofenceMode,requireDeviceVerification:f.get('requireDeviceVerification')==='on',allowOfflineClock:f.get('allowOfflineClock')==='on',requirePhotoProof:f.get('requirePhotoProof')==='on',electronicMonitoringPolicyId:f.get('electronicMonitoringPolicyId')||undefined,enabled:true}},'Time policy created with governed attendance controls.');e.currentTarget.reset();};
@@ -50,7 +102,11 @@ export function TimeWorkspace(){
    {selected===myWorkerId&&<form className="leaveRequestForm" onSubmit={requestLeave}><label className="field"><span>Leave type</span><select className="input" name="leaveTypeId" required>{types.filter(t=>t.enabled!==false).map(t=><option key={t.id} value={t.id}>{t.name}</option>)}</select></label><Field label="Start date" name="startDate" type="date"/><Field label="End date" name="endDate" type="date"/><Field label="Hours (optional)" name="requestedHours" type="number" required={false}/><Field label="Note" name="note" required={false}/><button className="button">Request leave</button></form>}
    <div className="tableWrap"><table><thead><tr><th>Leave</th><th>Dates</th><th>Hours</th><th>Status</th><th></th></tr></thead><tbody>{requests.map(r=><tr key={r.id}><td>{typeMap[r.leaveTypeId]?.name||r.leaveTypeId}</td><td>{r.startDate} → {r.endDate}</td><td>{r.requestedHours.toFixed(2)}</td><td><span className={`badge ${r.status}`}>{r.status}</span></td><td>{r.status==='pending'&&selected===myWorkerId&&<button className="smallButton" onClick={()=>actLeave(r.id,'cancel')}>Cancel</button>}</td></tr>)}</tbody></table></div>
   </section>
-  <section className="card stack"><div className="toolbar"><div><h2 className="sectionTitle">Timecard</h2><span className="muted">{timecard?`${timecard.weekStart} → ${timecard.weekEnd}`:'Current work week'}</span></div>{selected===myWorkerId&&<div className="stepActions"><button className="button compact" onClick={()=>clock('clock_in')}>Clock in</button><label className="field clockBreak"><span>Break min</span><input className="input compact" type="number" min="0" value={breakMinutes} onChange={e=>setBreakMinutes(Number(e.target.value)||0)}/></label><button className="secondaryButton compact" onClick={()=>clock('clock_out')}>Clock out</button></div>}</div>
+  <section className="card stack"><div className="toolbar"><div><h2 className="sectionTitle">Timecard</h2><span className="muted">{timecard?`${timecard.weekStart} → ${timecard.weekEnd}`:'Current work week'}</span></div>{selected===myWorkerId&&<div className="stepActions"><button className="button compact" disabled={!canClockIn} aria-disabled={!canClockIn} title={!clockingAvailable?(timecardAvailability.message||'Clocking is unavailable.'):(openClockEntry?'You are already clocked in.':'Clock in')} onClick={()=>clock('clock_in')}>{clockBusy?'Working…':'Clock in'}</button><label className="field clockBreak"><span>Break min</span><input className="input compact" type="number" min="0" disabled={!canClockOut} value={breakMinutes} onChange={e=>setBreakMinutes(Number(e.target.value)||0)}/></label><button className="secondaryButton compact" disabled={!canClockOut} aria-disabled={!canClockOut} title={!clockingAvailable?(timecardAvailability.message||'Clocking is unavailable.'):(openClockEntry?'Clock out':'Clock out requires an open clock-in entry.')} onClick={()=>clock('clock_out')}>{clockBusy?'Working…':'Clock out'}</button></div>}</div>
+   {selected===myWorkerId&&timecardAvailability.status==='loading'&&<div className="emptyState">Checking attendance policy and clock state…</div>}
+   {selected===myWorkerId&&timecardAvailability.status==='unavailable'&&<div className="emptyState"><strong>Clocking unavailable</strong><div>{timecardAvailability.message}</div>{can('time.configure')&&<small>Use HR configuration below to create an active time policy and assign the employee time profile. The controls will activate after the workspace reloads.</small>}</div>}
+   {selected===myWorkerId&&clockError&&<div className="error" role="alert">{clockError}</div>}
+   {selected===myWorkerId&&timecard&&<div className="muted">{clockLocationRequired?'Location is requested only when you clock because the active attendance policy requires it.':'Location is not collected by the current attendance policy.'}</div>}
    {timecard&&<><div className="grid4"><Metric label="Regular" value={`${hours(timecard.timesheet.regularMinutes)}h`}/><Metric label="Overtime" value={`${hours(timecard.timesheet.overtimeMinutes)}h`}/><Metric label="Paid leave" value={`${hours(timecard.timesheet.paidLeaveMinutes)}h`}/><Metric label="Timesheet" value={timecard.timesheet.status}/></div><div className="tableWrap"><table><thead><tr><th>Start</th><th>End</th><th>Hours</th><th>Source</th><th>Status</th></tr></thead><tbody>{timecard.entries.map(e=><tr key={e.id}><td>{new Date(e.startAt).toLocaleString()}</td><td>{e.endAt?new Date(e.endAt).toLocaleString():'—'}</td><td>{hours(e.workedMinutes)}</td><td>{e.source.replaceAll('_',' ')}</td><td>{e.status}</td></tr>)}</tbody></table></div><div className="toolbar"><div className="muted">Policy: {timecard.policy.name} · OT after {timecard.policy.overtimeThresholdHours}h/week · {timecard.policy.complianceMode}</div><div className="stepActions">{selected===myWorkerId&&['draft','rejected'].includes(timecard.timesheet.status)&&<button className="button compact" onClick={()=>timesheet('submit')}>Submit timesheet</button>}{can('time.approve')&&timecard.timesheet.status==='submitted'&&selected!==myWorkerId&&<><button className="button compact" onClick={()=>timesheet('approve')}>Approve</button><button className="secondaryButton compact" onClick={()=>timesheet('reject')}>Reject</button></>}</div></div></>}
    {(can('time.manage')||can('time.manage.team'))&&selected!==myWorkerId&&<form className="manualTimeForm" onSubmit={manualEntry}><Field label="Start" name="startAt" type="datetime-local"/><Field label="End" name="endAt" type="datetime-local"/><Field label="Break minutes" name="breakMinutes" type="number" value="0"/><Field label="Correction note" name="note" required={false}/><button className="secondaryButton">Add audited entry</button></form>}
   </section>
