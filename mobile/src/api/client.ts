@@ -14,6 +14,58 @@ export class ApiError extends Error {
   }
 }
 
+function responseErrorMessage(payload: unknown, status: number) {
+  if (typeof payload !== 'object' || !payload) {
+    return `Request failed (${status})`;
+  }
+
+  const record = payload as Record<string, unknown>;
+  const nestedError = record.error;
+
+  if (
+    typeof nestedError === 'object' &&
+    nestedError &&
+    'message' in nestedError &&
+    typeof (nestedError as { message?: unknown }).message === 'string'
+  ) {
+    return String((nestedError as { message: string }).message);
+  }
+
+  if (typeof record.message === 'string' && record.message.trim()) {
+    return record.message;
+  }
+
+  return `Request failed (${status})`;
+}
+
+function responseErrorCode(payload: unknown) {
+  if (typeof payload !== 'object' || !payload) {
+    return undefined;
+  }
+
+  const record = payload as Record<string, unknown>;
+  const nestedError = record.error;
+
+  if (typeof nestedError === 'string' && nestedError.trim()) {
+    return nestedError;
+  }
+
+  if (
+    typeof nestedError === 'object' &&
+    nestedError &&
+    'code' in nestedError &&
+    typeof (nestedError as { code?: unknown }).code === 'string'
+  ) {
+    return String((nestedError as { code: string }).code);
+  }
+
+  if (typeof record.code === 'string' && record.code.trim()) {
+    return record.code;
+  }
+
+  return undefined;
+}
+
 export async function apiFetch<T>(
   path: string,
   init: RequestInit & { orgId?: string | null } = {}
@@ -53,21 +105,11 @@ export async function apiFetch<T>(
     : await response.text();
 
   if (!response.ok) {
-    const message =
-      typeof payload === 'object' && payload
-        ? String(
-            (payload as any).error?.message ||
-              (payload as any).message ||
-              `Request failed (${response.status})`
-          )
-        : `Request failed (${response.status})`;
-
-    const code =
-      typeof payload === 'object' && payload
-        ? String((payload as any).error?.code || (payload as any).code || '')
-        : undefined;
-
-    throw new ApiError(message, response.status, code);
+    throw new ApiError(
+      responseErrorMessage(payload, response.status),
+      response.status,
+      responseErrorCode(payload),
+    );
   }
 
   return payload as T;

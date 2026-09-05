@@ -14,6 +14,37 @@ export async function verifyAppCheckRequest(request:Request){
   try{await adminAppCheck().verifyToken(token);}catch{throw new ApiError(401,'Firebase App Check verification failed.','invalid_app_check');}
 }
 
+async function verifyFirebaseBearerToken(token: string) {
+  try {
+    return await adminAuth().verifyIdToken(
+      token,
+      !process.env.FIREBASE_AUTH_EMULATOR_HOST,
+    );
+  } catch (error) {
+    const code =
+      typeof error === 'object' && error && 'code' in error
+        ? String((error as { code?: unknown }).code || '')
+        : '';
+
+    const invalidTokenCodes = new Set([
+      'auth/argument-error',
+      'auth/id-token-expired',
+      'auth/id-token-revoked',
+      'auth/invalid-id-token',
+      'auth/user-disabled',
+    ]);
+
+    if (invalidTokenCodes.has(code) || code.startsWith('auth/id-token-')) {
+      throw new ApiError(
+        401,
+        'Authentication token is invalid or expired. Sign in again.',
+        'invalid_auth_token',
+      );
+    }
+
+    throw error;
+  }
+}
 export async function identityFromRequest(request: Request): Promise<IdentityContext> {
   const authHeader = request.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) {
@@ -21,7 +52,7 @@ export async function identityFromRequest(request: Request): Promise<IdentityCon
     throw new ApiError(401, 'Authentication required.', 'unauthenticated');
   }
   await verifyAppCheckRequest(request);
-  const decoded = await adminAuth().verifyIdToken(authHeader.slice('Bearer '.length), !process.env.FIREBASE_AUTH_EMULATOR_HOST);
+  const decoded = await verifyFirebaseBearerToken(authHeader.slice('Bearer '.length));
   const firebase = decoded.firebase as {sign_in_provider?:string;sign_in_second_factor?:string} | undefined;
   const rawGroups = (decoded as unknown as {groups?:unknown;roles?:unknown}).groups ?? (decoded as unknown as {roles?:unknown}).roles;
   const groups = Array.isArray(rawGroups) ? rawGroups.filter((v): v is string => typeof v === 'string').slice(0,200) : undefined;
