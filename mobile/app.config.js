@@ -1,5 +1,6 @@
-module.exports = ({ config }) => {
+﻿module.exports = ({ config }) => {
   const googleServicesPlist = process.env.GOOGLE_SERVICES_PLIST;
+  const googleServicesJson = process.env.GOOGLE_SERVICES_JSON;
 
   return {
     ...config,
@@ -7,6 +8,12 @@ module.exports = ({ config }) => {
       ...config.ios,
       ...(googleServicesPlist
         ? { googleServicesFile: googleServicesPlist }
+        : {}),
+    },
+    android: {
+      ...config.android,
+      ...(googleServicesJson
+        ? { googleServicesFile: googleServicesJson }
         : {}),
     },
   };
