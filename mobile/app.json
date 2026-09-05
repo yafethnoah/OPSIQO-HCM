@@ -18,9 +18,11 @@
     "android": {
       "package": "ca.opsiqo.employee",
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "USE_BIOMETRIC"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO"
       ],
       "versionCode": 1
     },
@@ -58,7 +60,12 @@
       "h47Release": "employee-mobile-v1.1f",
       "buildEnvironment": "configured-by-eas-profile",
       "h50Track": "pulse-ios-v1",
-      "productName": "OPSIQO Pulse"
-    }
+      "productName": "OPSIQO Pulse",
+      "router": {},
+      "eas": {
+        "projectId": "3412f1c1-d7d5-4d3c-b0e6-f7f06b59d5ea"
+      }
+    },
+    "owner": "auranitis-life-line"
   }
 }
