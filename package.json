@@ -279,7 +279,9 @@
     "h48.2:time:audit": "node scripts/opsiqo-h48-2-time-clock-preflight-audit.mjs",
     "test:h48.2": "vitest run tests/h48-2-time-clock-preflight.test.ts tests/time-attendance-expense-h46.test.ts tests/time.test.ts",
     "h48.3:time:audit": "node scripts/opsiqo-h48-3-time-precision-audit.mjs",
-    "test:h48.3": "vitest run tests/h48-3-time-precision.test.ts tests/h48-2-time-clock-preflight.test.ts tests/time-attendance-expense-h46.test.ts tests/time.test.ts"
+    "test:h48.3": "vitest run tests/h48-3-time-precision.test.ts tests/h48-2-time-clock-preflight.test.ts tests/time-attendance-expense-h46.test.ts tests/time.test.ts",
+    "h48.4:attendance:audit": "node scripts/opsiqo-h48-4-attendance-visibility-audit.mjs",
+    "test:h48.4": "vitest run tests/h48-4-attendance-visibility.test.ts tests/h48-3-time-precision.test.ts tests/h48-2-time-clock-preflight.test.ts tests/time-attendance-expense-h46.test.ts tests/time.test.ts"
   },
   "dependencies": {
     "firebase": "12.16.0",

@@ -1,5 +1,6 @@
 const MINUTES_PER_HOUR = 60;
 const SECONDS_PER_MINUTE = 60;
+const MILLISECONDS_PER_SECOND = 1_000;
 const MILLISECONDS_PER_MINUTE = 60_000;
 const MINUTE_PRECISION = 1_000_000;
 
@@ -8,9 +9,21 @@ export function normalizeMinutes(value: number) {
   return Math.round(Math.max(0, value) * MINUTE_PRECISION) / MINUTE_PRECISION;
 }
 
+export function timestampAtSecondPrecision(value: string) {
+  const milliseconds = new Date(value).getTime();
+  if (!Number.isFinite(milliseconds)) return Number.NaN;
+  return Math.floor(milliseconds / MILLISECONDS_PER_SECOND) * MILLISECONDS_PER_SECOND;
+}
+
+export function normalizeTimestampToSecond(value: string) {
+  const milliseconds = timestampAtSecondPrecision(value);
+  if (!Number.isFinite(milliseconds)) return value;
+  return new Date(milliseconds).toISOString();
+}
+
 export function exactMinutesBetween(startAt: string, endAt: string) {
-  const start = new Date(startAt).getTime();
-  const end = new Date(endAt).getTime();
+  const start = timestampAtSecondPrecision(startAt);
+  const end = timestampAtSecondPrecision(endAt);
   if (!Number.isFinite(start) || !Number.isFinite(end)) return 0;
   return normalizeMinutes((end - start) / MILLISECONDS_PER_MINUTE);
 }
@@ -41,4 +54,10 @@ export function formatDurationMinutes(minutes = 0) {
 
 export function durationWithDecimalHours(minutes = 0) {
   return `${formatDurationMinutes(minutes)} · ${decimalHoursFromMinutes(minutes)}h`;
+}
+
+export function formatTimestampToSecond(value: string) {
+  const milliseconds = timestampAtSecondPrecision(value);
+  if (!Number.isFinite(milliseconds)) return '—';
+  return new Date(milliseconds).toLocaleString();
 }
