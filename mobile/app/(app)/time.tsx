@@ -1,15 +1,91 @@
-import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import * as Location from 'expo-location';
-import * as Haptics from 'expo-haptics';
-import { ApiError, apiFetch } from '@/api/client';
-import { useAuth } from '@/auth/provider';
-import { useBootstrap } from '@/hooks/use-bootstrap';
-import { deviceVerification } from '@/mobile/device';
-import { listOfflineClockEvents, queueOfflineClockEvent, syncOfflineClockEvents } from '@/mobile/offline-attendance';
-import { Button, Card, H1, H2, Loading, Muted } from '@/components/ui';
-import { colors } from '@/theme/tokens';
-function uuid(){const c=(globalThis as any).crypto;if(c?.randomUUID)return c.randomUUID();return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,ch=>{const r=Math.random()*16|0,v=ch==='x'?r:(r&3|8);return v.toString(16)})}
-export default function Time(){const{activeOrgId}=useAuth();const{data,loading,error,reload}=useBootstrap();const[busy,setBusy]=useState(false);const[message,setMessage]=useState('');const[pendingOffline,setPendingOffline]=useState(0);const active=useMemo(()=>[...(data?.attendance?.working||[]),...(data?.attendance?.onBreak||[])][0],[data]);const onBreak=Boolean((data?.attendance?.onBreak||[]).length);useEffect(()=>{if(activeOrgId)void listOfflineClockEvents().then(rows=>setPendingOffline(rows.filter(x=>x.orgId===activeOrgId).length))},[activeOrgId]);async function locationEvidence(){const p=await Location.requestForegroundPermissionsAsync();if(p.status!=='granted')throw new Error('Location permission is required by the attendance workflow.');const loc=await Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High});const verification=await deviceVerification();return{latitude:loc.coords.latitude,longitude:loc.coords.longitude,accuracyMeters:loc.coords.accuracy??undefined,capturedAt:new Date(loc.timestamp).toISOString(),source:'native' as const,deviceVerification:verification.verified?'native_biometric' as const:'none' as const,integritySignals:verification.capable&&!verification.verified?['biometric_not_verified']:[]}}
-async function clock(action:'clock_in'|'clock_out'){if(!activeOrgId)return;setBusy(true);setMessage('');try{const nativeLocation=await locationEvidence();const capturedAt=new Date().toISOString();try{await apiFetch(`/api/organizations/${activeOrgId}/time/clock`,{method:'POST',orgId:activeOrgId,body:JSON.stringify({action,location:nativeLocation,clientCapturedAt:capturedAt})});await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);setMessage(action==='clock_in'?'Clocked in successfully.':'Clocked out successfully.');await reload();}catch(e){if(e instanceof ApiError)throw e;const id=uuid();await queueOfflineClockEvent({id,orgId:activeOrgId,action,capturedAt,queuedAt:new Date().toISOString(),location:{...nativeLocation,source:'offline_sync'}});setPendingOffline((await listOfflineClockEvents()).filter(x=>x.orgId===activeOrgId).length);setMessage('No network connection. This attendance event was stored securely on this device and will require synchronization.');}}catch(e){setMessage(e instanceof Error?e.message:'Attendance action failed.');}finally{setBusy(false)}}async function sync(){if(!activeOrgId)return;setBusy(true);setMessage('');try{const result=await syncOfflineClockEvents(activeOrgId);setPendingOffline(result.remaining);if(result.failures.length)setMessage(`${result.synced} offline event(s) synchronized. ${result.failures[0]!.message}`);else setMessage(`${result.synced} offline attendance event(s) synchronized successfully.`);await reload();}finally{setBusy(false)}}async function breakAction(action:'start'|'end'){if(!activeOrgId)return;setBusy(true);setMessage('');try{await apiFetch(`/api/organizations/${activeOrgId}/time/breaks`,{method:'POST',orgId:activeOrgId,body:JSON.stringify({action,paid:false})});setMessage(action==='start'?'Break started.':'Break ended.');await reload();}catch(e){setMessage(e instanceof Error?e.message:'Break action failed.');}finally{setBusy(false)}}if(loading&&!data)return <View style={s.loading}><Loading label="Loading attendance…"/></View>;return <ScrollView style={{backgroundColor:colors.bg}} contentContainerStyle={s.content}><H1>Time & attendance</H1><Muted>Attendance location is captured only when you press a clock action. OPSIQO does not continuously track your device.</Muted>{error?<Text style={s.error}>{error}</Text>:null}{pendingOffline?<Card><H2>Offline attendance</H2><Muted>{pendingOffline} securely stored attendance event(s) are waiting to synchronize. Server policy and duplicate controls remain authoritative.</Muted><Button title={busy?'Synchronizing…':'Synchronize now'} onPress={()=>void sync()} disabled={busy}/></Card>:null}<Card><Text style={s.status}>{active?(onBreak?'ON BREAK':'CLOCKED IN'):'NOT CLOCKED IN'}</Text>{active?<Muted>Since {new Date(active.startAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}</Muted>:<Muted>Ready for your next scheduled work period.</Muted>}<Button title={busy?'Working…':active?'Clock out':'Clock in'} onPress={()=>void clock(active?'clock_out':'clock_in')} disabled={busy}/>{active?<Button title={onBreak?'End break':'Start break'} onPress={()=>void breakAction(onBreak?'end':'start')} disabled={busy} secondary/>:null}</Card><Card><H2>Upcoming shifts</H2>{data?.shifts?.length?data.shifts.slice(0,8).map(x=><View key={x.id} style={s.shift}><Text style={s.shiftTitle}>{x.title}</Text><Muted>{new Date(x.startAt).toLocaleString()} → {new Date(x.endAt).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})}</Muted></View>):<Muted>No scheduled shifts found.</Muted>}</Card>{message?<Card><Text style={message.toLowerCase().includes('success')||message.toLowerCase().includes('started')||message.toLowerCase().includes('ended')||message.toLowerCase().includes('stored securely')?s.success:s.error}>{message}</Text></Card>:null}</ScrollView>}
-const s=StyleSheet.create({content:{padding:18,gap:14},loading:{flex:1,backgroundColor:colors.bg,justifyContent:'center'},status:{fontSize:24,fontWeight:'900',color:colors.navy},shift:{paddingVertical:10,borderBottomWidth:1,borderBottomColor:colors.line},shiftTitle:{fontSize:15,fontWeight:'800',color:colors.text},success:{color:colors.success,fontWeight:'700'},error:{color:colors.danger,fontWeight:'600'}});
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useAuth } from "@/auth/provider";
+import { useBootstrap } from "@/hooks/use-bootstrap";
+import { AttendanceHero } from "@/components/attendance-hero";
+import { Card, H1, H2, Loading, Muted } from "@/components/ui";
+import { colors } from "@/theme/tokens";
+
+export default function Time() {
+  const { activeOrgId } = useAuth();
+  const { data, loading, error, reload } = useBootstrap();
+
+  if (loading && !data) {
+    return (
+      <View style={s.loading}>
+        <Loading label="Loading attendanceâ€¦" />
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView
+      style={{ backgroundColor: colors.bg }}
+      contentContainerStyle={s.content}
+    >
+      <H1>Time & attendance</H1>
+      <Muted>
+        Server time, organization policy, geofence rules, duplicate protection and
+        audit evidence remain authoritative.
+      </Muted>
+
+      {error ? <Text style={s.error}>{error}</Text> : null}
+
+      <AttendanceHero
+        data={data}
+        activeOrgId={activeOrgId}
+        onReload={reload}
+      />
+
+      <Card>
+        <H2>Upcoming shifts</H2>
+        {data?.shifts?.length ? (
+          data.shifts.slice(0, 8).map((shift) => (
+            <View key={shift.id} style={s.shift}>
+              <Text style={s.shiftTitle}>{shift.title}</Text>
+              <Muted>
+                {new Date(shift.startAt).toLocaleString()} â†’{" "}
+                {new Date(shift.endAt).toLocaleTimeString([], {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}
+              </Muted>
+            </View>
+          ))
+        ) : (
+          <Muted>No scheduled shifts found.</Muted>
+        )}
+      </Card>
+
+      <Card>
+        <H2>Attendance privacy</H2>
+        <Muted>
+          OPSIQO Pulse requests foreground location only when you submit Clock In
+          or Clock Out. Background location tracking is disabled in the iOS app.
+        </Muted>
+      </Card>
+    </ScrollView>
+  );
+}
+
+const s = StyleSheet.create({
+  content: { padding: 18, gap: 14 },
+  loading: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    justifyContent: "center",
+  },
+  shift: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  shiftTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: colors.text,
+  },
+  error: {
+    color: colors.danger,
+    fontWeight: "600",
+  },
+});

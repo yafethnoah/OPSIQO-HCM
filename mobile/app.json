@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "OPSIQO Employee",
+    "name": "OPSIQO Pulse",
     "slug": "opsiqo-employee",
     "version": "0.1.2",
     "orientation": "portrait",
@@ -10,8 +10,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "ca.opsiqo.employee",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Use Face ID to protect access to your OPSIQO employee account.",
-        "NSLocationWhenInUseUsageDescription": "OPSIQO uses your location only when you submit a governed attendance event such as clock in or clock out."
+        "NSFaceIDUsageDescription": "Use Face ID to protect access to OPSIQO Pulse and verify governed attendance actions.",
+        "NSLocationWhenInUseUsageDescription": "OPSIQO Pulse uses your location only when you submit a governed attendance event such as clock in or clock out."
       },
       "buildNumber": "1"
     },
@@ -30,13 +30,13 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Use Face ID to protect access to your OPSIQO employee account."
+          "faceIDPermission": "Use Face ID to protect access to OPSIQO Pulse and verify governed attendance actions."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow OPSIQO Employee to use your location only when you submit an attendance event.",
+          "locationWhenInUsePermission": "Allow OPSIQO Pulse to use your location only when you submit an attendance event.",
           "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
         }
@@ -44,8 +44,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow OPSIQO Employee to attach receipt or attendance evidence selected by you.",
-          "cameraPermission": "Allow OPSIQO Employee to take receipt or attendance evidence photos selected by you."
+          "photosPermission": "Allow OPSIQO Pulse to attach receipt or attendance evidence selected by you.",
+          "cameraPermission": "Allow OPSIQO Pulse to take receipt or attendance evidence photos selected by you."
         }
       ],
       "expo-notifications"
@@ -56,7 +56,9 @@
     },
     "extra": {
       "h47Release": "employee-mobile-v1.1f",
-      "buildEnvironment": "configured-by-eas-profile"
+      "buildEnvironment": "configured-by-eas-profile",
+      "h50Track": "pulse-ios-v1",
+      "productName": "OPSIQO Pulse"
     }
   }
 }
