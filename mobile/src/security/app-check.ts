@@ -1,9 +1,13 @@
-import { getApp } from '@react-native-firebase/app';
+import { getApp } from "@react-native-firebase/app";
 import {
   getToken,
   initializeAppCheck,
   ReactNativeFirebaseAppCheckProvider,
-} from '@react-native-firebase/app-check';
+} from "@react-native-firebase/app-check";
+import {
+  NativeAuthStageError,
+  isNativeAuthStageError,
+} from "@/auth/diagnostic";
 
 let appCheckInstance: ReturnType<typeof initializeAppCheck> | null = null;
 
@@ -12,21 +16,41 @@ function getConfiguredAppCheck() {
     return appCheckInstance;
   }
 
-  const provider = new ReactNativeFirebaseAppCheckProvider();
+  let app: ReturnType<typeof getApp>;
 
-  provider.configure({
-    apple: {
-      provider: 'appAttest',
-    },
-    android: {
-      provider: 'playIntegrity',
-    },
-  });
+  try {
+    app = getApp();
+  } catch {
+    throw new NativeAuthStageError(
+      "firebase_native",
+      "PULSE-AUTH-A01",
+      "Firebase native initialization failed. Reinstall the current OPSIQO Pulse UAT build and try again.",
+    );
+  }
 
-  appCheckInstance = initializeAppCheck(getApp(), {
-    provider,
-    isTokenAutoRefreshEnabled: true,
-  });
+  try {
+    const provider = new ReactNativeFirebaseAppCheckProvider();
+
+    provider.configure({
+      apple: {
+        provider: 'appAttest',
+      },
+      android: {
+        provider: 'playIntegrity',
+      },
+    });
+
+    appCheckInstance = initializeAppCheck(app, {
+      provider,
+      isTokenAutoRefreshEnabled: true,
+    });
+  } catch {
+    throw new NativeAuthStageError(
+      "firebase_native",
+      "PULSE-AUTH-A01",
+      "Firebase App Check initialization failed on this device.",
+    );
+  }
 
   return appCheckInstance;
 }
@@ -36,31 +60,66 @@ function wait(ms: number) {
 }
 
 async function fetchValidToken(forceRefresh: boolean): Promise<string> {
-  const result = await getToken(getConfiguredAppCheck(), forceRefresh);
-  const token = String(result.token || '').trim();
+  let result: Awaited<ReturnType<typeof getToken>>;
+
+  try {
+    result = await getToken(getConfiguredAppCheck(), forceRefresh);
+  } catch (error) {
+    if (isNativeAuthStageError(error)) {
+      throw error;
+    }
+
+    throw new NativeAuthStageError(
+      "app_check",
+      "PULSE-AUTH-A02",
+      "Device verification token could not be obtained.",
+    );
+  }
+
+  const token = String(result.token || "").trim();
 
   if (!token) {
-    throw new Error('empty_app_check_token');
+    throw new NativeAuthStageError(
+      "app_check",
+      "PULSE-AUTH-A02",
+      "Device verification returned an empty token.",
+    );
   }
 
   return token;
 }
 
 export async function getValidAppCheckToken(
-  forceRefresh = false
+  forceRefresh = false,
 ): Promise<string> {
   try {
     return await fetchValidToken(forceRefresh);
-  } catch {
-    // RNFirebase initializeAppCheck returns synchronously while native provider
-    // setup completes in the background. Retry once to avoid a first-launch race.
+  } catch (firstError) {
+    if (
+      isNativeAuthStageError(firstError) &&
+      firstError.code === "PULSE-AUTH-A01"
+    ) {
+      throw firstError;
+    }
+
+    // RNFirebase initializeAppCheck can return before native provider setup
+    // has fully settled. Retry once with a forced refresh.
     await wait(350);
 
     try {
       return await fetchValidToken(true);
-    } catch {
-      throw new Error(
-        'Device verification could not be completed. Close and reopen OPSIQO Pulse, then try again.'
+    } catch (secondError) {
+      if (
+        isNativeAuthStageError(secondError) &&
+        secondError.code === "PULSE-AUTH-A01"
+      ) {
+        throw secondError;
+      }
+
+      throw new NativeAuthStageError(
+        "app_check",
+        "PULSE-AUTH-A02",
+        "Secure device verification could not be completed. Close and reopen OPSIQO Pulse, then try again.",
       );
     }
   }

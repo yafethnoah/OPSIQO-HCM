@@ -6,16 +6,20 @@ import {
   useMemo,
   useState,
   type ReactNode,
-} from 'react';
-import { ApiError, apiFetch } from '@/api/client';
+} from "react";
+import { ApiError, apiFetch } from "@/api/client";
 import {
   getActiveOrg,
   hasSession,
   setActiveOrg,
   signInWithPassword,
   signOut as clearSession,
-} from './session';
-import type { OrganizationSummary } from '@/types/mobile';
+} from "./session";
+import {
+  NativeAuthStageError,
+  isNativeAuthStageError,
+} from "./diagnostic";
+import type { OrganizationSummary } from "@/types/mobile";
 
 type AuthState = {
   ready: boolean;
@@ -31,18 +35,32 @@ type AuthState = {
 const Context = createContext<AuthState | null>(null);
 
 function organizationLoadMessage(error: unknown) {
-  if (
-    error instanceof ApiError &&
-    (error.code === 'internal_error' || error.status >= 500)
-  ) {
-    return new Error(
-      'OPSIQO could not load your organization access. Please try again. If this continues, contact your OPSIQO administrator.',
+  if (isNativeAuthStageError(error)) {
+    return error;
+  }
+
+  if (error instanceof ApiError) {
+    const status =
+      Number.isFinite(error.status) && error.status > 0
+        ? String(error.status)
+        : "HTTP";
+
+    return new NativeAuthStageError(
+      "opsiqo_api",
+      `PULSE-AUTH-A06-${status}`,
+      error.status >= 500 || error.code === "internal_error"
+        ? "OPSIQO could not load your organization access. Please try again."
+        : "OPSIQO organization access was rejected. Contact your OPSIQO administrator with the displayed PULSE-AUTH code.",
     );
   }
 
   return error instanceof Error
     ? error
-    : new Error('Organization access could not be loaded.');
+    : new NativeAuthStageError(
+        "opsiqo_api",
+        "PULSE-AUTH-A06",
+        "Organization access could not be loaded.",
+      );
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -53,11 +71,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const reloadOrganizations = useCallback(async () => {
     const result = await apiFetch<{ data: OrganizationSummary[] }>(
-      '/api/me/organizations',
+      "/api/me/organizations",
       { orgId: null },
     );
 
-    const rows = result.data.filter((organization) => organization.status === 'active');
+    const rows = result.data.filter(
+      (organization) => organization.status === "active",
+    );
 
     setOrganizations(rows);
 
@@ -65,8 +85,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!firstOrganization) {
       setActiveOrgId(null);
-      throw new Error(
-        'No active OPSIQO organization is assigned to this account. Contact your OPSIQO administrator.',
+      throw new NativeAuthStageError(
+        "opsiqo_api",
+        "PULSE-AUTH-A06-NOORG",
+        "No active OPSIQO organization is assigned to this account.",
       );
     }
 
@@ -130,7 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const selectOrg = useCallback(
     async (orgId: string) => {
       if (!organizations.some((organization) => organization.orgId === orgId)) {
-        throw new Error('Organization is not available to this account.');
+        throw new Error("Organization is not available to this account.");
       }
 
       await setActiveOrg(orgId);
@@ -169,7 +191,7 @@ export function useAuth() {
   const value = useContext(Context);
 
   if (!value) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error("useAuth must be used within AuthProvider");
   }
 
   return value;
