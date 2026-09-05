@@ -175,6 +175,12 @@ export interface Timesheet {
   submittedAt?: string;
   approvedAt?: string;
   approvedBy?: string;
+  approvedByRole?: string;
+  approvedByWorkerId?: string;
+  approvalNote?: string;
+  selfApprovalOverride?: boolean;
+  selfApprovalOverrideReason?: string;
+  selfApprovalOverrideRole?: string;
   rejectionNote?: string;
   createdAt: string;
   updatedAt: string;

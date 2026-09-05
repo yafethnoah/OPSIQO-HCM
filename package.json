@@ -283,7 +283,9 @@
     "h48.4:attendance:audit": "node scripts/opsiqo-h48-4-attendance-visibility-audit.mjs",
     "test:h48.4": "vitest run tests/h48-4-attendance-visibility.test.ts tests/h48-3-time-precision.test.ts tests/h48-2-time-clock-preflight.test.ts tests/time-attendance-expense-h46.test.ts tests/time.test.ts",
     "h48.5:attendance-sync:audit": "node scripts/opsiqo-h48-5-live-attendance-sync-audit.mjs",
-    "test:h48.5": "vitest run tests/h48-5-live-attendance-sync.test.ts tests/h48-4-attendance-visibility.test.ts tests/h48-3-time-precision.test.ts tests/h48-2-time-clock-preflight.test.ts tests/time-attendance-expense-h46.test.ts tests/time.test.ts"
+    "test:h48.5": "vitest run tests/h48-5-live-attendance-sync.test.ts tests/h48-4-attendance-visibility.test.ts tests/h48-3-time-precision.test.ts tests/h48-2-time-clock-preflight.test.ts tests/time-attendance-expense-h46.test.ts tests/time.test.ts",
+    "h48.6:timesheet-admin:audit": "node scripts/opsiqo-h48-6-timesheet-admin-override-audit.mjs",
+    "test:h48.6": "vitest run tests/h48-6-timesheet-admin-override.test.ts tests/h48-5-live-attendance-sync.test.ts tests/h48-4-attendance-visibility.test.ts tests/h48-3-time-precision.test.ts tests/h48-2-time-clock-preflight.test.ts tests/time-attendance-expense-h46.test.ts tests/time.test.ts"
   },
   "dependencies": {
     "firebase": "12.16.0",
