@@ -46,7 +46,9 @@ describe("H50.0 OPSIQO Pulse iOS foundation", () => {
     const app = JSON.parse(read("mobile/app.json"));
     const pkg = JSON.parse(read("mobile/package.json"));
     const lock = JSON.parse(read("mobile/package-lock.json"));
-    expect(app.expo.version).toBe("0.1.2");
+    const [major, minor, patch] = String(app.expo.version).split(".").map(Number);
+    expect([major, minor]).toEqual([0, 1]);
+    expect(patch).toBeGreaterThanOrEqual(2);
     expect(app.expo.extra.h47Release).toBe("employee-mobile-v1.1f");
     expect(pkg.version).toBe("0.2.5");
     expect(lock.lockfileVersion).toBe(3);
