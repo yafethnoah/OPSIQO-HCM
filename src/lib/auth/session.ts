@@ -14,6 +14,53 @@ export async function verifyAppCheckRequest(request:Request){
   try{await adminAppCheck().verifyToken(token);}catch{throw new ApiError(401,'Firebase App Check verification failed.','invalid_app_check');}
 }
 
+type FirebaseTokenDiagnostic = {
+  tokenShape: 'jwt' | 'invalid' | 'unreadable';
+  audienceMatchesProject?: boolean;
+  issuerMatchesProject?: boolean;
+  expiredAtVerification?: boolean;
+};
+
+function sanitizedFirebaseTokenDiagnostic(token: string): FirebaseTokenDiagnostic {
+  const expectedProjectId = String(process.env.FIREBASE_PROJECT_ID || '').trim();
+
+  try {
+    const parts = token.split('.');
+
+    if (parts.length !== 3 || !parts[1]) {
+      return { tokenShape: 'invalid' };
+    }
+
+    const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const payload = JSON.parse(
+      Buffer.from(padded, 'base64').toString('utf8'),
+    ) as {
+      aud?: unknown;
+      iss?: unknown;
+      exp?: unknown;
+    };
+
+    const audience = typeof payload.aud === 'string' ? payload.aud : '';
+    const issuer = typeof payload.iss === 'string' ? payload.iss : '';
+    const expiresAt = typeof payload.exp === 'number' ? payload.exp : NaN;
+    const now = Math.floor(Date.now() / 1000);
+
+    return {
+      tokenShape: 'jwt',
+      audienceMatchesProject:
+        Boolean(expectedProjectId) && audience === expectedProjectId,
+      issuerMatchesProject:
+        Boolean(expectedProjectId) &&
+        issuer === `https://securetoken.google.com/${expectedProjectId}`,
+      expiredAtVerification:
+        Number.isFinite(expiresAt) ? expiresAt <= now : undefined,
+    };
+  } catch {
+    return { tokenShape: 'unreadable' };
+  }
+}
+
 async function verifyFirebaseBearerToken(token: string) {
   try {
     return await adminAuth().verifyIdToken(
@@ -25,6 +72,20 @@ async function verifyFirebaseBearerToken(token: string) {
       typeof error === 'object' && error && 'code' in error
         ? String((error as { code?: unknown }).code || '')
         : '';
+
+    const diagnostic = sanitizedFirebaseTokenDiagnostic(token);
+
+    console.warn(
+      JSON.stringify({
+        event: 'opsiqo_firebase_id_token_verify_failed',
+        code: code || 'unknown',
+        checkRevoked: !process.env.FIREBASE_AUTH_EMULATOR_HOST,
+        tokenShape: diagnostic.tokenShape,
+        audienceMatchesProject: diagnostic.audienceMatchesProject,
+        issuerMatchesProject: diagnostic.issuerMatchesProject,
+        expiredAtVerification: diagnostic.expiredAtVerification,
+      }),
+    );
 
     const invalidTokenCodes = new Set([
       'auth/argument-error',
