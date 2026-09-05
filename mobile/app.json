@@ -2,7 +2,7 @@
     "expo":  {
                  "name":  "OPSIQO Pulse",
                  "slug":  "opsiqo-employee",
-                 "version":  "0.1.4",
+                 "version":  "0.1.5",
                  "orientation":  "portrait",
                  "scheme":  "opsiqo",
                  "userInterfaceStyle":  "automatic",
@@ -17,7 +17,8 @@
                              "buildNumber":  "1",
                              "entitlements":  {
                                                   "com.apple.developer.devicecheck.appattest-environment":  "production"
-                                              }
+                                              },
+                             "icon":  "./assets/opsiqo-pulse-3d-icon.png"
                          },
                  "android":  {
                                  "package":  "ca.opsiqo.employee",
@@ -33,7 +34,12 @@
                                                      "android.permission.USE_FINGERPRINT",
                                                      "android.permission.RECORD_AUDIO"
                                                  ],
-                                 "versionCode":  1
+                                 "versionCode":  1,
+                                 "icon":  "./assets/opsiqo-pulse-3d-icon.png",
+                                 "adaptiveIcon":  {
+                                                      "foregroundImage":  "./assets/opsiqo-pulse-3d-adaptive-foreground.png",
+                                                      "backgroundColor":  "#EAF7FC"
+                                                  }
                              },
                  "plugins":  [
                                  "expo-router",
@@ -101,6 +107,6 @@
                  "updates":  {
                                  "url":  "https://u.expo.dev/3412f1c1-d7d5-4d3c-b0e6-f7f06b59d5ea"
                              },
-                 "icon":  "./assets/opsiqo-pulse-icon.png"
+                 "icon":  "./assets/opsiqo-pulse-3d-icon.png"
              }
 }

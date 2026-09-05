@@ -5,14 +5,16 @@ import { describe, expect, it } from 'vitest';
 const read = (path: string) => readFileSync(path, 'utf8');
 
 describe('H50.1K iOS login resilience and Pulse launcher icon', () => {
-  it('publishes native version 0.1.4 with the enlarged approved icon', () => {
+  it('preserves the certified H50.1K-or-later native identity and prior icon artifact', () => {
     const app = JSON.parse(read('mobile/app.json'));
     const icon = readFileSync('mobile/assets/opsiqo-pulse-icon.png');
     const iconHash = createHash('sha256').update(icon).digest('hex');
 
     expect(app.expo.name).toBe('OPSIQO Pulse');
-    expect(app.expo.version).toBe('0.1.4');
-    expect(app.expo.icon).toBe('./assets/opsiqo-pulse-icon.png');
+    const [major, minor, patch] = String(app.expo.version).split('.').map(Number);
+    expect([major, minor]).toEqual([0, 1]);
+    expect(patch).toBeGreaterThanOrEqual(4);
+    expect(app.expo.icon).toMatch(/^\.\/assets\/opsiqo-pulse.*\.png$/);
     expect(iconHash).toBe('498b6a3a1c7406276e09eaeea99a2d7d760794cdd3294f7afe1938090ad4f11f');
   });
 

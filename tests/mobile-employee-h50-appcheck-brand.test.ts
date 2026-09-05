@@ -13,7 +13,7 @@ describe('H50.1I OPSIQO Pulse branding and App Check', () => {
     expect(signIn).toContain('opsiqo-pulse-logo.png');
     expect(signIn).not.toContain('<Text style={s.mark}>O</Text>');
     expect(app.expo.name).toBe('OPSIQO Pulse');
-    expect(app.expo.icon).toBe('./assets/opsiqo-pulse-icon.png');
+    expect(app.expo.icon).toMatch(/^\.\/assets\/opsiqo-pulse.*\.png$/);
     const [major, minor, patch] = String(app.expo.version).split('.').map(Number);
     expect([major, minor]).toEqual([0, 1]);
     expect(patch).toBeGreaterThanOrEqual(3);

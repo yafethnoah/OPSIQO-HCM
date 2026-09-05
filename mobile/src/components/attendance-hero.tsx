@@ -12,6 +12,7 @@ import {
 import type { MobileBootstrap } from "@/types/mobile";
 import { Button, Card, H2, Muted } from "@/components/ui";
 import { colors } from "@/theme/tokens";
+import { LivePulseClock } from "@/components/live-pulse-clock";
 
 type Props = {
   data: MobileBootstrap | null;
@@ -241,6 +242,11 @@ export function AttendanceHero({
         </View>
       </View>
 
+      <LivePulseClock
+        activeStartAt={active?.startAt}
+        onBreak={onBreak}
+        compact={compact}
+      />
       {canClock ? (
         <>
           <Button
