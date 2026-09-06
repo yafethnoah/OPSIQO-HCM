@@ -57,7 +57,7 @@ expectText('.env.example', env, /NEXT_PUBLIC_OPSIQO_IOS_APP_URL=/, 'iOS distribu
 
 const forbidden = [
   /AIza[0-9A-Za-z_-]{20,}/,
-  /-----BEGIN PRIVATE KEY-----/,
+  new RegExp('-----BEGIN ' + 'PRIVATE KEY-----'),
   /RESEND_API_KEY\s*=\s*re_[A-Za-z0-9]/,
 ];
 for (const [rel, source] of [
