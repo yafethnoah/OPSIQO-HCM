@@ -2,6 +2,7 @@ import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
 import type { ActorContext, Invitation, Membership } from '@/domain/security';
 import { invitationDownloadUrl, pulseDistributionLinks } from './invitation-email';
+import { getPulseInvitationSettingsByOrgId } from './pulse-invitation-settings';
 
 const emailKey = (value: string) => encodeURIComponent(value.trim().toLowerCase());
 
@@ -97,6 +98,9 @@ export async function getEmployeeAccountAccess(actor: ActorContext, workerId: st
           ? 'invited'
           : 'not_invited';
 
+  const pulseSettings = await getPulseInvitationSettingsByOrgId(actor.orgId);
+  const pulseLinks = pulseDistributionLinks(pulseSettings);
+
   return {
     workerId,
     email: email || invitation?.email || '',
@@ -109,8 +113,8 @@ export async function getEmployeeAccountAccess(actor: ActorContext, workerId: st
     downloadUrl: invitationDownloadUrl(),
     pulse: {
       appName: 'OPSIQO Pulse',
-      iosUrl: pulseDistributionLinks().ios || null,
-      androidUrl: pulseDistributionLinks().android || null,
+      iosUrl: pulseLinks.ios || null,
+      androidUrl: pulseLinks.android || null,
     },
   };
 }

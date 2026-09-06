@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
@@ -222,7 +223,14 @@ export function PulseInvitationPanel({
             Secure mobile onboarding from the employee record. OPSIQO stores only the token hash; the raw one-time link is available only immediately after send/resend.
           </div>
         </div>
-        {invitation && <span className="badge">{invitation.status}</span>}
+        <div className="row wrap">
+          {canInvite && (
+            <Link className="button secondary" href="/settings/mobile-invitations">
+              Edit invitation content & app links
+            </Link>
+          )}
+          {invitation && <span className="badge" style={{ whiteSpace: 'nowrap' }}>{invitation.status}</span>}
+        </div>
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -267,7 +275,7 @@ export function PulseInvitationPanel({
 
           <button className="button" disabled={Boolean(busy)} onClick={() => void sendOrResend()}>
             {busy === 'send'
-              ? 'Sendingâ€¦'
+              ? 'Sending...'
               : pending
                 ? 'Resend OPSIQO Pulse invitation'
                 : 'Send OPSIQO Pulse invitation'}
@@ -275,7 +283,7 @@ export function PulseInvitationPanel({
 
           {pending && (
             <button className="button dangerButton" disabled={Boolean(busy)} onClick={() => void revoke()}>
-              {busy === 'revoke' ? 'Revokingâ€¦' : 'Revoke invitation'}
+              {busy === 'revoke' ? 'Revoking...' : 'Revoke invitation'}
             </button>
           )}
         </div>
@@ -315,7 +323,7 @@ export function PulseInvitationPanel({
           <div className="grid4">
             <LifecycleItem label="Invitation created" at={invitation.createdAt} />
             <LifecycleItem
-              label="Sent"
+              label="Delivery"
               at={invitation.deliveryStatus === 'email' ? invitation.lastDeliveryAt : undefined}
               pendingText={invitation.deliveryStatus === 'manual' ? 'Ready to share' : 'Pending'}
             />

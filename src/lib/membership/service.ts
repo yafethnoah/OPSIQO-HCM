@@ -2,7 +2,8 @@ import { createHash, randomBytes, randomUUID } from 'crypto';
 import type { ActorContext, Invitation, Membership, Role } from '@/domain/security';
 import { adminDb } from '@/lib/firebase/admin';
 import { ensureInvitationIdentity, passwordSetupLink } from './account-access';
-import { buildInvitationEmailHtml, invitationAcceptUrl, invitationDownloadUrl, invitationSignInUrl, pulseDistributionLinks, pulseInvitationAcceptUrl } from './invitation-email';
+import { buildInvitationEmailHtml, invitationAcceptUrl, invitationDownloadUrl, invitationSignInUrl, pulseDistributionLinks, pulseInvitationAcceptUrl, renderPulseTemplateText } from './invitation-email';
+import { getPulseInvitationSettingsByOrgId } from './pulse-invitation-settings';
 import { ApiError } from '@/lib/http/errors';
 import { buildAudit } from '@/lib/audit/service';
 import { invitationAcceptSchema, invitationActionSchema, invitationCreateSchema, pulseInvitationResolveSchema } from './schemas';
@@ -140,7 +141,10 @@ async function deliverInvitation(input: {
   const from = process.env.INVITATION_FROM_EMAIL;
   const downloadUrl = invitationDownloadUrl();
   const signInUrl = invitationSignInUrl(input.orgId);
-  const links = pulseDistributionLinks();
+  const pulseSettings = input.experience === 'pulse'
+    ? await getPulseInvitationSettingsByOrgId(input.orgId)
+    : null;
+  const links = pulseDistributionLinks(pulseSettings || undefined);
 
   if (!apiKey || !from) {
     return {
@@ -161,8 +165,12 @@ async function deliverInvitation(input: {
     body: JSON.stringify({
       from,
       to: [input.email],
-      subject: input.experience === 'pulse'
-        ? `Welcome to OPSIQO Pulse â€“ ${org.name}`
+      subject: input.experience === 'pulse' && pulseSettings
+        ? renderPulseTemplateText(pulseSettings.emailSubject, {
+            organization: org.name,
+            role: input.role.replaceAll('_', ' '),
+            expires: new Date(input.expiresAt).toLocaleDateString('en-CA'),
+          })
         : `${org.name} invited you to OPSIQO`,
       html: buildInvitationEmailHtml({
         organizationName: org.name,
@@ -176,6 +184,7 @@ async function deliverInvitation(input: {
         iosUrl: links.ios || undefined,
         androidUrl: links.android || undefined,
         supportEmail: org.supportEmail,
+        pulseSettings: pulseSettings || undefined,
       }),
     }),
   });
@@ -522,7 +531,8 @@ export async function resolvePulseInvitation(raw: unknown) {
   await batch.commit();
 
   const org = await organizationInvitationContext(input.orgId);
-  const links = pulseDistributionLinks();
+  const pulseSettings = await getPulseInvitationSettingsByOrgId(input.orgId);
+  const links = pulseDistributionLinks(pulseSettings);
 
   return {
     appName: 'OPSIQO Pulse',
