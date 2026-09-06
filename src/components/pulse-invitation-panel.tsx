@@ -163,8 +163,10 @@ export function PulseInvitationPanel({
 
       setMessage(
         result.data.delivery === 'email'
-          ? 'OPSIQO Pulse invitation sent. The secure link expires in 7 days.'
-          : 'OPSIQO Pulse invitation created. Email delivery is not configured; copy the secure link or show the QR code now.',
+          ? 'OPSIQO Pulse invitation sent automatically. The secure link expires in 7 days.'
+          : result.data.deliveryError
+            ? `Automatic email delivery failed (${result.data.deliveryError}). The secure link is ready to share manually.`
+            : 'OPSIQO Pulse invitation created. Automatic email delivery is not configured; copy the secure link or show the QR code now.',
       );
       await load();
     } catch (cause) {

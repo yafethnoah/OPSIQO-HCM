@@ -1,4 +1,4 @@
-﻿# OPSIQO H48.1
+# OPSIQO H48.1
 # Firebase App Hosting environment: uat
 # Target: https://uat.opsiqo.ca
 #
@@ -84,3 +84,14 @@ env:
 
   - variable: OPSIQO_DR_EXERCISE_EVIDENCE_REF
     value: PENDING
+  # H50.2B - governed automatic OPSIQO Pulse invitation email delivery.
+  # Secret values live only in Google Secret Manager and are never committed.
+  - variable: RESEND_API_KEY
+    secret: UAT_OPSIQO_RESEND_API_KEY
+    availability:
+      - RUNTIME
+
+  - variable: INVITATION_FROM_EMAIL
+    secret: UAT_OPSIQO_INVITATION_FROM_EMAIL
+    availability:
+      - RUNTIME

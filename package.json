@@ -291,7 +291,9 @@
                     "opsiqo:h50.2:mobile-invite:audit":  "node scripts/opsiqo-h50-2-mobile-invite-audit.mjs",
                     "test:h50.2:mobile-invite":  "vitest run tests/opsiqo85/h50-2-mobile-invite.test.ts",
                     "opsiqo:h50.2a:editable-invite:audit":  "node scripts/opsiqo-h50-2a-editable-invite-audit.mjs",
-                    "test:h50.2a:editable-invite":  "vitest run tests/opsiqo85/h50-2a-editable-pulse-invite.test.ts"
+                    "test:h50.2a:editable-invite":  "vitest run tests/opsiqo85/h50-2a-editable-pulse-invite.test.ts",
+                    "opsiqo:h50.2b:email-delivery:audit":  "node scripts/opsiqo-h50-2b-email-delivery-audit.mjs",
+                    "test:h50.2b:email-delivery":  "vitest run tests/opsiqo85/h50-2b-email-delivery-config.test.ts"
                 },
     "dependencies":  {
                          "firebase":  "12.16.0",
