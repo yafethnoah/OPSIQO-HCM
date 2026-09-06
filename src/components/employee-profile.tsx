@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import { useLegacySurfaceTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
+import { PulseInvitationPanel } from '@/components/pulse-invitation-panel';
 
 type Position = { id:string; title:string; orgUnitId:string; availableHeadcount:number; availableFte:number; capacityState:string };
 type Unit = { id:string; name:string };
@@ -167,6 +168,8 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
       {canInvite&&detail.worker.workEmail&&<div className="row wrap"><label className="field"><span>Access role</span><select className="input" value={accessRole} onChange={e=>setAccessRole(e.target.value)}><option value="employee">Employee</option><option value="manager">Manager</option><option value="hr_partner">HR Partner</option><option value="hr_admin">HR Admin</option><option value="org_admin">Organization Admin</option></select></label>{(!access?.invitation||['accepted','revoked','expired'].includes(access.invitation.status))&&<button className="button" disabled={!!accessBusy} onClick={inviteEmployeeAccess}>{accessBusy==='invite'?'Provisioning…':access?.status==='active'?'Send new access email':'Provision access & send invitation'}</button>}{access?.invitation?.status==='pending'&&<><button className="button secondary" disabled={!!accessBusy} onClick={()=>accessInvitationAction('resend')}>{accessBusy==='resend'?'Sending…':'Resend invitation'}</button><button className="button dangerButton" disabled={!!accessBusy} onClick={()=>accessInvitationAction('revoke')}>{accessBusy==='revoke'?'Revoking…':'Revoke pending access'}</button></>}</div>}
       {access?.downloadUrl&&<div className="notice">Employee download page: <a className="textLink" href={access.downloadUrl} target="_blank" rel="noreferrer">Open OPSIQO download page</a>. Android/iOS store links can be configured later without changing the invitation workflow.</div>}
     </section>
+
+    <PulseInvitationPanel workerId={workerId} workEmail={detail.worker.workEmail} canInvite={canInvite} />
 
     <section className="card stack">
       <div className="toolbar"><div><h2 className="sectionTitle">Additional assignments</h2><div className="muted">Secondary responsibilities remain independent from the primary assignment.</div></div></div>

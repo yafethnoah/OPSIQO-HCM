@@ -1,7 +1,7 @@
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
 import type { ActorContext, Invitation, Membership } from '@/domain/security';
-import { invitationDownloadUrl } from './invitation-email';
+import { invitationDownloadUrl, pulseDistributionLinks } from './invitation-email';
 
 const emailKey = (value: string) => encodeURIComponent(value.trim().toLowerCase());
 
@@ -49,6 +49,16 @@ export async function getEmployeeAccountAccess(actor: ActorContext, workerId: st
     }
   }
 
+  if (!invitation) {
+    const workerInvites = await db.collection(`organizations/${actor.orgId}/invitations`)
+      .where('workerId', '==', workerId)
+      .limit(25)
+      .get();
+    invitation = workerInvites.docs
+      .map((doc) => doc.data() as Invitation)
+      .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0] || null;
+  }
+
   let authUid = invitation?.authUid;
   if (!authUid && worker.personId) {
     const personSnap = await db.doc(`organizations/${actor.orgId}/people/${worker.personId}`).get();
@@ -89,7 +99,7 @@ export async function getEmployeeAccountAccess(actor: ActorContext, workerId: st
 
   return {
     workerId,
-    email,
+    email: email || invitation?.email || '',
     status,
     firebaseIdentity,
     emailVerified,
@@ -97,5 +107,10 @@ export async function getEmployeeAccountAccess(actor: ActorContext, workerId: st
     membership: membership ? { role: membership.role, status: membership.status } : null,
     invitation,
     downloadUrl: invitationDownloadUrl(),
+    pulse: {
+      appName: 'OPSIQO Pulse',
+      iosUrl: pulseDistributionLinks().ios || null,
+      androidUrl: pulseDistributionLinks().android || null,
+    },
   };
 }

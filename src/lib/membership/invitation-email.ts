@@ -13,8 +13,26 @@ function baseUrl() {
   return (process.env.APP_BASE_URL || process.env.NEXT_PUBLIC_APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
 }
 
+function safeHttpsUrl(value: unknown) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw);
+    return url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
 export function invitationDownloadUrl() {
   return `${baseUrl()}/download-app`;
+}
+
+export function pulseDistributionLinks() {
+  return {
+    ios: safeHttpsUrl(process.env.NEXT_PUBLIC_OPSIQO_IOS_APP_URL),
+    android: safeHttpsUrl(process.env.NEXT_PUBLIC_OPSIQO_ANDROID_APP_URL),
+  };
 }
 
 export function invitationSignInUrl(orgId: string) {
@@ -25,6 +43,10 @@ export function invitationAcceptUrl(orgId: string, token: string) {
   return `${baseUrl()}/accept-invite?orgId=${encodeURIComponent(orgId)}&token=${encodeURIComponent(token)}`;
 }
 
+export function pulseInvitationAcceptUrl(orgId: string, token: string) {
+  return `${baseUrl()}/invite#orgId=${encodeURIComponent(orgId)}&token=${encodeURIComponent(token)}`;
+}
+
 export function buildInvitationEmailHtml(input: {
   organizationName: string;
   role: Role;
@@ -33,6 +55,10 @@ export function buildInvitationEmailHtml(input: {
   acceptUrl: string;
   downloadUrl: string;
   expiresAt: string;
+  experience?: 'standard' | 'pulse';
+  iosUrl?: string;
+  androidUrl?: string;
+  supportEmail?: string;
 }) {
   const organizationName = escapeHtml(input.organizationName || 'Your organization');
   const role = escapeHtml(input.role.replaceAll('_', ' '));
@@ -41,6 +67,83 @@ export function buildInvitationEmailHtml(input: {
   const acceptUrl = escapeHtml(input.acceptUrl);
   const downloadUrl = escapeHtml(input.downloadUrl);
   const expires = escapeHtml(new Date(input.expiresAt).toLocaleDateString('en-CA'));
+  const iosUrl = escapeHtml(input.iosUrl || input.downloadUrl);
+  const androidUrl = escapeHtml(input.androidUrl || input.downloadUrl);
+  const support = input.supportEmail
+    ? `Contact <a href="mailto:${escapeHtml(input.supportEmail)}">${escapeHtml(input.supportEmail)}</a> for support.`
+    : 'Contact your organization HR or OPSIQO administrator for support.';
+
+  if (input.experience === 'pulse') {
+    return `<!doctype html>
+<html>
+  <body style="margin:0;background:#f4f7fa;font-family:Arial,Helvetica,sans-serif;color:#172033">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f7fa;padding:24px 12px">
+      <tr><td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#ffffff;border:1px solid #dfe6ee;border-radius:20px;overflow:hidden">
+          <tr><td style="padding:30px 34px;background:#1f3a5f;color:white">
+            <div style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;opacity:.8">OPSIQO Pulse</div>
+            <h1 style="margin:8px 0 0;font-size:27px">Welcome to OPSIQO Pulse â€“ ${organizationName}</h1>
+          </td></tr>
+          <tr><td style="padding:30px 34px">
+            <p style="font-size:16px;line-height:1.65;margin-top:0">
+              You have been invited to use <strong>OPSIQO Pulse</strong> for <strong>${organizationName}</strong>.
+              Your OPSIQO access role is <strong>${role}</strong>.
+            </p>
+
+            <div style="padding:18px;background:#f7fbfb;border:1px solid #d7ecec;border-radius:14px;margin:22px 0">
+              <strong>1. Install OPSIQO Pulse</strong>
+              <p style="margin:14px 0 8px">
+                <a href="${iosUrl}" style="display:inline-block;background:#1f3a5f;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700">iPhone / iPad</a>
+                &nbsp;
+                <a href="${androidUrl}" style="display:inline-block;background:#eef7f7;color:#173f4a;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700">Android</a>
+              </p>
+            </div>
+
+            <p style="font-size:15px;line-height:1.65">
+              <strong>2. Set your OPSIQO password if this is your first account.</strong><br />
+              OPSIQO never sends your password by email.
+            </p>
+            <p style="margin:12px 0 22px">
+              <a href="${passwordSetupUrl}" style="display:inline-block;background:#eef2f7;color:#1f3a5f;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700">Set / reset my password</a>
+            </p>
+
+            <p style="font-size:15px;line-height:1.65">
+              <strong>3. Open your secure organization invitation.</strong><br />
+              The activation token is single-use, expires on ${expires}, and is never your password.
+            </p>
+            <p style="margin:12px 0 22px">
+              <a href="${acceptUrl}" style="display:inline-block;background:#1abcbd;color:#082f35;text-decoration:none;padding:13px 20px;border-radius:10px;font-weight:800">Open secure OPSIQO Pulse invitation</a>
+            </p>
+
+            <p style="font-size:15px;line-height:1.65">
+              <strong>4. Sign in using the email address that received this invitation.</strong><br />
+              <a href="${signInUrl}">Open OPSIQO sign in</a>
+            </p>
+
+            <p style="font-size:15px;line-height:1.65">
+              <strong>5. Complete multi-factor verification when prompted.</strong>
+            </p>
+
+            <p style="font-size:15px;line-height:1.65">
+              <strong>6. Allow organization-required permissions when prompted.</strong><br />
+              These may include notifications, attendance/location permissions, and supported device authentication.
+            </p>
+
+            <div style="padding:16px 18px;background:#f8fafc;border:1px solid #e5e9f0;border-radius:12px;font-size:14px;line-height:1.65">
+              <strong>Attendance:</strong> Home â†’ Clock In â†’ Break when applicable â†’ Clock Out.
+              OPSIQO Pulse may also provide leave, HR documents, notifications, learning and other employee services enabled by your organization.
+            </div>
+
+            <p style="font-size:13px;line-height:1.6;color:#667085;margin-top:24px">
+              ${support} If you were not expecting this invitation, do not activate it.
+            </p>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`;
+  }
 
   return `<!doctype html>
 <html>

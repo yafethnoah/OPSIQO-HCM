@@ -2,10 +2,10 @@ import { createHash, randomBytes, randomUUID } from 'crypto';
 import type { ActorContext, Invitation, Membership, Role } from '@/domain/security';
 import { adminDb } from '@/lib/firebase/admin';
 import { ensureInvitationIdentity, passwordSetupLink } from './account-access';
-import { buildInvitationEmailHtml, invitationAcceptUrl, invitationDownloadUrl, invitationSignInUrl } from './invitation-email';
+import { buildInvitationEmailHtml, invitationAcceptUrl, invitationDownloadUrl, invitationSignInUrl, pulseDistributionLinks, pulseInvitationAcceptUrl } from './invitation-email';
 import { ApiError } from '@/lib/http/errors';
 import { buildAudit } from '@/lib/audit/service';
-import { invitationAcceptSchema, invitationActionSchema, invitationCreateSchema } from './schemas';
+import { invitationAcceptSchema, invitationActionSchema, invitationCreateSchema, pulseInvitationResolveSchema } from './schemas';
 import { identityFromRequest, type IdentityContext } from '@/lib/auth/session';
 import { systemActor } from '@/lib/automation/system-actor';
 
@@ -113,9 +113,18 @@ export async function processInvitationGovernance(orgId: string, limit = 500) {
   return summary;
 }
 
-async function organizationName(orgId: string) {
+async function organizationInvitationContext(orgId: string) {
   const snap = await adminDb().doc(`organizations/${orgId}`).get();
-  return String(snap.data()?.name || 'Your organization');
+  const data = snap.data() as Record<string, unknown> | undefined;
+  const supportEmail = [
+    data?.supportEmail,
+    data?.hrEmail,
+    data?.contactEmail,
+  ].map((value) => String(value || '').trim()).find(Boolean) || undefined;
+  return {
+    name: String(data?.name || 'Your organization'),
+    supportEmail,
+  };
 }
 
 async function deliverInvitation(input: {
@@ -125,11 +134,14 @@ async function deliverInvitation(input: {
   inviteUrl: string;
   passwordSetupUrl: string;
   expiresAt: string;
+  experience?: 'standard' | 'pulse';
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.INVITATION_FROM_EMAIL;
   const downloadUrl = invitationDownloadUrl();
   const signInUrl = invitationSignInUrl(input.orgId);
+  const links = pulseDistributionLinks();
+
   if (!apiKey || !from) {
     return {
       delivery: 'manual' as const,
@@ -137,28 +149,37 @@ async function deliverInvitation(input: {
       passwordSetupUrl: input.passwordSetupUrl,
       downloadUrl,
       signInUrl,
+      iosUrl: links.ios || undefined,
+      androidUrl: links.android || undefined,
     };
   }
 
-  const orgName = await organizationName(input.orgId);
+  const org = await organizationInvitationContext(input.orgId);
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       from,
       to: [input.email],
-      subject: `${orgName} invited you to OPSIQO`,
+      subject: input.experience === 'pulse'
+        ? `Welcome to OPSIQO Pulse â€“ ${org.name}`
+        : `${org.name} invited you to OPSIQO`,
       html: buildInvitationEmailHtml({
-        organizationName: orgName,
+        organizationName: org.name,
         role: input.role,
         passwordSetupUrl: input.passwordSetupUrl,
         signInUrl,
         acceptUrl: input.inviteUrl,
         downloadUrl,
         expiresAt: input.expiresAt,
+        experience: input.experience || 'standard',
+        iosUrl: links.ios || undefined,
+        androidUrl: links.android || undefined,
+        supportEmail: org.supportEmail,
       }),
     }),
   });
+
   if (!response.ok) {
     return {
       delivery: 'manual' as const,
@@ -166,10 +187,20 @@ async function deliverInvitation(input: {
       passwordSetupUrl: input.passwordSetupUrl,
       downloadUrl,
       signInUrl,
+      iosUrl: links.ios || undefined,
+      androidUrl: links.android || undefined,
       deliveryError: `Email provider returned ${response.status}.`,
     };
   }
-  return { delivery: 'email' as const, inviteUrl: input.inviteUrl, downloadUrl, signInUrl };
+
+  return {
+    delivery: 'email' as const,
+    inviteUrl: input.inviteUrl,
+    downloadUrl,
+    signInUrl,
+    iosUrl: links.ios || undefined,
+    androidUrl: links.android || undefined,
+  };
 }
 
 async function resolveInvitationWorker(orgId: string, invitation: Pick<Invitation, 'workerId' | 'email'>) {
@@ -257,7 +288,9 @@ async function provisionInvitationAccess(actor: ActorContext, invitation: Invita
     tx.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`), audit);
   });
 
-  const inviteUrl = invitationAcceptUrl(actor.orgId, token);
+  const inviteUrl = invitation.experience === 'pulse'
+    ? pulseInvitationAcceptUrl(actor.orgId, token)
+    : invitationAcceptUrl(actor.orgId, token);
   const delivery = await deliverInvitation({
     orgId: actor.orgId,
     email: invitation.email,
@@ -265,6 +298,7 @@ async function provisionInvitationAccess(actor: ActorContext, invitation: Invita
     inviteUrl,
     passwordSetupUrl: setupUrl,
     expiresAt: invitation.expiresAt,
+    experience: invitation.experience || 'standard',
   });
   const deliveryTimestamp = now();
   await db.doc(`organizations/${actor.orgId}/invitations/${invitation.id}`).set({
@@ -291,6 +325,7 @@ export async function createInvitation(actor: ActorContext, raw: unknown) {
     id,
     email,
     role: input.role,
+    experience: input.experience,
     status: 'pending',
     workerId: input.workerId,
     invitedBy: actor.uid,
@@ -344,7 +379,7 @@ export async function createInvitation(actor: ActorContext, raw: unknown) {
 export async function actOnInvitation(actor: ActorContext, invitationId: string, raw: unknown) {
   const input = invitationActionSchema.parse(raw);
   if (input.action === 'revoke') return revokeInvitation(actor, invitationId, input.reason);
-  return resendInvitation(actor, invitationId, input.expiresInDays);
+  return resendInvitation(actor, invitationId, input.expiresInDays, input.experience);
 }
 
 async function revokeInvitation(actor: ActorContext, invitationId: string, reason?: string) {
@@ -377,7 +412,7 @@ async function revokeInvitation(actor: ActorContext, invitationId: string, reaso
   return { invitation: result };
 }
 
-async function resendInvitation(actor: ActorContext, invitationId: string, expiresInDays: number) {
+async function resendInvitation(actor: ActorContext, invitationId: string, expiresInDays: number, experience?: 'standard' | 'pulse') {
   const db = adminDb();
   const invitationRef = db.doc(`organizations/${actor.orgId}/invitations/${invitationId}`);
   const tokenQuery = await db.collection(`organizations/${actor.orgId}/invitationTokenIndex`).where('invitationId', '==', invitationId).get();
@@ -400,8 +435,22 @@ async function resendInvitation(actor: ActorContext, invitationId: string, expir
     if (!mayInviteRole(actor.role, invitation.role)) throw new ApiError(403, `Role ${actor.role} cannot resend an invitation for ${invitation.role}.`, 'role_escalation_blocked');
     if (invitation.status === 'accepted') throw new ApiError(409, 'Accepted invitations cannot be resent.', 'invitation_accepted');
     if (invitation.status === 'revoked') throw new ApiError(409, 'Revoked invitations cannot be resent. Create a new invitation.', 'invitation_revoked');
-    result = { ...invitation, status: 'pending', expiresAt, lastSentAt: timestamp, sendCount: Number(invitation.sendCount || 1) + 1 };
-    tx.update(invitationRef, { status: 'pending', expiresAt, lastSentAt: timestamp, sendCount: result.sendCount });
+    result = {
+      ...invitation,
+      experience: experience || invitation.experience || 'standard',
+      status: 'pending',
+      expiresAt,
+      lastSentAt: timestamp,
+      sendCount: Number(invitation.sendCount || 1) + 1,
+    };
+    tx.update(invitationRef, {
+      experience: result.experience,
+      status: 'pending',
+      expiresAt,
+      lastSentAt: timestamp,
+      sendCount: result.sendCount,
+      updatedAt: timestamp,
+    });
     for (const snap of oldTokenSnaps) if (snap.exists) tx.delete(snap.ref);
     tx.create(tokenIndexRef, { invitationId, createdAt: timestamp, expiresAt });
     tx.set(db.doc(`organizations/${actor.orgId}/invitationEmailIndex/${emailKey(invitation.email)}`), { invitationId, email: invitation.email, status: 'pending', expiresAt, updatedAt: timestamp }, { merge: true });
@@ -418,6 +467,76 @@ async function resendInvitation(actor: ActorContext, invitationId: string, expir
     await invitationRef.set({ accountStatus: 'provisioning_failed', deliveryStatus: 'failed', deliveryError: message.slice(0, 500), updatedAt: now() }, { merge: true });
     throw error;
   }
+}
+
+export async function resolvePulseInvitation(raw: unknown) {
+  const input = pulseInvitationResolveSchema.parse(raw);
+  const db = adminDb();
+  const tokenHash = hashToken(input.token);
+  const tokenIndexRef = db.doc(`organizations/${input.orgId}/invitationTokenIndex/${tokenHash}`);
+  const tokenIndexSnap = await tokenIndexRef.get();
+
+  if (!tokenIndexSnap.exists) {
+    throw new ApiError(404, 'Invitation is invalid or expired.', 'invalid_invitation');
+  }
+
+  const invitationId = String(tokenIndexSnap.data()?.invitationId || '');
+  if (!invitationId) {
+    throw new ApiError(404, 'Invitation is invalid or expired.', 'invalid_invitation');
+  }
+
+  const invitationRef = db.doc(`organizations/${input.orgId}/invitations/${invitationId}`);
+  const invitationSnap = await invitationRef.get();
+  if (!invitationSnap.exists) {
+    throw new ApiError(404, 'Invitation is invalid or expired.', 'invalid_invitation');
+  }
+
+  const invitation = invitationSnap.data() as Invitation;
+  const timestamp = now();
+
+  if (invitation.status !== 'pending' || invitation.expiresAt <= timestamp) {
+    throw new ApiError(410, 'Invitation is invalid or expired.', 'invitation_expired');
+  }
+
+  if (invitation.experience !== 'pulse') {
+    throw new ApiError(404, 'Invitation is invalid or expired.', 'invalid_invitation');
+  }
+
+  const eventId = randomUUID();
+  const batch = db.batch();
+  batch.set(invitationRef, {
+    openedAt: invitation.openedAt || timestamp,
+    lastOpenedAt: timestamp,
+    openCount: Number(invitation.openCount || 0) + 1,
+    updatedAt: timestamp,
+  }, { merge: true });
+  batch.create(
+    db.doc(`organizations/${input.orgId}/mobileInvitationEvents/${eventId}`),
+    {
+      id: eventId,
+      invitationId,
+      eventType: 'opened',
+      createdAt: timestamp,
+    },
+  );
+  await batch.commit();
+
+  const org = await organizationInvitationContext(input.orgId);
+  const links = pulseDistributionLinks();
+
+  return {
+    appName: 'OPSIQO Pulse',
+    organizationName: org.name,
+    role: invitation.role,
+    status: invitation.status,
+    expiresAt: invitation.expiresAt,
+    workerMatched: Boolean(invitation.workerId),
+    iosUrl: links.ios || invitationDownloadUrl(),
+    iosDirect: Boolean(links.ios),
+    androidUrl: links.android || invitationDownloadUrl(),
+    androidDirect: Boolean(links.android),
+    supportEmail: org.supportEmail || null,
+  };
 }
 
 export async function acceptInvitation(request: Request, orgId: string, raw: unknown) {

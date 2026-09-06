@@ -217,6 +217,14 @@ export interface Invitation {
   lastDeliveryAt?: string;
   deliveryError?: string;
   membershipCreatedByInvitation?: boolean;
+  experience?: 'standard' | 'pulse';
+  openedAt?: string;
+  lastOpenedAt?: string;
+  openCount?: number;
+  appActivatedAt?: string;
+  mfaCompletedAt?: string;
+  firstMobileLoginAt?: string;
+  firstClockInAt?: string;
 }
 
 
