@@ -20,6 +20,7 @@ import {
   parseResumeTextDeterministic,
   reviewCoverLetter,
 } from "./ats-engine";
+import { classifyRecruitingDocument, isPlausibleProfessionalHeadline } from "./document-classifier";
 import { governedCoverLetterDraft, governedResumeParse } from "./ats-provider";
 import { listRequisitions } from "./service";
 
@@ -156,6 +157,16 @@ export async function parseResumeFile(actor: ActorContext, file: File) {
   const bytes = Buffer.from(await file.arrayBuffer());
   validateResumeFile(file, bytes);
   const text = textFromResume(file.name, bytes);
+  const documentClassification = classifyRecruitingDocument(file.name, text);
+  if (
+    documentClassification.kind === "cover_letter" &&
+    documentClassification.confidence >= 0.65
+  )
+    throw new ApiError(
+      422,
+      "This file looks like a cover letter, not a resume. Upload your resume in the Resume field.",
+      "resume_document_mismatch",
+    );
   const pdfLayerState = pdfTextLayerState(file.name, bytes);
   let profile: ParsedResumeProfile;
   let ai: Awaited<ReturnType<typeof governedResumeParse>> = null;
@@ -200,6 +211,15 @@ export async function parseResumeFile(actor: ActorContext, file: File) {
       "This resume has no reliable readable text layer. Upload a text-based PDF, DOCX, TXT, RTF or Markdown file, or ask an administrator to complete Recruiting AI setup.",
       "recruiting_ai_setup_required",
     );
+  if (profile.headline && !isPlausibleProfessionalHeadline(profile.headline))
+    profile = {
+      ...profile,
+      headline: undefined,
+      warnings: [
+        ...profile.warnings,
+        "Professional headline was omitted because the extracted text was not reliably human-readable.",
+      ],
+    };
   if (extension(file.name) === ".pdf" && !assessHumanReadableText(profile.sourceText || "").readable)
     throw new ApiError(
       422,
@@ -212,7 +232,7 @@ export async function parseResumeFile(actor: ActorContext, file: File) {
     size: file.size,
     sha256: sha(bytes),
   };
-  return { profile, sourceMeta, ai };
+  return { profile, sourceMeta, ai, documentClassification };
 }
 
 export async function extractRecruitingDocumentFile(file: File) {
@@ -225,7 +245,7 @@ export async function extractRecruitingDocumentFile(file: File) {
     size: file.size,
     sha256: sha(bytes),
   };
-  return { bytes, text, sourceMeta };
+  return { bytes, text, sourceMeta, documentClassification: classifyRecruitingDocument(file.name, text) };
 }
 
 export async function parseResumeIntake(actor: ActorContext, form: FormData) {

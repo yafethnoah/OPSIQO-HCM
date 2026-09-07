@@ -1,5 +1,6 @@
 import fs from 'node:fs';import {describe,expect,it} from 'vitest';import type {AtsResumeReview} from '../src/domain/ats';import {summarizeAtsFit} from '../src/lib/recruiting/candidate-fit-service';
 import {parseResumeTextDeterministic} from '../src/lib/recruiting/ats-engine';
+import {classifyRecruitingDocument} from '../src/lib/recruiting/document-classifier';
 const read=(p:string)=>fs.readFileSync(p,'utf8');
 describe('H50.5 Recruiting Intelligence',()=>{
  it('summarizes explainable fit dimensions',()=>{const r={id:'r',score:87,band:'strong_alignment',breakdown:{requirements:92},evidence:[{confidence:.9},{confidence:.8}],assessmentCoverage:90,missingRequirements:['gap'],scoringVersion:'test',createdAt:'2026-09-07T00:00:00.000Z'} as unknown as AtsResumeReview;expect(summarizeAtsFit(r)).toMatchObject({overallFit:87,requirementsCoverage:92,evidenceConfidence:85,assessmentCoverage:90,gapCount:1,humanReviewRequired:true})});
@@ -50,5 +51,9 @@ HR Director
 January 2018 - Present
 EDUCATION
 Bachelor of Pharmacy`,'Shadi_Alktaifan_CHRE_Professional_HR_Resume.docx');expect(r.yearsOfExperience).toBeGreaterThanOrEqual(16);expect(r.education.join(' ')).toMatch(/Bachelor of Pharmacy/i);});
+ it('rejects cover letters supplied in the resume slot and identifies real resumes',()=>{expect(classifyRecruitingDocument('Shadi_HR_Specialist_Cover_Letter.pdf','Dear Hiring Manager\nI am writing to apply for the role.\nThank you for considering my application.\nSincerely, Shadi').kind).toBe('cover_letter');expect(classifyRecruitingDocument('Shadi_Alktaifan_Resume.pdf','PROFESSIONAL SUMMARY\nEXPERIENCE\nHR Director\nJanuary 2020 - Present\nEDUCATION\nBachelor of Pharmacy\nSKILLS\nEmployee relations').kind).toBe('resume')});
+ it('does not expose stale fit percentages when analysis is not ready',()=>{const p=read('src/components/candidate-fit-board.tsx'),s=read('src/lib/recruiting/candidate-fit-service.ts');expect(p).toContain("const ready=(x:App)=>x.atsAnalysisStatus==='ready'");expect(p).toContain('Not scored');expect(s).toContain("atsAnalysisStatus:'invalid_resume'");expect(s).toContain('...clearFit()')});
+ it('shows application deadlines and never silently claims clipboard copy success',()=>{const p=read('src/components/candidate-application-links-panel.tsx'),s=read('src/lib/recruiting/candidate-portal-service.ts');expect(p).toContain('<th>Closing</th>');expect(p).toContain('Clipboard access was blocked');expect(p).toContain('data-h50-5-share-url');expect(s).toContain('application_link_deadline_invalid');expect(s).toContain('application_link_configuration_conflict');expect(s).toContain('expiredClosed')});
+ it('requires a successfully parsed resume before candidate continuation',()=>{const p=read('src/components/candidate-application-portal.tsx');expect(p).toContain("setResume(null);setParseNote('')");expect(p).toContain("step===1&&(!resume||busy==='parse'||!parseNote)");expect(p).toContain('This file name looks like a cover letter')});
  it('preserves protected-trait and human-decision guardrails',()=>{expect(read('src/lib/recruiting/candidate-portal-service.ts')).toContain('unsafe_screening_question');expect(read('src/components/candidate-fit-board.tsx')).toContain('does not auto-reject, auto-hire or auto-advance');expect(read('src/lib/recruiting/ats-engine.ts')).toContain('PROTECTED')});
 });
