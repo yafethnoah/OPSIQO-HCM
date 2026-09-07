@@ -482,3 +482,19 @@ html[dir="rtl"] input,
 html[dir="rtl"] select,
 html[dir="rtl"] textarea { text-align: start; }
 html[dir="rtl"] .notice { border-left: 0; border-right: 4px solid var(--accent); }
+
+
+/* H50.5D candidate application public-shell UAT closure */
+html:has(.prehireShell),body:has(.prehireShell){height:auto!important;min-height:100%;overflow:auto!important}
+body:has(.prehireShell) .shell{display:block!important;grid-template-columns:none!important;width:100%!important;height:auto!important;min-height:100vh;overflow:visible!important}
+body:has(.prehireShell) .sidebar{display:none!important}
+body:has(.prehireShell) .main{width:100%!important;height:auto!important;min-height:100vh;overflow:visible!important;padding:0!important}
+body:has(.prehireShell) .mainInner{width:100%!important;max-width:none!important;height:auto!important;margin:0!important}
+body:has(.prehireShell) .prehireShell{width:100%!important;min-width:0;min-height:100vh;overflow-x:hidden}
+body:has(.prehireShell) .prehireMain{width:100%!important;max-width:980px!important;min-width:0;margin:0 auto}
+body:has(.prehireShell) .prehireMain>*{min-width:0;max-width:100%}
+body:has(.prehireShell) .prehireMain .formGrid,body:has(.prehireShell) .prehireMain .grid2{min-width:0}
+body:has(.prehireShell) .prehireMain .input,body:has(.prehireShell) .prehireMain input,body:has(.prehireShell) .prehireMain select,body:has(.prehireShell) .prehireMain textarea{min-width:0;max-width:100%}
+body:has(.prehireShell) .prehireMain details,body:has(.prehireShell) .prehireMain summary,body:has(.prehireShell) .prehireMain p,body:has(.prehireShell) .prehireMain li{overflow-wrap:anywhere}
+body:has(.prehireShell) .prehireMain .row{min-width:0;max-width:100%;flex-wrap:wrap}
+@media(max-width:700px){body:has(.prehireShell) .prehireMain .formGrid,body:has(.prehireShell) .prehireMain .grid2{grid-template-columns:1fr!important}}

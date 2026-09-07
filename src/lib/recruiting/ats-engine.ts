@@ -108,10 +108,14 @@ function percent(n:number){return Math.max(0,Math.min(100,Math.round(n)));}
 function candidateNameFromFileName(fileName?:string){
  if(!fileName)return undefined;
  let base=fileName.split(/[\\/]/).pop()||'';
- base=base.replace(/\.[A-Za-z0-9]{1,8}$/,'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[_-]+/g,' ').replace(/\b(?:resume|curriculum\s+vitae|cv|profile|candidate|application|updated|final)\b/gi,' ').replace(/\b\d{4,}\b/g,' ').replace(/\s+/g,' ').trim();
+ base=base.replace(/\.[A-Za-z0-9]{1,8}$/,'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[_-]+/g,' ').replace(/\b(?:resume|curriculum\s+vitae|cv|profile|candidate|application|updated|final|professional|human\s+resources|hr|chre|chrl|chrp|cphr|pmp|cpa|cfa|sphr|phr|mba|phd|shrm\s*(?:cp|scp)?)\b/gi,' ').replace(/\b\d{4,}\b/g,' ').replace(/\s+/g,' ').trim();
  return plausiblePersonName(base)?base:undefined;
 }
 const NON_NAME_LINE=/\b(?:resume|curriculum\s+vitae|professional\s+summary|summary|profile|skills?|experience|employment|education|certifications?|competencies|expertise|linkedin|portfolio|github|marketing|specialist|manager|director|engineer|analyst|developer|consultant|coordinator|assistant|executive|administrator|officer|designer|accountant|sales|digital|growth)\b/i;
+const PROFESSIONAL_CREDENTIAL_TOKEN=/\b(?:CHRE|CHRL|CHRP|CPHR|PMP|CPA|CFA|SPHR|PHR|SHRM[- ]?(?:CP|SCP)|MBA|PHD)\b/i;
+function stripCredentialSuffix(value:string){return value.replace(/\s*,?\s*(?:(?:CHRE|CHRL|CHRP|CPHR|PMP|CPA|CFA|SPHR|PHR|SHRM[- ]?(?:CP|SCP)|MBA|PHD)(?:\s*,?\s*)?)+$/i,'').trim();}
+function recognizedProfessionalCredentials(text:string){const out:string[]=[];for(const m of text.matchAll(/\b(CHRE|CHRL|CHRP|CPHR|PMP|CPA|CFA|SPHR|PHR|SHRM[- ]?(?:CP|SCP))\b/gi)){let value=m[1]!.toUpperCase().replace(/\s+/g,'-');if(value.startsWith('SHRM')&&!value.startsWith('SHRM-'))value=value.replace(/^SHRM/,'SHRM-');out.push(value)}return unique(out);}
+function looksLikeLocationLine(value:string){return value.length>=5&&value.length<=100&&/^[\p{L} .'-]+,\s*[\p{L} .'-]{2,}(?:,\s*[A-Z]{2,3})?$/u.test(value)&&!PROFESSIONAL_CREDENTIAL_TOKEN.test(value)&&!NON_NAME_LINE.test(value);}
 function plausiblePersonName(value:string){
  const clean=value.replace(/[•|]+/g,' ').replace(/\s+/g,' ').trim();
  if(clean.length<3||clean.length>100||/@|https?:\/\/|www\.|\d/.test(clean)||NON_NAME_LINE.test(clean))return false;
@@ -119,21 +123,22 @@ function plausiblePersonName(value:string){
  return tokens.every(token=>/^[\p{L}][\p{L}'’.-]*$/u.test(token));
 }
 function candidateNameFromLines(lines:string[]){
- const labeled=lines.slice(0,30).map(line=>/^(?:candidate\s+)?(?:full\s+)?name\s*[:\-]\s*(.+)$/i.exec(line)?.[1]?.trim()).find((value):value is string=>Boolean(value&&plausiblePersonName(value)));if(labeled)return labeled;
+ const labeled=lines.slice(0,30).map(line=>stripCredentialSuffix(/^(?:candidate\s+)?(?:full\s+)?name\s*[:\-]\s*(.+)$/i.exec(line)?.[1]?.trim()||'')).find((value):value is string=>Boolean(value&&plausiblePersonName(value)));if(labeled)return labeled;
  let best:{value:string;score:number}|undefined;
- for(let i=0;i<Math.min(lines.length,24);i++){const value=lines[i]!.replace(/^[•*\-]+\s*/,'').trim();if(!plausiblePersonName(value))continue;const tokens=value.split(/\s+/);let score=40-Math.min(30,i*3);if(i===0)score+=25;if(tokens.every(token=>/^\p{Lu}/u.test(token)))score+=10;if(tokens.length===2||tokens.length===3)score+=8;if(!best||score>best.score)best={value,score};}
+ for(let i=0;i<Math.min(lines.length,24);i++){const value=stripCredentialSuffix(lines[i]!.replace(/^[•*\-]+\s*/,'').trim());if(!plausiblePersonName(value))continue;const tokens=value.split(/\s+/);let score=40-Math.min(30,i*3);if(i===0)score+=25;if(tokens.every(token=>/^\p{Lu}/u.test(token)))score+=10;if(tokens.length===2||tokens.length===3)score+=8;if(!best||score>best.score)best={value,score};}
  return best?.value;
 }
 function normalizedLinkedIn(sourceText:string){const raw=(sourceText.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/(?:in|pub)\/[^\s)>,]+/i)||[])[0];if(!raw)return undefined;return /^https?:\/\//i.test(raw)?raw:`https://${raw}`;}
 function phoneFromText(sourceText:string){const candidates=sourceText.match(/(?:\+?\d{1,3}[ .()-]*)?(?:\(?\d{2,4}\)?[ .()-]*){2,4}\d{3,4}/g)||[];for(const raw of candidates){const digits=raw.replace(/\D/g,'');if(digits.length<10||digits.length>15)continue;if(/^(?:19|20)\d{2}(?:19|20)\d{2}$/.test(digits))continue;return raw.replace(/\s+/g,' ').trim()}return undefined;}
-function labeledLocation(sourceText:string){
- const raw=/^(?:location|based\s+in|address)\s*[:\-]\s*(.+)$/im.exec(sourceText)?.[1]?.trim();if(raw&&raw.length<=180&&!/@|https?:\/\//i.test(raw))return raw;
- const header=sourceText.split(/\r?\n/).slice(0,14).map(x=>x.trim()).find(x=>x.length>=5&&x.length<=100&&/^[\p{L} .'-]+,\s*[\p{L} .'-]{2,}(?:,\s*[A-Z]{2,3})?$/u.test(x)&&!/@|linkedin|summary|experience/i.test(x));
+function labeledLocation(sourceText:string,displayName?:string){
+ const isRejected=(value:string)=>{const n=norm(value),person=displayName?norm(displayName):'';return Boolean(person&&(n===person||n.startsWith(`${person} `)||n.includes(person)))||PROFESSIONAL_CREDENTIAL_TOKEN.test(value)||NON_NAME_LINE.test(value)};
+ const raw=/^(?:location|based\s+in|address)\s*[:\-]\s*(.+)$/im.exec(sourceText)?.[1]?.trim();if(raw&&raw.length<=180&&!/@|https?:\/\//i.test(raw)&&!isRejected(raw))return raw;
+ const header=sourceText.split(/\r?\n/).slice(0,18).map(x=>x.trim()).find(x=>looksLikeLocationLine(x)&&!/@|linkedin|summary|experience/i.test(x)&&!isRejected(x));
  return header;
 }
 function headlineFromLines(lines:string[],name?:string){
- const start=name?Math.max(0,lines.findIndex(x=>x===name)+1):0;
- return lines.slice(start,start+10).find(x=>x.length>=3&&x.length<=180&&!/@|linkedin|https?:|\+?\d[\d .()-]{7,}\d/.test(x)&&!plausiblePersonName(x)&&!/^(?:summary|profile|experience|education|skills|certifications?)$/i.test(x));
+ const start=name?Math.max(0,lines.findIndex(x=>stripCredentialSuffix(x)===name)+1):0;
+ return lines.slice(start,start+12).find(x=>x.length>=3&&x.length<=180&&!/@|linkedin|https?:|\+?\d[\d .()-]{7,}\d/.test(x)&&!plausiblePersonName(stripCredentialSuffix(x))&&!looksLikeLocationLine(x)&&!PROFESSIONAL_CREDENTIAL_TOKEN.test(x)&&!/^(?:summary|profile|experience|education|skills|certifications?)$/i.test(x));
 }
 function section(text:string,names:string[]){
  const lines=text.split(/\r?\n/);const headings=new Set(names.map(norm));let start=-1;
@@ -175,11 +180,11 @@ export function parseResumeTextDeterministic(text:string,fileName?:string):Parse
  const email=(sourceText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)||[])[0]?.trim();
  const phone=phoneFromText(sourceText);const linkedin=normalizedLinkedIn(sourceText);const parts=displayName?.split(/\s+/).filter(Boolean)||[];
  const skillsSection=section(sourceText,['Core Competencies','Skills','Technical Skills','Competencies','Expertise']);const certificationsSection=section(sourceText,['Certifications','Certificates','Licences','Licenses']);const educationSection=section(sourceText,['Education','Academic Background']);const summarySection=section(sourceText,['Professional Summary','Summary','Profile']);
- const skillCandidates=(skillsSection||'').split(/[,•|;\n]/).map(x=>x.trim()).filter(x=>x.length>=2&&x.length<=100&&!/[.!?].{25,}/.test(x));const skills=cleanList([...skillCandidates,...aliasSignals(skillsSection||'')],120,100);const certifications=cleanList((certificationsSection||'').split(/\n|;/),60,180);const education=cleanList((educationSection||'').split(/\n/),60,240);const entities=experienceEntities(sourceText);const yearsOfExperience=parseExperienceMonths(sourceText);
+ const skillCandidates=(skillsSection||'').split(/[,•|;\n]/).map(x=>x.trim()).filter(x=>x.length>=2&&x.length<=100&&!/[.!?].{25,}/.test(x));const skills=cleanList([...skillCandidates,...aliasSignals(skillsSection||'')],120,100);const certifications=cleanList([...(certificationsSection||'').split(/\n|;/),...recognizedProfessionalCredentials(lines.slice(0,30).join('\n')+'\n'+(certificationsSection||''))],60,180);const education=cleanList((educationSection||'').split(/\n/),60,240);const entities=experienceEntities(sourceText);const yearsOfExperience=parseExperienceMonths(sourceText);
  const headline=headlineFromLines(lines,displayName);const warnings:string[]=[];const extractionSignals:string[]=[];
- if(displayName)extractionSignals.push(labeledName?'name:document':'name:filename');else warnings.push('Candidate name could not be identified deterministically.');if(email)extractionSignals.push('email');else warnings.push('Candidate email was not detected.');if(phone)extractionSignals.push('phone');if(linkedin)extractionSignals.push('linkedin');if(skills.length)extractionSignals.push('skills');if(education.length)extractionSignals.push('education');if(entities.jobTitles.length)extractionSignals.push('job_titles');if(entities.employers.length)extractionSignals.push('employers');if(yearsOfExperience!=null)extractionSignals.push('experience_duration');
+ if(displayName)extractionSignals.push(labeledName?'name:document':'name:filename');else warnings.push('Candidate name could not be identified deterministically.');if(email)extractionSignals.push('email');else warnings.push('Candidate email was not detected.');if(phone)extractionSignals.push('phone');if(linkedin)extractionSignals.push('linkedin');if(skills.length)extractionSignals.push('skills');if(certifications.length)extractionSignals.push('certifications');if(education.length)extractionSignals.push('education');if(entities.jobTitles.length)extractionSignals.push('job_titles');if(entities.employers.length)extractionSignals.push('employers');if(yearsOfExperience!=null)extractionSignals.push('experience_duration');
  const parseQuality=percent(([displayName,email,phone||linkedin,skills.length,education.length,entities.jobTitles.length||entities.employers.length,sourceText.length>500].filter(Boolean).length/7)*100);
- return{firstName:parts[0],lastName:parts.length>1?parts[parts.length-1]:undefined,displayName,email,phone,location:labeledLocation(sourceText),linkedinUrl:linkedin,headline,summary:summarySection||undefined,skills,certifications,education,employers:entities.employers,jobTitles:entities.jobTitles,yearsOfExperience,sourceText,warnings,parser:'deterministic',parseQuality,extractionSignals};
+ return{firstName:parts[0],lastName:parts.length>1?parts[parts.length-1]:undefined,displayName,email,phone,location:labeledLocation(sourceText,displayName),linkedinUrl:linkedin,headline,summary:summarySection||undefined,skills,certifications,education,employers:entities.employers,jobTitles:entities.jobTitles,yearsOfExperience,sourceText,warnings,parser:'deterministic',parseQuality,extractionSignals};
 }
 
 export function buildAtsReview(input:{id:string;applicationId:string;candidateId:string;requisition:Requisition;candidate:Candidate;profile:ParsedResumeProfile;createdBy:string;createdAt:string;sourceMeta?:AtsResumeReview['sourceMeta']}):AtsResumeReview{
