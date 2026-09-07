@@ -28,9 +28,12 @@ async function reqScope(a:ActorContext,id:string){const s=await adminDb().doc(`o
 
 export async function createCandidateApplicationLink(a:ActorContext,raw:unknown){
  const i=create.parse(raw),r=await reqScope(a,i.requisitionId);if(r.status!=='open')throw new ApiError(409,'Public application links require an open requisition.','requisition_not_open');validateQuestions(i.screeningQuestions);
+ const db=adminDb(),existingSnap=await db.collection(`organizations/${a.orgId}/candidateApplicationLinks`).where('requisitionId','==',r.id).limit(50).get();
+ const existing=existingSnap.docs.map(d=>d.data() as CandidateApplicationLink).filter(l=>l.status==='active').sort((x,y)=>(Number(y.applicationsCount||0)-Number(x.applicationsCount||0))||String(y.lastApplicationAt||'').localeCompare(String(x.lastApplicationAt||''))||y.createdAt.localeCompare(x.createdAt))[0];
+ if(existing)return{...existing,reused:true};
  const id=randomUUID(),publicToken=randomBytes(24).toString('base64url'),tokenHash=sha(publicToken),t=now(),link:CandidateApplicationLink={id,requisitionId:r.id,publicToken,tokenHash,status:'active',coverLetterRequired:i.coverLetterRequired,allowTalentPoolConsent:i.allowTalentPoolConsent,screeningQuestions:i.screeningQuestions,closingAt:i.closingAt,createdBy:a.uid,createdAt:t,updatedAt:t,applicationsCount:0};
- const db=adminDb(),audit=buildAudit(a,{action:'recruiting.application_link.create',entityType:'candidateApplicationLink',entityId:id,after:{...link,publicToken:'[redacted-share-token]'}});
- const b=db.batch();b.create(db.doc(`organizations/${a.orgId}/candidateApplicationLinks/${id}`),link);b.create(db.doc(`publicRecruitingLinkIndex/${tokenHash}`),{orgId:a.orgId,linkId:id,requisitionId:r.id,status:'active',createdAt:t,updatedAt:t});b.create(db.doc(`organizations/${a.orgId}/auditLogs/${audit.id}`),audit);await b.commit();return link;
+ const audit=buildAudit(a,{action:'recruiting.application_link.create',entityType:'candidateApplicationLink',entityId:id,after:{...link,publicToken:'[redacted-share-token]'}});
+ const b=db.batch();b.create(db.doc(`organizations/${a.orgId}/candidateApplicationLinks/${id}`),link);b.create(db.doc(`publicRecruitingLinkIndex/${tokenHash}`),{orgId:a.orgId,linkId:id,requisitionId:r.id,status:'active',createdAt:t,updatedAt:t});b.create(db.doc(`organizations/${a.orgId}/auditLogs/${audit.id}`),audit);await b.commit();return{...link,reused:false};
 }
 export async function listCandidateApplicationLinks(a:ActorContext){
  const s=await adminDb().collection(`organizations/${a.orgId}/candidateApplicationLinks`).orderBy('createdAt','desc').limit(200).get(),all=s.docs.map(d=>d.data() as CandidateApplicationLink);if(hrRoles.has(a.role))return all;const out=[];for(const l of all)if(await reqScope(a,l.requisitionId).catch(()=>null))out.push(l);return out;
@@ -40,6 +43,22 @@ export async function updateCandidateApplicationLink(a:ActorContext,id:string,ra
  const t=now(),n={...c,...p,closingAt:p.closingAt===null?undefined:p.closingAt??c.closingAt,updatedAt:t} as CandidateApplicationLink,audit=buildAudit(a,{action:'recruiting.application_link.update',entityType:'candidateApplicationLink',entityId:id,before:{...c,publicToken:'[redacted-share-token]'},after:{...n,publicToken:'[redacted-share-token]'}}),b=db.batch();
  b.set(ref,n);b.set(db.doc(`publicRecruitingLinkIndex/${c.tokenHash}`),{status:n.status,updatedAt:t},{merge:true});b.create(db.doc(`organizations/${a.orgId}/auditLogs/${audit.id}`),audit);await b.commit();return n;
 }
+export async function reconcileCandidateApplicationLinks(a:ActorContext){
+ const db=adminDb(),snap=await db.collection(`organizations/${a.orgId}/candidateApplicationLinks`).orderBy('createdAt','desc').limit(500).get(),links=snap.docs.map(d=>d.data() as CandidateApplicationLink),groups=new Map<string,CandidateApplicationLink[]>();
+ for(const link of links){if(link.status!=='active')continue;const arr=groups.get(link.requisitionId)||[];arr.push(link);groups.set(link.requisitionId,arr)}
+ let closed=0,duplicateGroups=0;const kept:{requisitionId:string;linkId:string}[]=[];
+ for(const [requisitionId,items] of groups){
+  if(items.length<2)continue;duplicateGroups++;
+  items.sort((x,y)=>(Number(y.applicationsCount||0)-Number(x.applicationsCount||0))||String(y.lastApplicationAt||'').localeCompare(String(x.lastApplicationAt||''))||y.createdAt.localeCompare(x.createdAt));
+  const keep=items[0]!;kept.push({requisitionId,linkId:keep.id});
+  for(const duplicate of items.slice(1)){
+   const t=now(),audit=buildAudit(a,{action:'recruiting.application_link.reconcile_duplicate',entityType:'candidateApplicationLink',entityId:duplicate.id,before:{status:duplicate.status,requisitionId:duplicate.requisitionId},after:{status:'closed',keptLinkId:keep.id}});
+   const b=db.batch();b.set(db.doc(`organizations/${a.orgId}/candidateApplicationLinks/${duplicate.id}`),{status:'closed',updatedAt:t},{merge:true});b.set(db.doc(`publicRecruitingLinkIndex/${duplicate.tokenHash}`),{status:'closed',updatedAt:t},{merge:true});b.create(db.doc(`organizations/${a.orgId}/auditLogs/${audit.id}`),audit);await b.commit();closed++;
+  }
+ }
+ return{duplicateGroups,closed,kept};
+}
+
 async function resolve(token:string){
  const x=String(token||'').trim();if(x.length<20)throw new ApiError(404,'Application link not found.','application_link_not_found');const h=sha(x),db=adminDb(),idx=await db.doc(`publicRecruitingLinkIndex/${h}`).get();if(!idx.exists)throw new ApiError(404,'Application link not found.','application_link_not_found');const d=idx.data() as any;
  const[l,r,o]=await Promise.all([db.doc(`organizations/${d.orgId}/candidateApplicationLinks/${d.linkId}`).get(),db.doc(`organizations/${d.orgId}/requisitions/${d.requisitionId}`).get(),db.doc(`organizations/${d.orgId}`).get()]);if(!l.exists||!r.exists)throw new ApiError(404,'Application link not found.','application_link_not_found');
@@ -61,32 +80,75 @@ export async function savePublicApplicationDraft(token:string,raw:unknown,draftT
 export async function loadPublicApplicationDraft(token:string,draftToken:string){const x=await resolve(token),s=await adminDb().doc(`publicRecruitingDrafts/${sha(String(draftToken||''))}`).get();if(!s.exists||s.data()?.orgId!==x.orgId||s.data()?.linkId!==x.link.id)throw new ApiError(404,'Saved application draft not found.','draft_not_found');const e=s.data()?.expiresAt?.toDate?.();if(e&&e.getTime()<=Date.now())throw new ApiError(410,'Saved application draft has expired.','draft_expired');return{data:s.data()?.data}}
 export async function submitPublicCandidateApplication(token:string,form:FormData){
  const x=await resolve(token);let raw:any;try{raw=JSON.parse(String(form.get('application')||''))}catch{throw new ApiError(400,'Application information could not be read.','invalid_application_payload')}const i=submission.parse(raw);answers(x.link,i.screeningAnswers);
- const rf=form.get('resume');if(!(rf instanceof File)||rf.size<=0)throw new ApiError(400,'Resume file is required.','resume_required');const a=actor(x.orgId,x.link.id),parsed=await parseResumeFile(a,rf),rd=await extractRecruitingDocumentFile(rf);if(parsed.sourceMeta.sha256!==rd.sourceMeta.sha256)throw new ApiError(409,'Resume changed during processing.','resume_changed_during_processing');
+ const rf=form.get('resume');if(!(rf instanceof File)||rf.size<=0)throw new ApiError(400,'Resume file is required.','resume_required');
+ const a=actor(x.orgId,x.link.id),parsed=await parseResumeFile(a,rf),rd=await extractRecruitingDocumentFile(rf);if(parsed.sourceMeta.sha256!==rd.sourceMeta.sha256)throw new ApiError(409,'Resume changed during processing.','resume_changed_during_processing');
  const cf=form.get('coverLetter'),coverText=String(i.coverLetterText||'').trim(),cd=cf instanceof File&&cf.size>0?await extractRecruitingDocumentFile(cf):null;if(x.link.coverLetterRequired&&!cd&&!coverText)throw new ApiError(400,'A cover letter is required.','cover_letter_required');
  const linkedinUrl=url(i.linkedinUrl),portfolioUrl=url(i.portfolioUrl),githubUrl=url(i.githubUrl),socialMediaUrl=url(i.socialMediaUrl),professionalLinks=[linkedinUrl&&{type:'linkedin',url:linkedinUrl},portfolioUrl&&{type:'portfolio',url:portfolioUrl},githubUrl&&{type:'github',url:githubUrl},socialMediaUrl&&{type:'social',url:socialMediaUrl}].filter(Boolean) as {type:string;url:string}[];
- const submissionId=randomUUID(),resumeDocumentId=randomUUID(),coverDocumentId=cd||coverText?randomUUID():undefined,t=now(),resumePath=`candidate-applications/${x.orgId}/${x.req.id}/${submissionId}/${resumeDocumentId}_${safeName(rd.sourceMeta.fileName)}`;
+ const submissionId=randomUUID(),resumeDocumentId=randomUUID(),coverDocumentId=cd||coverText?randomUUID():undefined,newCandidateId=randomUUID(),newApplicationId=randomUUID(),t=now(),resumePath=`candidate-applications/${x.orgId}/${x.req.id}/${submissionId}/${resumeDocumentId}_${safeName(rd.sourceMeta.fileName)}`;
  let coverBytes:Buffer|undefined,coverType:string|undefined,coverName:string|undefined,coverSha:string|undefined,coverPath:string|undefined,coverExtract=coverText;
  if(cd){coverBytes=cd.bytes;coverType=cd.sourceMeta.contentType;coverName=cd.sourceMeta.fileName;coverSha=cd.sourceMeta.sha256;if(!coverExtract)coverExtract=cd.text.trim().slice(0,100000)}else if(coverText){coverBytes=Buffer.from(coverText);coverType='text/plain';coverName='Cover_Letter.txt';coverSha=sha(coverBytes)}
  if(coverDocumentId&&coverBytes&&coverName)coverPath=`candidate-applications/${x.orgId}/${x.req.id}/${submissionId}/${coverDocumentId}_${safeName(coverName)}`;
  const saved:string[]=[];
  try{
-  await save(resumePath,rd.bytes,rd.sourceMeta.contentType);saved.push(resumePath);if(coverPath&&coverBytes&&coverType){await save(coverPath,coverBytes,coverType);saved.push(coverPath)}
-  const db=adminDb(),email=i.email.trim().toLowerCase(),emailKey=encodeURIComponent(email);let result!:any;
+  await save(resumePath,rd.bytes,rd.sourceMeta.contentType);saved.push(resumePath);
+  if(coverPath&&coverBytes&&coverType){await save(coverPath,coverBytes,coverType);saved.push(coverPath)}
+  const db=adminDb(),email=i.email.trim().toLowerCase(),emailKey=encodeURIComponent(email);
+  let result!:{applicationId:string;candidateId:string;deduplicated:boolean;submissionVersion:number};
+
   await db.runTransaction(async tx=>{
-   const eiRef=db.doc(`organizations/${x.orgId}/candidateEmailIndex/${emailKey}`),ei=await tx.get(eiRef);let candidateId=String(ei.data()?.candidateId||''),candidateRef:DocumentReference,{sourceText,...profile}=parsed.profile;
-   const data={firstName:i.firstName,lastName:i.lastName,displayName:`${i.firstName} ${i.lastName}`.trim(),email:i.email,emailLower:email,phone:i.phone,location:i.location,source:'Candidate application portal',linkedinUrl,portfolioUrl,githubUrl,socialMediaUrl,professionalLinks,headline:i.headline||parsed.profile.headline,summary:i.summary||parsed.profile.summary,skills:i.skills.length?i.skills:parsed.profile.skills,certifications:i.certifications.length?i.certifications:parsed.profile.certifications,education:i.education.length?i.education:parsed.profile.education,yearsOfExperience:i.yearsOfExperience??parsed.profile.yearsOfExperience,resumeText:sourceText,resumeProfile:profile,resumeSourceMeta:{...parsed.sourceMeta,storagePath:resumePath},consentAt:t,talentPoolConsentAt:i.talentPoolConsent?t:undefined,updatedAt:t};
-   if(candidateId){candidateRef=db.doc(`organizations/${x.orgId}/candidates/${candidateId}`);const e=await tx.get(candidateRef);if(!e.exists)throw new ApiError(409,'Candidate email index is inconsistent.','candidate_index_inconsistent');tx.set(candidateRef,{...e.data(),...data,talentPoolConsentAt:i.talentPoolConsent?t:e.data()?.talentPoolConsentAt},{merge:true})}
-   else{candidateId=randomUUID();candidateRef=db.doc(`organizations/${x.orgId}/candidates/${candidateId}`);tx.create(candidateRef,{id:candidateId,...data,createdAt:t});tx.create(eiRef,{candidateId,email,createdAt:t})}
-   const aiRef=db.doc(`organizations/${x.orgId}/candidateApplicationIndex/${encodeURIComponent(`${candidateId}_${x.req.id}`)}`),ai=await tx.get(aiRef);let applicationId:string,version:number,deduplicated=false,appRef:DocumentReference;
-   if(ai.exists){applicationId=String(ai.data()?.applicationId||'');appRef=db.doc(`organizations/${x.orgId}/applications/${applicationId}`);const e=await tx.get(appRef);if(!e.exists)throw new ApiError(409,'Candidate application index is inconsistent.','candidate_application_index_inconsistent');const c=e.data() as Application;version=Number(c.submissionVersion||0)+1;deduplicated=true;tx.set(appRef,{applicationLinkId:x.link.id,source:'Candidate application portal',screeningAnswers:i.screeningAnswers,candidateStatement:i.candidateStatement,professionalLinks,submissionVersion:version,resumeVersion:Number(c.resumeVersion||0)+1,coverLetterVersion:coverDocumentId?Number(c.coverLetterVersion||0)+1:Number(c.coverLetterVersion||0),talentPoolConsent:i.talentPoolConsent,atsAnalysisStatus:'pending',atsAnalysisMessage:null,updatedAt:t},{merge:true})}
-   else{applicationId=randomUUID();version=1;appRef=db.doc(`organizations/${x.orgId}/applications/${applicationId}`);tx.create(appRef,{id:applicationId,requisitionId:x.req.id,candidateId,stage:'applied',source:'Candidate application portal',applicationLinkId:x.link.id,screeningAnswers:i.screeningAnswers,candidateStatement:i.candidateStatement,professionalLinks,submissionVersion:1,resumeVersion:1,coverLetterVersion:coverDocumentId?1:0,talentPoolConsent:i.talentPoolConsent,atsAnalysisStatus:'pending',appliedAt:t,consentAt:t,updatedAt:t});tx.create(aiRef,{applicationId,candidateId,requisitionId:x.req.id,createdAt:t})}
-   const resumeDoc:CandidateApplicationDocument={id:resumeDocumentId,applicationId,candidateId,requisitionId:x.req.id,submissionId,type:'resume',version,fileName:rd.sourceMeta.fileName,contentType:rd.sourceMeta.contentType,size:rd.sourceMeta.size,sha256:rd.sourceMeta.sha256,storagePath:resumePath,createdAt:t};tx.create(db.doc(`organizations/${x.orgId}/candidateApplicationDocuments/${resumeDocumentId}`),resumeDoc);
+   // Firestore transactions require all reads before any writes.
+   const eiRef=db.doc(`organizations/${x.orgId}/candidateEmailIndex/${emailKey}`),ei=await tx.get(eiRef);
+   let candidateId=String(ei.data()?.candidateId||'').trim(),candidateRef:DocumentReference,existingCandidate:Candidate|undefined;
+   if(candidateId){
+    candidateRef=db.doc(`organizations/${x.orgId}/candidates/${candidateId}`);
+    const candidateSnap=await tx.get(candidateRef);
+    if(!candidateSnap.exists)throw new ApiError(409,'Candidate email index is inconsistent.','candidate_index_inconsistent');
+    existingCandidate=candidateSnap.data() as Candidate;
+   }else{
+    candidateId=newCandidateId;
+    candidateRef=db.doc(`organizations/${x.orgId}/candidates/${candidateId}`);
+   }
+
+   const aiRef=db.doc(`organizations/${x.orgId}/candidateApplicationIndex/${encodeURIComponent(`${candidateId}_${x.req.id}`)}`),ai=await tx.get(aiRef);
+   let applicationId:string,version:number,deduplicated=false,appRef:DocumentReference,existingApplication:Application|undefined;
+   if(ai.exists){
+    applicationId=String(ai.data()?.applicationId||'').trim();
+    if(!applicationId)throw new ApiError(409,'Candidate application index is inconsistent.','candidate_application_index_inconsistent');
+    appRef=db.doc(`organizations/${x.orgId}/applications/${applicationId}`);
+    const appSnap=await tx.get(appRef);
+    if(!appSnap.exists)throw new ApiError(409,'Candidate application index is inconsistent.','candidate_application_index_inconsistent');
+    existingApplication=appSnap.data() as Application;
+    version=Number(existingApplication.submissionVersion||0)+1;
+    deduplicated=true;
+   }else{
+    applicationId=newApplicationId;
+    version=1;
+    appRef=db.doc(`organizations/${x.orgId}/applications/${applicationId}`);
+   }
+
+   // ALL TRANSACTION READS COMPLETE. Writes begin here.
+   const {sourceText,...profile}=parsed.profile;
+   const candidateData={firstName:i.firstName,lastName:i.lastName,displayName:`${i.firstName} ${i.lastName}`.trim(),email:i.email,emailLower:email,phone:i.phone,location:i.location,source:'Candidate application portal',linkedinUrl,portfolioUrl,githubUrl,socialMediaUrl,professionalLinks,headline:i.headline||parsed.profile.headline,summary:i.summary||parsed.profile.summary,skills:i.skills.length?i.skills:parsed.profile.skills,certifications:i.certifications.length?i.certifications:parsed.profile.certifications,education:i.education.length?i.education:parsed.profile.education,yearsOfExperience:i.yearsOfExperience??parsed.profile.yearsOfExperience,resumeText:sourceText,resumeProfile:profile,resumeSourceMeta:{...parsed.sourceMeta,storagePath:resumePath},consentAt:t,talentPoolConsentAt:i.talentPoolConsent?t:existingCandidate?.talentPoolConsentAt,updatedAt:t};
+   if(existingCandidate)tx.set(candidateRef,{...existingCandidate,...candidateData},{merge:true});else{tx.create(candidateRef,{id:candidateId,...candidateData,createdAt:t});tx.create(eiRef,{candidateId,email,createdAt:t})}
+
+   if(existingApplication)tx.set(appRef,{applicationLinkId:x.link.id,source:'Candidate application portal',screeningAnswers:i.screeningAnswers,candidateStatement:i.candidateStatement,professionalLinks,submissionVersion:version,resumeVersion:Number(existingApplication.resumeVersion||0)+1,coverLetterVersion:coverDocumentId?Number(existingApplication.coverLetterVersion||0)+1:Number(existingApplication.coverLetterVersion||0),talentPoolConsent:i.talentPoolConsent,atsAnalysisStatus:'pending',atsAnalysisMessage:null,updatedAt:t},{merge:true});
+   else{tx.create(appRef,{id:applicationId,requisitionId:x.req.id,candidateId,stage:'applied',source:'Candidate application portal',applicationLinkId:x.link.id,screeningAnswers:i.screeningAnswers,candidateStatement:i.candidateStatement,professionalLinks,submissionVersion:1,resumeVersion:1,coverLetterVersion:coverDocumentId?1:0,talentPoolConsent:i.talentPoolConsent,atsAnalysisStatus:'pending',appliedAt:t,consentAt:t,updatedAt:t});tx.create(aiRef,{applicationId,candidateId,requisitionId:x.req.id,createdAt:t})}
+
+   const resumeDoc:CandidateApplicationDocument={id:resumeDocumentId,applicationId,candidateId,requisitionId:x.req.id,submissionId,type:'resume',version,fileName:rd.sourceMeta.fileName,contentType:rd.sourceMeta.contentType,size:rd.sourceMeta.size,sha256:rd.sourceMeta.sha256,storagePath:resumePath,createdAt:t};
+   tx.create(db.doc(`organizations/${x.orgId}/candidateApplicationDocuments/${resumeDocumentId}`),resumeDoc);
    if(coverDocumentId&&coverPath&&coverBytes&&coverType&&coverName&&coverSha){const d:CandidateApplicationDocument={id:coverDocumentId,applicationId,candidateId,requisitionId:x.req.id,submissionId,type:'cover_letter',version,fileName:safeName(coverName),contentType:coverType,size:coverBytes.length,sha256:coverSha,storagePath:coverPath,text:coverExtract||undefined,createdAt:t};tx.create(db.doc(`organizations/${x.orgId}/candidateApplicationDocuments/${coverDocumentId}`),d)}
    tx.create(db.doc(`organizations/${x.orgId}/candidateApplicationSubmissions/${submissionId}`),{id:submissionId,applicationId,candidateId,requisitionId:x.req.id,applicationLinkId:x.link.id,submissionVersion:version,resumeDocumentId,coverLetterDocumentId:coverDocumentId,screeningAnswers:i.screeningAnswers,professionalLinks,candidateStatement:i.candidateStatement,consentAt:t,accuracyConfirmedAt:t,talentPoolConsent:i.talentPoolConsent,createdAt:t});
    const audit=buildAudit(a,{action:'recruiting.public_application.submit',entityType:'application',entityId:applicationId,after:{applicationId,candidateId,requisitionId:x.req.id,applicationLinkId:x.link.id,submissionVersion:version,resumeDocumentId,coverLetterDocumentId:coverDocumentId,humanReviewRequired:true}}),event=deduplicated?null:buildDomainEvent(a,'application.created','application',applicationId,{candidateId,requisitionId:x.req.id,applicationLinkId:x.link.id,submissionVersion:version,source:'candidate_portal'});
-   tx.create(db.doc(`organizations/${x.orgId}/auditLogs/${audit.id}`),audit);if(event)tx.create(db.doc(`organizations/${x.orgId}/domainEvents/${event.id}`),event);tx.set(db.doc(`organizations/${x.orgId}/candidateApplicationLinks/${x.link.id}`),{applicationsCount:deduplicated?Number(x.link.applicationsCount||0):FieldValue.increment(1),lastApplicationAt:t,updatedAt:t},{merge:true});result={applicationId,candidateId,deduplicated,submissionVersion:version};
+   tx.create(db.doc(`organizations/${x.orgId}/auditLogs/${audit.id}`),audit);if(event)tx.create(db.doc(`organizations/${x.orgId}/domainEvents/${event.id}`),event);
+   tx.set(db.doc(`organizations/${x.orgId}/candidateApplicationLinks/${x.link.id}`),deduplicated?{lastApplicationAt:t,updatedAt:t}:{applicationsCount:FieldValue.increment(1),lastApplicationAt:t,updatedAt:t},{merge:true});
+   result={applicationId,candidateId,deduplicated,submissionVersion:version};
   });
+
   let fitGenerated=false;try{fitGenerated=Boolean(await autoScoreStoredApplication(a,result.applicationId,'candidate_portal_submission'))}catch(e){await recordAtsAnalysisFailure(a,result.applicationId,e).catch(()=>undefined)}
   return{...result,submissionId,fitGenerated,atsStatus:fitGenerated?'ready':'failed',candidateMessage:'Application submitted successfully. Job-fit analysis is internal decision support and is not shown to candidates.'};
- }catch(e){await Promise.all(saved.map(p=>adminBucket().file(p).delete({ignoreNotFound:true}).catch(()=>undefined)));throw e}
+ }catch(e){
+  await Promise.all(saved.map(p=>adminBucket().file(p).delete({ignoreNotFound:true}).catch(()=>undefined)));
+  if(e instanceof ApiError)throw e;
+  throw new ApiError(503,'We could not complete your application. No submission was recorded. Please try again.','candidate_submission_failed');
+ }
 }

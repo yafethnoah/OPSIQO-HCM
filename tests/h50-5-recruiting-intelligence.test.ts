@@ -21,5 +21,34 @@ Example Organization
 January 2020 - Present
 EDUCATION
 Bachelor of Science`,'Shadi_Alktaifan_CHRE_Professional_HR_Resume.docx');expect(r.firstName).toBe('SHADI');expect(r.lastName).toBe('ALKTAIFAN');expect(r.location).toBe('Mississauga, Ontario');expect(r.location).not.toContain('CHRE');expect(r.headline).toBe('Senior HR Executive');expect(r.certifications).toContain('CHRE')});
+ it('orders all public-application Firestore reads before transaction writes',()=>{
+  const p=read('src/lib/recruiting/candidate-portal-service.ts');
+  const submitStart=p.indexOf('export async function submitPublicCandidateApplication');
+  const txStart=p.indexOf('await db.runTransaction(async tx=>{',submitStart);
+  const readsComplete=p.indexOf('// ALL TRANSACTION READS COMPLETE. Writes begin here.',txStart);
+  const fitStart=p.indexOf('let fitGenerated=false',readsComplete);
+  expect(submitStart).toBeGreaterThanOrEqual(0);
+  expect(txStart).toBeGreaterThan(submitStart);
+  expect(readsComplete).toBeGreaterThan(txStart);
+  expect(fitStart).toBeGreaterThan(readsComplete);
+  const readPhase=p.slice(txStart,readsComplete);
+  const writePhase=p.slice(readsComplete,fitStart);
+  expect(readPhase).toContain('await tx.get(eiRef)');
+  expect(readPhase).toContain('await tx.get(candidateRef)');
+  expect(readPhase).toContain('await tx.get(aiRef)');
+  expect(readPhase).toContain('await tx.get(appRef)');
+  expect(readPhase).not.toMatch(/\btx\.(?:create|set|update|delete)\(/);
+  expect(writePhase).toMatch(/\btx\.(?:create|set)\(/);
+ });
+ it('reuses active candidate links and provides explicit duplicate-link reconciliation',()=>{const svc=read('src/lib/recruiting/candidate-portal-service.ts'),route=read('src/app/api/organizations/[orgId]/recruiting/application-links/route.ts'),ui=read('src/components/candidate-application-links-panel.tsx');expect(svc).toContain('reused:true');expect(svc).toContain('reconcileCandidateApplicationLinks');expect(route).toContain('export async function PUT');expect(ui).toContain('Reconcile duplicate links');});
+ it('uses resume-stated experience when it exceeds incomplete dated tenure and has education fallback',()=>{const r=parseResumeTextDeterministic(`SHADI ALKTAIFAN, CHRE
+HUMAN RESOURCES BUSINESS PARTNER
+PROFESSIONAL SUMMARY
+Certified HR executive with 16+ years of leadership experience.
+EXPERIENCE
+HR Director
+January 2018 - Present
+EDUCATION
+Bachelor of Pharmacy`,'Shadi_Alktaifan_CHRE_Professional_HR_Resume.docx');expect(r.yearsOfExperience).toBeGreaterThanOrEqual(16);expect(r.education.join(' ')).toMatch(/Bachelor of Pharmacy/i);});
  it('preserves protected-trait and human-decision guardrails',()=>{expect(read('src/lib/recruiting/candidate-portal-service.ts')).toContain('unsafe_screening_question');expect(read('src/components/candidate-fit-board.tsx')).toContain('does not auto-reject, auto-hire or auto-advance');expect(read('src/lib/recruiting/ats-engine.ts')).toContain('PROTECTED')});
 });
