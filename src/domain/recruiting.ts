@@ -26,6 +26,23 @@ export interface Requisition {
   updatedAt: string;
 }
 
+export interface CandidateReviewedResume {
+  summary?: string;
+  professionalExperience?: string;
+  skills?: string[];
+  certifications?: string[];
+  education?: string[];
+  languages?: string;
+  projects?: string;
+  volunteerExperience?: string;
+  awards?: string;
+  publications?: string;
+  additionalInformation?: string;
+  customSections?: Array<{ title: string; content: string }>;
+  reviewedAt?: string;
+  editorVersion?: string;
+}
+
 export interface Candidate {
   id: string;
   firstName: string;
@@ -47,6 +64,7 @@ export interface Candidate {
   certifications?: string[];
   education?: string[];
   yearsOfExperience?: number;
+  candidateReviewedResume?: CandidateReviewedResume;
   resumeText?: string;
   resumeProfile?: Record<string, unknown>;
   resumeSourceMeta?: {
