@@ -1,0 +1,2 @@
+import {NextResponse} from 'next/server';import {actorFromRequest,requirePermission} from '@/lib/auth/session';import {apiErrorResponse} from '@/lib/http/errors';import {reconcileCandidateFit} from '@/lib/recruiting/candidate-fit-service';
+export async function POST(r:Request,c:{params:Promise<{orgId:string}>}){try{const{orgId}=await c.params,a=await actorFromRequest(r,orgId);requirePermission(a,'recruiting.manage');return NextResponse.json({data:await reconcileCandidateFit(a,await r.json())})}catch(e){return apiErrorResponse(e)}}

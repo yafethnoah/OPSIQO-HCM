@@ -1,0 +1,5 @@
+export type ScreeningQuestionType='yes_no'|'text'|'number'|'select';
+export interface RecruitingScreeningQuestion{id:string;label:string;type:ScreeningQuestionType;required:boolean;options?:string[]}
+export interface CandidateApplicationLink{id:string;requisitionId:string;publicToken:string;tokenHash:string;status:'active'|'paused'|'closed';coverLetterRequired:boolean;allowTalentPoolConsent:boolean;screeningQuestions:RecruitingScreeningQuestion[];closingAt?:string;createdBy:string;createdAt:string;updatedAt:string;applicationsCount?:number;lastApplicationAt?:string}
+export interface CandidateApplicationDocument{id:string;applicationId:string;candidateId:string;requisitionId:string;submissionId:string;type:'resume'|'cover_letter';version:number;fileName:string;contentType:string;size:number;sha256:string;storagePath:string;text?:string;createdAt:string}
+export interface CandidateFitSummary{reviewId:string;overallFit:number;requirementsCoverage:number;evidenceConfidence:number;assessmentCoverage:number;gapCount:number;band:string;scoringVersion:string;humanReviewRequired:true;reviewedAt:string}

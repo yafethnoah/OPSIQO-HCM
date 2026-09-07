@@ -152,7 +152,7 @@ async function bundle(actor: ActorContext, applicationId: string) {
   };
 }
 
-async function parseResume(actor: ActorContext, file: File) {
+export async function parseResumeFile(actor: ActorContext, file: File) {
   const bytes = Buffer.from(await file.arrayBuffer());
   validateResumeFile(file, bytes);
   const text = textFromResume(file.name, bytes);
@@ -215,6 +215,19 @@ async function parseResume(actor: ActorContext, file: File) {
   return { profile, sourceMeta, ai };
 }
 
+export async function extractRecruitingDocumentFile(file: File) {
+  const bytes = Buffer.from(await file.arrayBuffer());
+  validateResumeFile(file, bytes);
+  const text = textFromResume(file.name, bytes);
+  const sourceMeta: ResumeSourceMeta = {
+    fileName: file.name.replace(/[^A-Za-z0-9._ -]/g, "_").slice(-180),
+    contentType: mimeFor(file),
+    size: file.size,
+    sha256: sha(bytes),
+  };
+  return { bytes, text, sourceMeta };
+}
+
 export async function parseResumeIntake(actor: ActorContext, form: FormData) {
   if (!(
     actor.permissions.includes("recruiting.manage" as any) ||
@@ -238,7 +251,7 @@ export async function parseResumeIntake(actor: ActorContext, form: FormData) {
         "requisition_not_open",
       );
   }
-  const parsed = await parseResume(actor, file);
+  const parsed = await parseResumeFile(actor, file);
   const { sourceText, ...profile } = parsed.profile;
   return {
     profile,
@@ -341,7 +354,7 @@ export async function reviewApplicationResume(
   let sourceMeta: ResumeSourceMeta | undefined;
   const file = form.get("file");
   if (file instanceof File && file.size > 0) {
-    const parsed = await parseResume(actor, file);
+    const parsed = await parseResumeFile(actor, file);
     profile = parsed.profile;
     sourceMeta = parsed.sourceMeta;
   } else if (candidate.resumeText?.trim())

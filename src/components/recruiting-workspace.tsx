@@ -7,6 +7,9 @@ import { AtsRecruitingPanel } from "@/components/ats-recruiting-panel";
 import { JobDescriptionAssistant } from "@/components/job-description-assistant";
 import { InterviewIntelligencePanel } from "@/components/interview-intelligence-panel";
 import { RecruitingReadinessPanel } from "@/components/recruiting-readiness-panel";
+import { CandidateApplicationLinksPanel } from "@/components/candidate-application-links-panel";
+import { CandidateFitBoard } from "@/components/candidate-fit-board";
+import { CandidateSubmissionDocumentsPanel } from "@/components/candidate-submission-documents-panel";
 
 type Req = {
   id: string;
@@ -31,11 +34,22 @@ type App = {
     email: string;
     phone?: string;
     source?: string;
+    linkedinUrl?: string;
+    portfolioUrl?: string;
+    githubUrl?: string;
+    socialMediaUrl?: string;
+    professionalLinks?: Array<{ type: string; url: string }>;
   };
   requisition?: Req;
   hiredWorkerId?: string;
   atsLatestScore?: number;
   atsLatestBand?: string;
+  atsLatestRequirementsCoverage?: number;
+  atsLatestEvidenceConfidence?: number;
+  atsLatestAssessmentCoverage?: number;
+  atsLatestGapCount?: number;
+  atsAnalysisStatus?: string;
+  atsReviewedAt?: string;
 };
 type Position = {
   id: string;
@@ -722,6 +736,22 @@ export function RecruitingWorkspace() {
           </tbody>
         </table>
       </section>
+      {can("recruiting.read") && (
+        <CandidateApplicationLinksPanel
+          requisitions={reqs}
+          canManage={can("recruiting.manage") || can("recruiting.manage.team")}
+        />
+      )}
+      {can("recruiting.read") && (
+        <CandidateFitBoard
+          applications={apps}
+          canManage={can("recruiting.manage") || can("recruiting.manage.team")}
+          onRefresh={load}
+        />
+      )}
+      {can("recruiting.read") && (
+        <CandidateSubmissionDocumentsPanel applications={apps} />
+      )}
       {can("recruiting.read") && (
         <AtsRecruitingPanel
           applications={apps}

@@ -14,6 +14,7 @@ import {
 import { buildDeterministicInterviewKit } from './interview-kit';
 import { governedInterviewQuestionEnhancement } from './interview-ai';
 import { getRecruitingAiReadiness } from './ai-readiness';
+import { autoScoreStoredApplication, recordAtsAnalysisFailure } from './candidate-fit-service';
 
 const now = () => new Date().toISOString();
 const hrRoles = new Set(['super_admin', 'org_admin', 'hr_admin', 'hr_partner']);
@@ -164,7 +165,18 @@ export async function createCandidateApplication(actor: ActorContext, raw: unkno
     const audit = buildAudit(actor, { action: 'application.create', entityType: 'application', entityId: applicationId, after: application, metadata: { candidateId: resolvedCandidateId, requisitionId: req.id } });
     const event = buildDomainEvent(actor, 'application.created', 'application', applicationId, { candidateId: resolvedCandidateId, requisitionId: req.id });
     tx.create(db.doc(`organizations/${actor.orgId}/applications/${applicationId}`), application); tx.create(appIndexRef, { applicationId, candidateId: resolvedCandidateId, requisitionId: req.id, createdAt: timestamp }); tx.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`), audit); tx.create(db.doc(`organizations/${actor.orgId}/domainEvents/${event.id}`), event); result = { candidate, application, deduplicated: false };
-  }); return result;
+  });
+  const applicationId = String(result?.application?.id || '');
+  const hasResume = Boolean(result?.candidate?.resumeText?.trim());
+  if (applicationId && hasResume) {
+    try {
+      result.fit = await autoScoreStoredApplication(actor, applicationId, 'recruiter_intake');
+    } catch (error) {
+      await recordAtsAnalysisFailure(actor, applicationId, error).catch(() => undefined);
+      result.fit = null;
+    }
+  }
+  return result;
 }
 
 export async function updateApplicationStage(actor: ActorContext, applicationId: string, raw: unknown) {
