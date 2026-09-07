@@ -161,6 +161,15 @@ export async function getAdminMaintenanceSnapshot(actor: ActorContext) {
       protected: ['organization root', 'memberships/access', 'auditLogs', 'security configuration', 'release/certification evidence'],
       note: 'Tenant reset is allowlisted and disabled unless OPSIQO_ALLOW_UAT_TENANT_RESET=true. It never removes the organization root, membership/access, audit logs or security evidence.',
     },
+    backup: {
+      allowed: ['super_admin', 'org_admin'].includes(actor.role) && actor.permissions.includes('platform.manage'),
+      confirmationText: `BACKUP ${String(orgSnap.data()?.name || actor.orgId).toUpperCase()}`,
+      format: 'OPSIQO_ORG_BACKUP_JSONL_GZIP_V1',
+      firestoreScope: `organizations/${actor.orgId} and all descendants`,
+      storageScope: `organizations/${actor.orgId}/`,
+      credentialLikeFirestoreFieldsRedacted: true,
+      note: 'Exports organization-scoped Firestore data and organization-owned Cloud Storage objects. Platform credentials and secret environment values are never exported.',
+    },
     protectedEvidence,
     editorLinks: [
       { label: 'Organization profile & setup', href: '/organization-launchpad', permission: 'organization.manage' },

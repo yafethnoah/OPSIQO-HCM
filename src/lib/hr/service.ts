@@ -510,8 +510,77 @@ const duplicateReferenceCollections = [
   'onboardingCases',
 ] as const;
 
+const MISTAKEN_EMPLOYEE_DELETE_ROLES = new Set(['super_admin', 'org_admin', 'hr_admin']);
+
+export async function getEmployeeDeletionPreflight(actor: ActorContext, workerId: string) {
+  if (!MISTAKEN_EMPLOYEE_DELETE_ROLES.has(actor.role) || !actor.permissions.includes('people.manage')) {
+    throw new ApiError(403, 'Administrator people.manage permission is required to purge a mistaken employee record.', 'mistaken_delete_admin_required');
+  }
+
+  const db = adminDb();
+  const workerRef = db.doc(`organizations/${actor.orgId}/workers/${workerId}`);
+  const workerSnap = await workerRef.get();
+  if (!workerSnap.exists) throw new ApiError(404, 'Employee not found.', 'employee_not_found');
+  const worker = workerSnap.data() as Worker;
+
+  const [membershipSnap, invitationSnap, managedAssignmentsSnap, samePersonWorkersSnap, employmentsSnap, assignmentsSnap, changesSnap, plansSnap] = await Promise.all([
+    db.collection(`organizations/${actor.orgId}/memberships`).where('workerId', '==', workerId).limit(1).get(),
+    db.collection(`organizations/${actor.orgId}/invitations`).where('workerId', '==', workerId).limit(5).get(),
+    db.collection(`organizations/${actor.orgId}/assignments`).where('managerWorkerId', '==', workerId).limit(1).get(),
+    db.collection(`organizations/${actor.orgId}/workers`).where('personId', '==', worker.personId).limit(2).get(),
+    db.collection(`organizations/${actor.orgId}/employments`).where('workerId', '==', workerId).get(),
+    db.collection(`organizations/${actor.orgId}/assignments`).where('workerId', '==', workerId).get(),
+    db.collection(`organizations/${actor.orgId}/employeeChanges`).where('workerId', '==', workerId).get(),
+    db.collection(`organizations/${actor.orgId}/secondaryAssignmentPlans`).where('workerId', '==', workerId).get(),
+  ]);
+
+  const blockers: string[] = [];
+  if (!membershipSnap.empty) blockers.push('Active platform membership must be reconciled first.');
+  if (invitationSnap.docs.some(doc => ['pending', 'accepted'].includes(String(doc.data()?.status || '')))) blockers.push('Pending or accepted invitation must be revoked/reconciled first.');
+  if (!managedAssignmentsSnap.empty) blockers.push('Direct reports must be reassigned first.');
+
+  const downstream: Array<{ collection: string; count: number }> = [];
+  for (const collectionName of duplicateReferenceCollections) {
+    const snap = await db.collection(`organizations/${actor.orgId}/${collectionName}`).where('workerId', '==', workerId).limit(2).get();
+    if (!snap.empty) {
+      downstream.push({ collection: collectionName, count: snap.size });
+      blockers.push(`Downstream ${collectionName} evidence exists and must be retained/reconciled.`);
+    }
+  }
+
+  return {
+    workerId,
+    displayName: worker.displayName,
+    employeeNumber: worker.employeeNumber,
+    eligible: blockers.length === 0,
+    blockers,
+    downstream,
+    willDelete: {
+      worker: 1,
+      person: samePersonWorkersSnap.size <= 1 ? 1 : 0,
+      employments: employmentsSnap.size,
+      assignments: assignmentsSnap.size,
+      employeeChanges: changesSnap.size,
+      secondaryAssignmentPlans: plansSnap.size,
+      indexes: 2 + (worker.workEmail ? 1 : 0),
+    },
+    retained: {
+      deletionTombstone: true,
+      auditEvidence: true,
+    },
+    rule: 'Only a genuinely mistaken/duplicate record with no protected downstream evidence can be purged. A valid former employee must be separated/terminated, not deleted.',
+  };
+}
+
 export async function deleteDuplicateEmployee(actor: ActorContext, workerId: string, raw: unknown) {
   const input = employeeDuplicateDeleteSchema.parse(raw);
+  const deletionPurpose = input.purpose;
+  if (deletionPurpose === 'mistaken_record') {
+    const preflight = await getEmployeeDeletionPreflight(actor, workerId);
+    if (!preflight.eligible) {
+      throw new ApiError(409, `Mistaken employee record cannot be purged: ${preflight.blockers.join(' ')}`, 'mistaken_delete_blocked');
+    }
+  }
   const db = adminDb();
   const workerRef = db.doc(`organizations/${actor.orgId}/workers/${workerId}`);
   const workerSnap = await workerRef.get();
@@ -621,7 +690,7 @@ export async function deleteDuplicateEmployee(actor: ActorContext, workerId: str
       secondaryPlanCount: plansSnap.size,
     },
     after: { deleted: true, tombstoneRetained: true },
-    metadata: { reason: input.reason, employeeNumber: worker.employeeNumber },
+    metadata: { reason: input.reason, employeeNumber: worker.employeeNumber, purpose: deletionPurpose },
   });
 
   const batch = db.batch();
@@ -709,7 +778,7 @@ export async function deleteDuplicateEmployee(actor: ActorContext, workerId: str
       reason: input.reason,
       deletedBy: actor.uid,
       deletedAt: timestamp,
-      source: 'duplicate_cleanup',
+      source: deletionPurpose === 'mistaken_record' ? 'mistaken_record_purge' : 'duplicate_cleanup',
     },
   );
   batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`), audit);

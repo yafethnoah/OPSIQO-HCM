@@ -147,12 +147,28 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
   return payload as T;
 }
 
-export async function apiDownload(path: string): Promise<{ blob: Blob; fileName?: string }> {
-  const headers = new Headers();
-  await applyIdentityHeaders(headers);
-  headers.set('x-org-id', activeOrgId());
+export async function apiDownload(path: string, init: ApiFetchInit = {}): Promise<{ blob: Blob; fileName?: string }> {
+  const { orgContext = 'required', ...requestInit } = init;
+  const headers = new Headers(requestInit.headers);
 
-  const response = await fetchWithReliability(path, { headers, cache: 'no-store', maxReadAttempts:3 });
+  if (requestInit.body != null && !(requestInit.body instanceof FormData) && !headers.has('content-type')) {
+    headers.set('content-type', 'application/json');
+  }
+
+  await applyIdentityHeaders(headers);
+  if (orgContext === 'required') headers.set('x-org-id', activeOrgId());
+  else headers.delete('x-org-id');
+
+  const method = String(requestInit.method || 'GET').toUpperCase();
+  const safeRead = ['GET', 'HEAD', 'OPTIONS'].includes(method);
+  const response = await fetchWithReliability(path, {
+    ...requestInit,
+    headers,
+    cache: 'no-store',
+    maxReadAttempts: safeRead ? 3 : 1,
+    executionState: safeRead ? undefined : 'not_started',
+  });
+
   if (!response.ok) {
     const contentType = response.headers.get('content-type') || '';
     const payload = contentType.includes('application/json')

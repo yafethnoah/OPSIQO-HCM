@@ -63,6 +63,7 @@ export function PeopleTable() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [canManage, setCanManage] = useState(false);
+  const [canDeleteMistaken, setCanDeleteMistaken] = useState(false);
   const [editing, setEditing] = useState<EmployeeDetail | null>(null);
   const [editingBusy, setEditingBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState('');
@@ -82,7 +83,7 @@ export function PeopleTable() {
         ),
         apiFetch<{ data: Unit[] }>(`/api/organizations/${org}/org-units`),
         apiFetch<{ data: Position[] }>(`/api/organizations/${org}/positions`),
-        apiFetch<{ actor: { permissions: string[] } }>('/api/me'),
+        apiFetch<{ actor: { permissions: string[]; role: string } }>('/api/me'),
       ]);
 
       setData((current) => (append ? [...current, ...w.data] : w.data));
@@ -90,6 +91,7 @@ export function PeopleTable() {
       setUnits(u.data);
       setPositions(p.data);
       setCanManage(me.actor.permissions.includes('people.manage'));
+      setCanDeleteMistaken(me.actor.permissions.includes('people.manage') && ['super_admin', 'org_admin', 'hr_admin'].includes(me.actor.role));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to load people.');
     } finally {
@@ -276,6 +278,7 @@ export function PeopleTable() {
         body: JSON.stringify({
           reason: reason.trim(),
           confirmationEmployeeNumber: confirmation,
+          purpose: 'duplicate_cleanup',
         }),
       });
       setMessage(
@@ -289,7 +292,59 @@ export function PeopleTable() {
       setDeleteBusy('');
     }
   }
+  async function deleteMistaken(worker: Worker) {
+    setError('');
+    setMessage('');
+    setDeleteBusy(worker.id);
 
+    try {
+      const preflight = await apiFetch<{ data: { eligible: boolean; blockers: string[]; willDelete: Record<string, number>; rule: string } }>(
+        `/api/organizations/${activeOrgId()}/employees/${worker.id}?deletionPreflight=1`,
+      );
+
+      if (!preflight.data.eligible) {
+        setError(`This employee cannot be deleted as a mistaken record. ${preflight.data.blockers.join(' ')}`);
+        return;
+      }
+
+      const reason = window.prompt(
+        `Reason for permanently deleting the mistaken employee record ${worker.displayName} (${worker.employeeNumber})?`,
+        'Mistaken employee record created in error',
+      );
+      if (!reason?.trim()) return;
+
+      const confirmation = window.prompt(
+        `Type the employee number exactly to confirm permanent deletion:\n${worker.employeeNumber}`,
+      );
+      if (confirmation !== worker.employeeNumber) {
+        setError('Deletion cancelled because the employee-number confirmation did not match.');
+        return;
+      }
+
+      if (!window.confirm(
+        `Permanently delete mistaken employee record ${worker.displayName} (${worker.employeeNumber})?\n\nCore worker/person/employment/assignment data will be removed. OPSIQO will retain a deletion tombstone and audit evidence. This action is blocked whenever protected downstream HR, time, payroll, performance, safety, case or onboarding evidence exists.\n\nUse termination/separation instead for a legitimate employee record.`,
+      )) return;
+
+      await apiFetch(`/api/organizations/${activeOrgId()}/employees/${worker.id}`, {
+        method: 'DELETE',
+        body: JSON.stringify({
+          reason: reason.trim(),
+          confirmationEmployeeNumber: confirmation,
+          purpose: 'mistaken_record',
+        }),
+      });
+
+      setMessage(
+        `Mistaken employee record ${worker.displayName} (${worker.employeeNumber}) deleted safely. Deletion tombstone and audit evidence were retained.`,
+      );
+      if (editing?.worker.id === worker.id) setEditing(null);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unable to delete mistaken employee record.');
+    } finally {
+      setDeleteBusy('');
+    }
+  }
   return (
     <div ref={translationRoot} className="stack">
       <div className="paginationBar">
@@ -320,6 +375,14 @@ export function PeopleTable() {
           Advanced Import Center
         </Link>
       </div>
+
+      {canDeleteMistaken && (
+        <div className="notice">
+          <strong>Mistaken employee record deletion is only for records created in error.</strong>
+          <br />
+          OPSIQO performs a deletion preflight and blocks purge when platform access, manager relationships, time, leave, payroll, performance, safety, case, onboarding or other protected downstream evidence exists. Use correction or separation for legitimate employee history.
+        </div>
+      )}
 
       {duplicateCandidates.length > 0 && (
         <div className="notice">
@@ -589,6 +652,15 @@ export function PeopleTable() {
                             onClick={() => void deleteDuplicate(w)}
                           >
                             {deleteBusy === w.id ? 'Checking…' : 'Delete duplicate'}
+                          </button>
+                        )}
+                        {canDeleteMistaken && !duplicate && (
+                          <button
+                            className="button dangerButton compact"
+                            disabled={!!deleteBusy || editingBusy}
+                            onClick={() => void deleteMistaken(w)}
+                          >
+                            {deleteBusy === w.id ? 'Checking…' : 'Delete mistaken record'}
                           </button>
                         )}
                       </div>

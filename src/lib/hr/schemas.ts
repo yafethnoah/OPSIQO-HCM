@@ -39,6 +39,7 @@ export const employeeCoreCorrectionSchema = z.object({
 export const employeeDuplicateDeleteSchema = z.object({
   reason: z.string().trim().min(3).max(1000),
   confirmationEmployeeNumber: z.string().trim().min(1).max(40),
+  purpose: z.enum(['duplicate_cleanup', 'mistaken_record']).optional().default('duplicate_cleanup'),
 });
 
 export const employeeChangeSchema = z.object({

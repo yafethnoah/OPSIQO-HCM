@@ -92,3 +92,32 @@ Changes:
 - adds an administrator diagnostic when the selected employee's Time Policy has location capture disabled;
 - keeps employee preview location separate from stored attendance evidence;
 - introduces no continuous/background GPS tracking and no reconstruction of historical locations that were never captured.
+
+## H50.2 Admin Data Control
+
+H50.2 is a direct child of frozen H50.1.
+
+### Mistaken employee record purge
+- Organization/Super/HR administrators with `people.manage` receive a **Delete mistaken record** action.
+- Deletion requires a server preflight, reason, typed employee-number confirmation and final explicit confirmation.
+- Purge is blocked when the employee is linked to active membership/invitations, manages direct reports, or has protected downstream HR/time/payroll/performance/learning/safety/case/onboarding evidence.
+- Core mistaken worker/person/employment/assignment/index records can be removed when safe.
+- A deletion tombstone and immutable audit evidence are always retained.
+- Legitimate former employees must use separation/termination, not purge.
+
+### Organization backup
+- Organization Admin and Super Admin with `platform.manage` can export a full organization-scoped backup to their device.
+- Backup format is `OPSIQO_ORG_BACKUP_JSONL_GZIP_V1`.
+- It includes the organization Firestore root, every descendant document, and Cloud Storage objects under `organizations/{orgId}/`.
+- Backup is streamed and gzip-compressed.
+- Credential-like Firestore fields are redacted and platform secret environment values are never read/exported.
+- Backup request/completion/failure are audited.
+- Restore is deliberately separate and governed; a backup cannot be used to bypass authoritative domain validation.
+
+### H36 backward compatibility
+
+H50.2 preserves the pre-existing governed duplicate-cleanup contract while adding mistaken-record deletion:
+- records identified as potential duplicates retain the dedicated **Delete duplicate** action;
+- other eligible administrator mistakes use **Delete mistaken record**;
+- both paths retain typed employee-number confirmation, downstream-evidence blocking, deletion tombstone and audit evidence;
+- the historic `employee.duplicate.delete` audit action remains stable for compatibility, while `purpose` metadata and tombstone source distinguish `duplicate_cleanup` from `mistaken_record_purge`.

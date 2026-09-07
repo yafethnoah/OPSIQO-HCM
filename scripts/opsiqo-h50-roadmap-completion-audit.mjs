@@ -160,7 +160,18 @@ const allowed = (file) =>
   file === 'src/lib/time/attendance-map-service.ts' ||
   file === 'src/lib/time/service.ts' ||
   file === 'src/app/api/organizations/[orgId]/time/attendance-map/route.ts' ||
-  file === 'tests/time-location-map.test.ts';
+  file === 'tests/time-location-map.test.ts' ||
+  file === 'src/components/people-table.tsx' ||
+  file === 'src/lib/hr/schemas.ts' ||
+  file === 'src/lib/hr/service.ts' ||
+  file === 'src/app/api/organizations/[orgId]/employees/[workerId]/route.ts' ||
+  file === 'src/lib/admin-maintenance/backup.ts' ||
+  file === 'src/lib/admin-maintenance/service.ts' ||
+  file === 'src/app/api/organizations/[orgId]/admin-maintenance/backup/route.ts' ||
+  file === 'src/components/admin-data-maintenance-workspace.tsx' ||
+  file === 'src/lib/http/client.ts' ||
+  file === 'scripts/opsiqo-h50-2-admin-data-control-audit.mjs' ||
+  file === 'tests/h50-2-admin-data-control.test.ts';
 for (const file of changed) {
   if (!allowed(file)) failures.push(`H50 changed unexpected path: ${file}`);
 }

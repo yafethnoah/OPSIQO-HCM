@@ -5,6 +5,7 @@ import {
   correctEmployeeCore,
   deleteDuplicateEmployee,
   getEmployee,
+  getEmployeeDeletionPreflight,
   isDirectReport,
 } from '@/lib/hr/service';
 
@@ -15,6 +16,12 @@ export async function GET(
   try {
     const { orgId, workerId } = await context.params;
     const actor = await actorFromRequest(request, orgId);
+    if (new URL(request.url).searchParams.get('deletionPreflight') === '1') {
+      requirePermission(actor, 'people.manage');
+      return NextResponse.json({
+        data: await getEmployeeDeletionPreflight(actor, workerId),
+      });
+    }
     if (actor.workerId === workerId) {
       requirePermission(actor, 'self.read');
     } else if (actor.permissions.includes('people.read.private')) {
