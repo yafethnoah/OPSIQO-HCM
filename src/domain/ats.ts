@@ -32,6 +32,11 @@ export interface ParsedResumeProfile {
   model?: string;
   parseQuality?: number;
   extractionSignals?: string[];
+  parseTrust?: number;
+  fieldConfidence?: Record<string, number>;
+  unresolvedFields?: string[];
+  aiVerified?: boolean;
+  parserPasses?: string[];
 }
 
 export interface AtsEvidenceMatch {

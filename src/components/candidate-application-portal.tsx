@@ -21,6 +21,7 @@ type Profile={
   languages:string;projects:string;volunteerExperience:string;awards:string;publications:string;
   additionalInformation:string;candidateStatement:string;customResumeSections:CustomSection[];
 };
+type ParseAssurance={machineTrust:number;aiVerified:boolean;fieldConfidence:Record<string,number>;unresolvedFields:string[];requiresCandidateReview:true;verifiedStatus:'high_confidence'|'review_required'};
 type EditableResume={
   professionalExperience?:string;
   languages?:string;
@@ -68,6 +69,8 @@ export function CandidateApplicationPortal({token}:{token:string}){
   const[error,setError]=useState('');
   const[notice,setNotice]=useState('');
   const[parseNote,setParseNote]=useState('');
+  const[parseAssurance,setParseAssurance]=useState<ParseAssurance|null>(null);
+  const[resumeReviewed,setResumeReviewed]=useState(false);
   const[consent,setConsent]=useState(false);
   const[accuracy,setAccuracy]=useState(false);
   const[talent,setTalent]=useState(false);
@@ -112,11 +115,12 @@ export function CandidateApplicationPortal({token}:{token:string}){
     setBusy('parse');setError('');setParseNote('');
     try{
       const d=new FormData();d.set('file',f);
-      const r=await call<{data:{profile:any;editableResume?:EditableResume;note:string}}>(
+      const r=await call<{data:{profile:any;editableResume?:EditableResume;assurance:ParseAssurance;note:string}}>(
         `/api/public/recruiting/apply/${encodeURIComponent(token)}/parse`,
         {method:'POST',body:d},
       );
       const x=r.data.profile,e=r.data.editableResume||{};
+      setParseAssurance(r.data.assurance);setResumeReviewed(false);
       setP(v=>({
         ...v,
         firstName:x.firstName||v.firstName,
@@ -142,7 +146,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
       setParseNote(`${r.data.note}${x.parseQuality==null?'':` Extraction quality: ${x.parseQuality}%.`}`);
       setStep(2);
     }catch(e){
-      setResume(null);setParseNote('');
+      setResume(null);setParseNote('');setParseAssurance(null);setResumeReviewed(false);
       setError(e instanceof Error?e.message:'Resume parsing failed.');
     }finally{
       setBusy('');
@@ -184,6 +188,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
   async function submit(e:FormEvent){
     e.preventDefault();
     if(!resume||!parseNote){setError('Attach and successfully validate your resume before submitting.');setStep(1);return}
+    if(!resumeReviewed){setError('Review every parsed resume section and confirm the resume review before submitting.');setStep(3);return}
     if(ctx?.application.coverLetterRequired&&!cover&&!coverText.trim()){setError('A cover letter is required.');setStep(5);return}
     if(!consent||!accuracy){setError('Confirm the declaration and privacy consent.');return}
     setBusy('submit');setError('');
@@ -244,6 +249,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
         }}/>
         {resume&&<div className="notice">Attached: <strong>{resume.name}</strong></div>}
         {parseNote&&<div className="success">{parseNote}</div>}
+        {parseAssurance&&<div className="notice" data-h50-5h-parse-assurance="true"><strong>{parseAssurance.aiVerified?'AI-verified parse':'Deterministic draft'} · Machine trust {parseAssurance.machineTrust}%</strong><br/>{parseAssurance.unresolvedFields.length?`Needs review: ${parseAssurance.unresolvedFields.join(', ')}`:'No machine-detected unresolved fields.'}<br/><span className="muted">Machine parsing is never represented as 100% certain. The application becomes 100% candidate-verified only after you review and confirm the parsed information.</span></div>}
         <button type="button" className="button" disabled={!resume||busy==='parse'} onClick={()=>resume&&void parse(resume)}>{busy==='parse'?'Parsing…':'Parse / refresh fields'}</button>
       </section>}
 
@@ -296,6 +302,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
         <div className="notice">
           <strong>Evidence boundary:</strong> your reviewed profile is saved for recruiter review, but the internal Fit % remains grounded in the original uploaded resume evidence. Your edits do not silently rewrite the source document used for automated evidence matching.
         </div>
+        <label className="notice"><input type="checkbox" checked={resumeReviewed} onChange={e=>setResumeReviewed(e.target.checked)}/> <strong>I reviewed every parsed resume section and corrected any inaccurate or missing information.</strong><br/><span className="muted">Checking this makes the submitted profile candidate-verified; it does not claim that AI extraction itself is infallible.</span></label>
       </section>}
 
       {step===4&&<section className="prehireCard stack">
@@ -335,6 +342,8 @@ export function CandidateApplicationPortal({token}:{token:string}){
           <Review l="Cover letter" v={cover?.name||(coverText.trim()?'Pasted text':'Not provided')}/>
           <Review l="Professional experience" v={p.professionalExperience.trim()?'Reviewed':'Not provided'}/>
           <Review l="Resume sections" v={`${5+p.customResumeSections.filter(x=>x.title.trim()&&x.content.trim()).length}+ reviewed/editable sections`}/>
+          <Review l="Machine parse trust" v={parseAssurance?`${parseAssurance.machineTrust}% · ${parseAssurance.aiVerified?'AI verified':'deterministic draft'}`:'Not available'}/>
+          <Review l="Candidate verification" v={resumeReviewed?'100% candidate-verified':'Review required'}/>
         </div>
         <div className="row wrap">
           <button type="button" className="button secondary" onClick={()=>setStep(2)}>Edit personal information</button>

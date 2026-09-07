@@ -21,6 +21,7 @@ import {
   reviewCoverLetter,
 } from "./ats-engine";
 import { classifyRecruitingDocument, isPlausibleProfessionalHeadline } from "./document-classifier";
+import { applyResumeAssurance } from "./resume-assurance";
 import { governedCoverLetterDraft, governedResumeParse } from "./ats-provider";
 import { listRequisitions } from "./service";
 
@@ -211,6 +212,7 @@ export async function parseResumeFile(actor: ActorContext, file: File) {
       "This resume has no reliable readable text layer. Upload a text-based PDF, DOCX, TXT, RTF or Markdown file, or ask an administrator to complete Recruiting AI setup.",
       "recruiting_ai_setup_required",
     );
+  profile = applyResumeAssurance(profile,{fileName:file.name,sourceText:profile.sourceText||text,aiUsed:Boolean(ai?.profile)});
   if (profile.headline && !isPlausibleProfessionalHeadline(profile.headline))
     profile = {
       ...profile,
