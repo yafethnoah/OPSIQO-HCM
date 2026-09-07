@@ -125,6 +125,7 @@ export function ContextualAiAssist() {
           body: JSON.stringify({
             question: `[Current OPSIQO section: ${config?.label || 'Current HCM section'}] ${prompt}`,
           }),
+          reconcileOnServerError: false,
         },
       );
       setResult(response.data);

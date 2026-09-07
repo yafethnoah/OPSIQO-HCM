@@ -4,7 +4,7 @@ import { getToken as getAppCheckToken } from 'firebase/app-check';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { firebaseAppCheck, firebaseAuth } from '@/lib/firebase/client';
 import { fetchWithReliability, ReconciliationRequiredError } from '@/lib/http/reliability';
-import { apiRequestErrorFromPayload } from '@/lib/http/api-request-error';
+import { apiRequestErrorFromPayload, isKnownPreWriteServerError } from '@/lib/http/api-request-error';
 export { ApiRequestError, isMfaRequiredError } from '@/lib/http/api-request-error';
 
 const ORG_STORAGE_KEY = 'opsiqo.activeOrgId';
@@ -132,12 +132,17 @@ export async function apiFetch<T>(path: string, init: ApiFetchInit = {}): Promis
   const contentType = response.headers.get('content-type') || '';
   const payload = contentType.includes('application/json') ? await response.json() : await response.text();
 
-  if (!response.ok && !safeRead && reconcileOnServerError && (response.status === 408 || response.status >= 500)) {
-    throw new ReconciliationRequiredError(`Write returned ${response.status}; reconcile authoritative state before retrying.`);
-  }
-
   if (!response.ok) {
     const requestError = apiRequestErrorFromPayload(response.status, payload, `Request failed (${response.status})`);
+
+    if (
+      !safeRead &&
+      reconcileOnServerError && (response.status === 408 || response.status >= 500) &&
+      !isKnownPreWriteServerError(requestError)
+    ) {
+      throw new ReconciliationRequiredError(`Write returned ${response.status}; reconcile authoritative state before retrying.`);
+    }
+
     if (typeof window !== 'undefined' && requestError.status === 401 && requestError.code === 'session_expired') {
       window.dispatchEvent(new CustomEvent('opsiqo:session-expired', { detail: { message: requestError.message } }));
     }
