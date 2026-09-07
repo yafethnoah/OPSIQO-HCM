@@ -110,6 +110,8 @@ for (const signal of [
   'apiDownload',
   'OPSIQO organization backup',
   'data.backup.confirmationText',
+  'backupConfirmation.trim()',
+  'data.backup.confirmationText.trim()',
 ]) {
   if (!maintenance.includes(signal)) {
     failures.push(`admin maintenance UI missing ${signal}`);
@@ -119,7 +121,7 @@ for (const signal of [
 for (const signal of [
   'backup: {',
   'confirmationText:',
-  'BACKUP ',
+  'backupConfirmationText(',
 ]) {
   if (!maintenanceService.includes(signal)) {
     failures.push(`admin maintenance backup contract missing ${signal}`);
@@ -146,3 +148,5 @@ console.log(' - backup is tenant scoped to organization Firestore + organization
 console.log(' - credential-like Firestore fields are redacted');
 console.log(' - platform credential environment values are never read');
 console.log(' - backup is streamed as JSONL + gzip for device download');
+
+console.log(' - backup confirmation text is normalized consistently across snapshot, UI and server');

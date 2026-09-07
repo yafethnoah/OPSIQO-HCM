@@ -2,6 +2,7 @@ import type { ActorContext } from '@/domain/security';
 import { adminBucket, adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
 import { buildAudit } from '@/lib/audit/service';
+import { backupConfirmationText } from '@/lib/admin-maintenance/backup';
 
 const ADMIN_ROLES = new Set(['super_admin', 'org_admin', 'hr_admin']);
 const DAY = 24 * 60 * 60 * 1000;
@@ -163,7 +164,9 @@ export async function getAdminMaintenanceSnapshot(actor: ActorContext) {
     },
     backup: {
       allowed: ['super_admin', 'org_admin'].includes(actor.role) && actor.permissions.includes('platform.manage'),
-      confirmationText: `BACKUP ${String(orgSnap.data()?.name || actor.orgId).toUpperCase()}`,
+      confirmationText: backupConfirmationText(
+        String(orgSnap.data()?.name || actor.orgId),
+      ),
       format: 'OPSIQO_ORG_BACKUP_JSONL_GZIP_V1',
       firestoreScope: `organizations/${actor.orgId} and all descendants`,
       storageScope: `organizations/${actor.orgId}/`,

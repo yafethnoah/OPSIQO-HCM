@@ -20,6 +20,12 @@ describe('H50.2 admin data control', () => {
     );
   });
 
+  it('normalizes hidden organization-name whitespace in backup confirmation', () => {
+    expect(backupConfirmationText('  Kris Atelier  ')).toBe(
+      'BACKUP KRIS ATELIER',
+    );
+  });
+
   it('creates a filesystem-safe backup filename', () => {
     expect(
       backupFileName(

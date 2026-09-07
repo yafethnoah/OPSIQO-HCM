@@ -121,3 +121,9 @@ H50.2 preserves the pre-existing governed duplicate-cleanup contract while addin
 - other eligible administrator mistakes use **Delete mistaken record**;
 - both paths retain typed employee-number confirmation, downstream-evidence blocking, deletion tombstone and audit evidence;
 - the historic `employee.duplicate.delete` audit action remains stable for compatibility, while `purpose` metadata and tombstone source distinguish `duplicate_cleanup` from `mistaken_record_purge`.
+
+### H50.3 backup confirmation normalization
+
+Functional UAT exposed a confirmation-contract mismatch when an organization name contains leading or trailing whitespace. The maintenance snapshot previously generated the visible `BACKUP <ORG>` phrase without trimming the stored organization name, while the governed backup service trimmed it before validation. Because browser text rendering collapses trailing whitespace, an administrator could type the visible phrase exactly while the client button remained disabled.
+
+H50.3 makes the snapshot, client enablement and server validation use the same normalized contract. Organization-name whitespace is trimmed before confirmation text is generated, the client compares trimmed confirmation values, and regression coverage preserves this behavior. Authorization, tenant scoping, redaction, audit evidence and backup contents are unchanged.
