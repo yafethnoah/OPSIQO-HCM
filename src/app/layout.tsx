@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet/dist/leaflet.css';
 import { AppShell } from '@/components/app-shell';
 
 import { PwaRegistrar } from '@/components/pwa-registrar';

@@ -17,3 +17,8 @@ export * from './context-runtime';
 export * from './hr-process-generator';
 export * from './voice-hr';
 export * from './voice-browser';
+export * from './h50-foundation';
+export * from './h50-intelligence';
+export * from './h50-operations';
+export * from './h50-platform';
+export * from './h50-closure';

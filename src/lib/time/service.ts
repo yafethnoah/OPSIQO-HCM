@@ -18,6 +18,7 @@ import {
 } from './schemas';
 import { consumeAttendancePhoto, validateClockLocation } from './frontline-service';
 import { exactMinutesBetween, exactWorkedMinutes, normalizeMinutes, sumMinutes } from './precision';
+import { buildAttendanceLocationStatus } from './attendance-map';
 
 const now=()=>new Date().toISOString();
 const today=()=>now().slice(0,10);
@@ -92,6 +93,8 @@ export async function clock(actor:ActorContext,raw:unknown){
     const id=randomUUID(),timestamp=now(),row:TimeEntry={id,workerId,startAt:eventAt,breakMinutes:0,source:offlineSync?'offline_sync':'web_clock',status:'open',note:input.note,startEvidence:location,startPhotoEvidenceId:photoEvidenceId,breakState:'working',createdBy:actor.uid,createdAt:timestamp,updatedAt:timestamp};
     const audit=buildAudit(actor,{action:'time.clock_in',entityType:'timeEntry',entityId:id,after:row}),b=db.batch();
     b.create(db.doc(`organizations/${actor.orgId}/timeEntries/${id}`),row);b.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
+    b.set(db.doc(`organizations/${actor.orgId}/attendanceLocationStatus/${workerId}`),buildAttendanceLocationStatus({workerId,event:'clock_in',eventAt:row.startAt,evidence:row.startEvidence,updatedAt:timestamp}),{merge:false});
+    b.set(db.doc(`organizations/${actor.orgId}/attendanceLocationStatus/${workerId}`),buildAttendanceLocationStatus({workerId,event:'clock_in',eventAt:row.startAt,evidence:row.startEvidence,updatedAt:timestamp}),{merge:false});
     if(input.offlineEventId)b.create(db.doc(`organizations/${actor.orgId}/attendanceOfflineEventIndex/${input.offlineEventId}`),{id:input.offlineEventId,workerId,action:input.action,timeEntryId:id,syncedAt:timestamp});
     await b.commit();return row;
   }
@@ -101,6 +104,8 @@ export async function clock(actor:ActorContext,raw:unknown){
   const photoEvidenceId=await consumeAttendancePhoto(actor,workerId,photoRequired);
   const endAt=eventAt,breakMinutes=input.breakMinutes??before.breakMinutes,workedMinutes=exactWorkedMinutes(before.startAt,endAt,breakMinutes),timestamp=now(),after={...before,endAt,breakMinutes,workedMinutes,status:'complete' as const,note:input.note||before.note,endEvidence:location,endPhotoEvidenceId:photoEvidenceId,updatedAt:timestamp},audit=buildAudit(actor,{action:'time.clock_out',entityType:'timeEntry',entityId:before.id,before,after}),b=db.batch();
   b.set(s.ref,after,{merge:false});b.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
+  b.set(db.doc(`organizations/${actor.orgId}/attendanceLocationStatus/${workerId}`),buildAttendanceLocationStatus({workerId,event:'clock_out',eventAt:endAt,evidence:after.endEvidence,updatedAt:timestamp}),{merge:false});
+  b.set(db.doc(`organizations/${actor.orgId}/attendanceLocationStatus/${workerId}`),buildAttendanceLocationStatus({workerId,event:'clock_out',eventAt:endAt,evidence:after.endEvidence,updatedAt:timestamp}),{merge:false});
   if(input.offlineEventId)b.create(db.doc(`organizations/${actor.orgId}/attendanceOfflineEventIndex/${input.offlineEventId}`),{id:input.offlineEventId,workerId,action:input.action,timeEntryId:before.id,syncedAt:timestamp});
   await b.commit();await evaluateWorkerTime(actor.orgId,workerId,startOfWeek(dateInZone(endAt,policy.timezone),policy.weekStartsOn));return after;
 }

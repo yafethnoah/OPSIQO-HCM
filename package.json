@@ -30,6 +30,12 @@
     "test:strategic:closure": "vitest run tests/strategic-final-gap-closure.test.ts tests/strategic-platform-convergence.test.ts tests/strategic-enterprise-domain-bindings.test.ts tests/strategic-domain-bindings.test.ts tests/strategic-orchestrator-convergence.test.ts tests/strategic-runtime.test.ts tests/strategic-roadmap.test.ts",
     "strategic:closure:audit": "node scripts/opsiqo-h49-final-gap-audit.mjs",
     "strategic:closure:verify": "npm run strategic:closure:audit && npm run test:strategic:closure",
+    "test:strategic:h50": "vitest run tests/strategic-h50-roadmap-completion.test.ts",
+    "strategic:h50:audit": "node scripts/opsiqo-h50-roadmap-completion-audit.mjs",
+    "strategic:h50:verify": "npm run strategic:h50:audit && npm run test:strategic:h50",
+    "test:time:map": "vitest run tests/time-location-map.test.ts",
+    "time:map:audit": "node scripts/opsiqo-h50-attendance-map-audit.mjs",
+    "time:map:verify": "npm run time:map:audit && npm run test:time:map",
     "test:watch": "vitest",
     "seed": "tsx scripts/seed.ts",
     "dev:frontend": "node scripts/dev-frontend-local.mjs",
@@ -314,6 +320,7 @@
   "dependencies": {
     "firebase": "12.16.0",
     "firebase-admin": "14.2.0",
+    "leaflet": "1.9.4",
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -321,6 +328,7 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "5.0.1",
+    "@types/leaflet": "1.9.20",
     "@types/node": "26.1.1",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
