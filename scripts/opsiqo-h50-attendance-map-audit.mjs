@@ -30,6 +30,11 @@ for (const signal of [
   'Latest clock-event locations only',
   'does not continuously track',
   '/time/attendance-map',
+  'Capture location at Clock In / Clock Out',
+  'Published electronic-monitoring policy',
+  'Configure location capture',
+  'Location capture is OFF for this employee&apos;s assigned Time Policy.',
+  "policyResult.data.filter(p=>p.status==='published'",
 ]) {
   if (!workspace.includes(signal)) {
     failures.push(`time workspace missing map signal: ${signal}`);
@@ -39,6 +44,18 @@ for (const signal of [
 if (workspace.includes('watchPosition(')) {
   failures.push(
     'time workspace must not use continuous browser geolocation tracking',
+  );
+}
+
+if (workspace.includes('Published electronic-monitoring policy ID')) {
+  failures.push(
+    'H50.1 must not require administrators to paste an opaque monitoring-policy ID',
+  );
+}
+
+if (!workspace.includes('name="captureGeolocation"')) {
+  failures.push(
+    'H50.1 clock-location capture checkbox is missing',
   );
 }
 

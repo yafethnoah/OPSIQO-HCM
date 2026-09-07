@@ -79,3 +79,16 @@ Architecture:
 - `attendanceLocationStatus` is a derived read projection updated in the same clock transaction for scalable map reads;
 - no second attendance authority and no continuous tracking datastore is introduced;
 - all admin responses are organization-scoped, role-restricted and `no-store`.
+
+## H50.1 Attendance Location Enablement
+
+H50.1 is a direct child of frozen H50 and closes the UAT configuration UX gap discovered on the actual `https://uat.opsiqo.ca/time` surface.
+
+Changes:
+- exposes **Capture location at Clock In / Clock Out** in Time Policy creation;
+- loads published governed policies and presents them by title/code instead of requiring an opaque policy ID;
+- preserves the backend requirement that clock-location capture requires a published electronic-monitoring policy;
+- keeps geofence mode independent from location capture;
+- adds an administrator diagnostic when the selected employee's Time Policy has location capture disabled;
+- keeps employee preview location separate from stored attendance evidence;
+- introduces no continuous/background GPS tracking and no reconstruction of historical locations that were never captured.
