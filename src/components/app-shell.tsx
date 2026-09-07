@@ -7,6 +7,7 @@ import { OpsiQoCommandBar } from '@/components/opsiqo-command-bar';
 import { ConnectivityBanner } from '@/components/connectivity-banner';
 import { MobileOutcomeNav } from '@/components/mobile-outcome-nav';
 import { RouteAnnouncer } from '@/components/route-announcer';
+import { ContextualAiAssist } from '@/components/contextual-ai-assist';
 import { useGlobalReviewedTranslation, useRouteReviewedTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 import { useRuntimeLocaleSync } from '@/lib/opsiqo-one/runtime-locale';
 import { useSessionExpiryRedirect } from '@/lib/auth/session-expiry-client';
@@ -60,6 +61,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
         <div data-opsiqo-shell-i18n="true"><OpsiQoCommandBar /></div>
         <div className="mainInner" data-opsiqo-route-surface-host="true">{children}</div>
       </main>
+      <ContextualAiAssist />
       <div data-opsiqo-shell-i18n="true"><MobileOutcomeNav /></div>
     </div>
   );

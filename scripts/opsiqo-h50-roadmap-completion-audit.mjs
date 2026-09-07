@@ -171,7 +171,14 @@ const allowed = (file) =>
   file === 'src/components/admin-data-maintenance-workspace.tsx' ||
   file === 'src/lib/http/client.ts' ||
   file === 'scripts/opsiqo-h50-2-admin-data-control-audit.mjs' ||
-  file === 'tests/h50-2-admin-data-control.test.ts';
+  file === 'tests/h50-2-admin-data-control.test.ts' ||
+  file === 'src/lib/ai-intelligence/activation.ts' ||
+  file === 'src/lib/ai-intelligence/section-assist.ts' ||
+  file === 'src/app/api/organizations/[orgId]/ai-copilot/readiness/route.ts' ||
+  file === 'src/components/contextual-ai-assist.tsx' ||
+  file === 'src/components/app-shell.tsx' ||
+  file === 'scripts/opsiqo-h50-4-ai-activation-audit.mjs' ||
+  file === 'tests/h50-4-ai-activation.test.ts';
 for (const file of changed) {
   if (!allowed(file)) failures.push(`H50 changed unexpected path: ${file}`);
 }

@@ -127,3 +127,28 @@ H50.2 preserves the pre-existing governed duplicate-cleanup contract while addin
 Functional UAT exposed a confirmation-contract mismatch when an organization name contains leading or trailing whitespace. The maintenance snapshot previously generated the visible `BACKUP <ORG>` phrase without trimming the stored organization name, while the governed backup service trimmed it before validation. Because browser text rendering collapses trailing whitespace, an administrator could type the visible phrase exactly while the client button remained disabled.
 
 H50.3 makes the snapshot, client enablement and server validation use the same normalized contract. Organization-name whitespace is trimmed before confirmation text is generated, the client compares trimmed confirmation values, and regression coverage preserves this behavior. Authorization, tenant scoping, redaction, audit evidence and backup contents are unchanged.
+
+## H50.4 Live AI Activation and Contextual AI Assist
+
+H50.4 activates the existing governed OPSIQO AI infrastructure without bypassing authoritative HCM services.
+
+### Runtime activation
+- Server-side readiness reports provider/model, governed prompt/model state and credential availability **without exposing credential values**.
+- An authorized `super_admin`, `org_admin` or `hr_admin` holding both `ai.manage` and `ai.approve` can initialize the system-authored governed baseline.
+- The baseline uses the configured live runtime provider and retains the existing evidence retrieval, structured-output validation, audit log, citation validation and consequential-use guardrails.
+- Existing App Hosting configuration keeps the Gemini credential in Secret Manager; no provider secret is sent to the browser.
+
+### Contextual AI Assist
+- A route-aware **AI Assist** appears inside supported authenticated HCM sections.
+- Recruiting: job-description, interview-guide and candidate-evidence drafts without ranking or selection.
+- Onboarding: onboarding plans and welcome communications.
+- People/positions: role summaries and data-quality review.
+- Performance: goal/coaching drafts without ratings, promotion, discipline or PIP outcomes.
+- Learning/career: development plans without promotion/succession selection.
+- Policy/compliance: draft policy/process and impact explanations requiring human/legal review.
+- Time/leave/expenses: anomaly explanations and neutral follow-up communications without record changes or discipline recommendations.
+- Compensation/payroll: control explanations and communications without individual pay decisions.
+- Employee relations: neutral summaries and investigation questions without discipline/dismissal recommendations.
+- Safety, workforce analytics, strategy/org design, privacy/security/identity/integration and employee experience receive evidence-grounded drafting/explanation presets.
+- Offboarding AI is limited to administrative drafts for already-authorized human processes.
+- The contextual assistant performs **no direct HCM writes**. Generated content remains a draft and can only be copied/reviewed by the user.
