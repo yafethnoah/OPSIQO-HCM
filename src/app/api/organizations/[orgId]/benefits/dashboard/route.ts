@@ -1,0 +1,2 @@
+import{NextResponse}from'next/server';import{actorFromRequest,requirePermission}from'@/lib/auth/session';import{apiErrorResponse}from'@/lib/http/errors';import{benefitsDashboard}from'@/lib/benefits/service';
+export async function GET(r:Request,c:{params:Promise<{orgId:string}>}){try{const{orgId}=await c.params,a=await actorFromRequest(r,orgId);requirePermission(a,'compensation.read');return NextResponse.json({data:await benefitsDashboard(a)});}catch(e){return apiErrorResponse(e)}}

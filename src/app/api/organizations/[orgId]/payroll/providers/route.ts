@@ -1,0 +1,2 @@
+import{NextResponse}from'next/server';import{actorFromRequest,requirePermission}from'@/lib/auth/session';import{apiErrorResponse}from'@/lib/http/errors';import{createPayrollProvider}from'@/lib/payroll/service';
+export async function POST(r:Request,c:{params:Promise<{orgId:string}>}){try{const{orgId}=await c.params,a=await actorFromRequest(r,orgId);requirePermission(a,'payroll.export');return NextResponse.json({data:await createPayrollProvider(a,await r.json())},{status:201});}catch(e){return apiErrorResponse(e)}}

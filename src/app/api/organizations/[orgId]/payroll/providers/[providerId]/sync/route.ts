@@ -1,0 +1,2 @@
+import{NextResponse}from'next/server';import{actorFromRequest,requirePermission}from'@/lib/auth/session';import{apiErrorResponse}from'@/lib/http/errors';import{runPayrollSync}from'@/lib/payroll/service';
+export async function POST(r:Request,c:{params:Promise<{orgId:string;providerId:string}>}){try{const{orgId,providerId}=await c.params,a=await actorFromRequest(r,orgId);requirePermission(a,'payroll.export');return NextResponse.json({data:await runPayrollSync(a,providerId)});}catch(e){return apiErrorResponse(e)}}

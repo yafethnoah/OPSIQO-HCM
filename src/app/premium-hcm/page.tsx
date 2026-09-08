@@ -1,0 +1,1 @@
+import{PageHeader}from'@/components/page-header';import{PremiumHcmWorkspace}from'@/components/premium-hcm-workspace';export default function PremiumHcmPage(){return <><PageHeader title="Premium HCM Certification" subtitle="Evidence-based implementation and certification status across every Premium HCM recommendation."/><PremiumHcmWorkspace/></>}

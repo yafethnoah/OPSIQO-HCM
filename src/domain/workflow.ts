@@ -57,6 +57,8 @@ export const WORKFLOW_TRIGGER_VALUES = [
   'compensation.cycle_opened',
   'compensation.cycle_applied',
   'compensation.pay_equity_review_due',
+  'benefit.enrolled',
+  'payroll.ready',
   'er.case_opened',
   'er.investigation_started',
   'er.finding_recorded',

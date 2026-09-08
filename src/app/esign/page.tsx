@@ -1,0 +1,1 @@
+import{PageHeader}from'@/components/page-header';import{ESignWorkspace}from'@/components/esign-workspace';export default function ESignPage(){return <><PageHeader title="E-Signatures & Document Automation" subtitle="Version-linked envelopes, signer evidence, immutable document hashes, provider adapters and reconciliation."/><ESignWorkspace/></>}

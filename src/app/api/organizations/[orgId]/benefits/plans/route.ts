@@ -1,0 +1,2 @@
+import{NextResponse}from'next/server';import{actorFromRequest,requirePermission}from'@/lib/auth/session';import{apiErrorResponse}from'@/lib/http/errors';import{createBenefitPlan}from'@/lib/benefits/service';
+export async function POST(r:Request,c:{params:Promise<{orgId:string}>}){try{const{orgId}=await c.params,a=await actorFromRequest(r,orgId);requirePermission(a,'compensation.manage');return NextResponse.json({data:await createBenefitPlan(a,await r.json())},{status:201});}catch(e){return apiErrorResponse(e)}}

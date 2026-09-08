@@ -1,0 +1,2 @@
+import{NextResponse}from'next/server';import{actorFromRequest,requirePermission}from'@/lib/auth/session';import{apiErrorResponse}from'@/lib/http/errors';import{actBenefitEnrollment}from'@/lib/benefits/service';
+export async function PATCH(r:Request,c:{params:Promise<{orgId:string;enrollmentId:string}>}){try{const{orgId,enrollmentId}=await c.params,a=await actorFromRequest(r,orgId);requirePermission(a,'compensation.manage');return NextResponse.json({data:await actBenefitEnrollment(a,enrollmentId,await r.json())});}catch(e){return apiErrorResponse(e)}}
