@@ -51,7 +51,7 @@ export async function getRecruitingAiReadiness(actor: ActorContext): Promise<Rec
   const strictGovernance = process.env.OPSIQO_REQUIRE_GOVERNED_AI_CONFIG === 'true';
 
   let status: RecruitingAiReadinessStatus = 'ready';
-  let message = 'Recruiting AI is configured and approved for governed use.';
+  let message = 'Recruiting AI configuration records are approved and a server credential is present. This is configuration readiness only; run the live Recruiting AI document test to verify provider/model/PDF execution.';
 
   if (!modelConfigured || !promptConfigured) {
     status = 'setup_required';

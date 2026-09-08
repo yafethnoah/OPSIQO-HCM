@@ -183,21 +183,53 @@ export async function parseResumeFile(actor: ActorContext, file: File, options: 
   } catch (e) {
     aiFailure = e;
     if (!text) {
+      const code = e instanceof ApiError ? e.code : "";
+
+      // A real provider/runtime failure is operational evidence and must
+      // remain visible even when the PDF text layer is unsafe.
+      if (
+        [
+          "ai_credential_invalid",
+          "ai_model_unavailable",
+          "ai_rate_limited",
+          "ai_provider_unavailable",
+          "ai_provider_error",
+          "ai_document_probe_failed",
+        ].includes(code)
+      ) {
+        throw new ApiError(
+          e instanceof ApiError ? e.status : 503,
+          e instanceof ApiError
+            ? e.message
+            : "Recruiting AI live provider request failed.",
+          code || "ai_provider_error",
+        );
+      }
+
+      // Corrupt/binary-like PDF extraction remains a document-safety
+      // failure when AI is only missing/unconfigured. This preserves the
+      // historical fail-closed contract and avoids misclassifying corrupt
+      // files as ordinary scanned documents.
       if (pdfLayerState === "unsafe") {
         throw new ApiError(
           503,
-          "This PDF contains an unreadable, corrupted, or binary-like text layer. No candidate fields were accepted. Export a clean text-based PDF or upload DOCX, TXT, RTF or Markdown instead.",
+          "This PDF contains an unreadable, corrupted, or binary-like text layer. No candidate fields were accepted. A live Recruiting AI provider may be used only after its model, credential, and PDF document capability are verified.",
           "resume_parser_unavailable",
         );
       }
-      const code = e instanceof ApiError ? e.code : '';
-      if (['ai_governance_required', 'ai_unavailable', 'ai_provider_error'].includes(code)) {
+
+      // A genuinely empty/scanned PDF has no unsafe text evidence. If AI
+      // governance/credential configuration is missing, guide setup.
+      if (code === "ai_governance_required" || code === "ai_unavailable") {
         throw new ApiError(
           503,
-          'This resume has no reliable readable text layer and needs Recruiting AI. Ask an administrator to complete Recruiting AI setup, or upload a text-based PDF, DOCX, TXT, RTF or Markdown file.',
-          'recruiting_ai_setup_required',
+          e instanceof ApiError
+            ? `Recruiting AI configuration is not operational: ${e.message}`
+            : "Recruiting AI configuration is not operational.",
+          "recruiting_ai_setup_required",
         );
       }
+
       throw e;
     }
   }

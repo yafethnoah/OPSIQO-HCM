@@ -30,6 +30,25 @@ async function safeRecruitingAiProfile(actor:ActorContext){
  }
 }
 
+
+function recruitingProviderError(provider:string,status:number){
+ const name=provider==='gemini'?'Gemini':provider==='openai'?'OpenAI':'Recruiting AI';
+ if(status===401||status===403)return new ApiError(503,`${name} Recruiting ATS credential was rejected or does not have permission for the configured model.`,'ai_credential_invalid');
+ if(status===404)return new ApiError(503,`${name} Recruiting ATS model was not found or is not available to this credential.`,'ai_model_unavailable');
+ if(status===429)return new ApiError(503,`${name} Recruiting ATS is temporarily rate limited. Retry shortly.`,'ai_rate_limited');
+ if(status>=500)return new ApiError(503,`${name} Recruiting ATS provider is temporarily unavailable (${status}). Retry shortly.`,'ai_provider_unavailable');
+ return new ApiError(502,`${name} Recruiting ATS request was rejected (${status}).`,'ai_provider_error');
+}
+async function recruitingProviderFetch(provider:string,url:string,init:RequestInit){
+ let response=await fetch(url,init);
+ if(response.status===429||response.status>=500){
+   await new Promise(resolve=>setTimeout(resolve,750));
+   response=await fetch(url,init);
+ }
+ if(!response.ok)throw recruitingProviderError(provider,response.status);
+ return response;
+}
+
 function outputText(j:any){if(typeof j?.output_text==='string')return j.output_text;let x='';for(const i of j?.output||[])for(const c of i?.content||[])if(c?.type==='output_text')x+=c.text||'';return x}
 function parseJson(s:string){return JSON.parse(s.trim().replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim())}
 function normalizeResume(raw:any,text:string,provider:string,model:string,fileName?:string):ParsedResumeProfile{
@@ -46,9 +65,78 @@ function normalizeResume(raw:any,text:string,provider:string,model:string,fileNa
  const aiEvidencePresent=Boolean(displayName||supportedList(raw?.skills).length||supportedList(raw?.education).length||supportedList(raw?.jobTitles).length||supportedList(raw?.employers).length);
  return{...base,firstName,lastName,displayName,email,phone,location,linkedinUrl,headline,summary,skills:merge(raw?.skills,base.skills),certifications:merge(raw?.certifications,base.certifications).slice(0,80),education:merge(raw?.education,base.education).slice(0,80),employers:merge(raw?.employers,base.employers).slice(0,80),jobTitles:merge(raw?.jobTitles,base.jobTitles).slice(0,80),yearsOfExperience:base.yearsOfExperience,warnings:[...new Set([...base.warnings,...aiWarnings,...((Number.isFinite(Number(raw?.yearsOfExperience))&&base.yearsOfExperience==null)?['AI-reported experience duration was not used because dated employment ranges could not be verified from the resume evidence.']:[])])].slice(0,60),sourceText:evidenceText,parser:'hybrid',provider,model,parseQuality:Math.max(base.parseQuality||0,aiEvidencePresent?85:base.parseQuality||0),extractionSignals:[...new Set([...(base.extractionSignals||[]),...(aiEvidencePresent?['governed_ai_grounded']:[])])]};
 }
-async function geminiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer}){const key=process.env.GEMINI_API_KEY;if(!key)throw new ApiError(503,'GEMINI_API_KEY is not configured for Recruiting ATS.','ai_unavailable');const parts:any[]=[{text:prompt}];if(file&&['application/pdf','image/png','image/jpeg'].includes(file.mimeType))parts.push({inlineData:{mimeType:file.mimeType,data:file.bytes.toString('base64')}});const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(profile.model)}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({systemInstruction:{parts:[{text:profile.governedInstruction?`${profile.governedInstruction}\n\n${BOUNDARY}`:BOUNDARY}]},contents:[{role:'user',parts}],generationConfig:{responseMimeType:'application/json'}})});if(!r.ok)throw new ApiError(502,`Gemini Recruiting ATS request failed (${r.status}).`,'ai_provider_error');const j:any=await r.json(),text=String(j?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||'').join('')||'');if(!text)throw new ApiError(502,'Gemini returned no Recruiting ATS output.','ai_provider_error');return parseJson(text)}
-async function openaiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer}){const key=process.env.OPENAI_API_KEY;if(!key)throw new ApiError(503,'OPENAI_API_KEY is not configured for Recruiting ATS.','ai_unavailable');const content:any[]=[{type:'input_text',text:prompt}];if(file&&file.mimeType==='application/pdf')content.push({type:'input_file',filename:file.name,file_data:file.bytes.toString('base64')});const r=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:profile.model,store:false,instructions:profile.governedInstruction?`${profile.governedInstruction}\n\n${BOUNDARY}`:BOUNDARY,input:[{role:'user',content}]})});if(!r.ok)throw new ApiError(502,`OpenAI Recruiting ATS request failed (${r.status}).`,'ai_provider_error');const j:any=await r.json(),text=outputText(j);if(!text)throw new ApiError(502,'OpenAI returned no Recruiting ATS output.','ai_provider_error');return parseJson(text)}
+async function geminiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer}){
+ const key=process.env.GEMINI_API_KEY;
+ if(!key)throw new ApiError(503,'GEMINI_API_KEY is not configured for Recruiting ATS.','ai_unavailable');
+ const parts:any[]=[{text:prompt}];
+ if(file&&['application/pdf','image/png','image/jpeg'].includes(file.mimeType))parts.push({inlineData:{mimeType:file.mimeType,data:file.bytes.toString('base64')}});
+ const url=`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(profile.model)}:generateContent`;
+ const init:RequestInit={
+   method:'POST',
+   headers:{'Content-Type':'application/json','x-goog-api-key':key},
+   body:JSON.stringify({
+     systemInstruction:{parts:[{text:profile.governedInstruction?`${profile.governedInstruction}\n\n${BOUNDARY}`:BOUNDARY}]},
+     contents:[{role:'user',parts}],
+     generationConfig:{responseMimeType:'application/json'},
+   }),
+ };
+ const r=await recruitingProviderFetch('gemini',url,init);
+ const j:any=await r.json();
+ const text=String(j?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||'').join('')||'');
+ if(!text)throw new ApiError(502,'Gemini returned no Recruiting ATS output.','ai_provider_error');
+ return parseJson(text);
+}
+async function openaiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer}){
+ const key=process.env.OPENAI_API_KEY;
+ if(!key)throw new ApiError(503,'OPENAI_API_KEY is not configured for Recruiting ATS.','ai_unavailable');
+ const content:any[]=[{type:'input_text',text:prompt}];
+ if(file&&file.mimeType==='application/pdf')content.push({type:'input_file',filename:file.name,file_data:file.bytes.toString('base64')});
+ const init:RequestInit={
+   method:'POST',
+   headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},
+   body:JSON.stringify({
+     model:profile.model,
+     store:false,
+     instructions:profile.governedInstruction?`${profile.governedInstruction}\n\n${BOUNDARY}`:BOUNDARY,
+     input:[{role:'user',content}],
+   }),
+ };
+ const r=await recruitingProviderFetch('openai','https://api.openai.com/v1/responses',init);
+ const j:any=await r.json();
+ const text=outputText(j);
+ if(!text)throw new ApiError(502,'OpenAI returned no Recruiting ATS output.','ai_provider_error');
+ return parseJson(text);
+}
 async function aiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer}){if(profile.provider==='gemini')return geminiJson(profile,prompt,file);if(profile.provider==='openai')return openaiJson(profile,prompt,file);return null}
+const RECRUITING_DOCUMENT_PROBE_PDF_B64='JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMSAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL0NvbnRlbnRzIDcgMCBSIC9NZWRpYUJveCBbIDAgMCA2MTIgNzkyIF0gL1BhcmVudCA2IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9QYWdlTW9kZSAvVXNlTm9uZSAvUGFnZXMgNiAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0F1dGhvciAoYW5vbnltb3VzKSAvQ3JlYXRpb25EYXRlIChEOjIwMjYwOTA4MjA1ODQ4KzAwJzAwJykgL0NyZWF0b3IgKGFub255bW91cykgL0tleXdvcmRzICgpIC9Nb2REYXRlIChEOjIwMjYwOTA4MjA1ODQ4KzAwJzAwJykgL1Byb2R1Y2VyIChSZXBvcnRMYWIgUERGIExpYnJhcnkgLSBcKG9wZW5zb3VyY2VcKSkgCiAgL1N1YmplY3QgKHVuc3BlY2lmaWVkKSAvVGl0bGUgKHVudGl0bGVkKSAvVHJhcHBlZCAvRmFsc2UKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0NvdW50IDEgL0tpZHMgWyAzIDAgUiBdIC9UeXBlIC9QYWdlcwo+PgplbmRvYmoKNyAwIG9iago8PAovRmlsdGVyIFsgL0FTQ0lJODVEZWNvZGUgL0ZsYXRlRGVjb2RlIF0gL0xlbmd0aCAxMzYKPj4Kc3RyZWFtCkdhcFFoMEU9RiwwVVxIM1RccE5ZVF5RS2s/dGM+SVAsO1cjVTFeMjNpaFBFTV8/Q1c0S0lTaTwhWzdgI09CX3F1cysiTSc1XyJLXmVFIUBQYmBeMl9GRzU9QHIzRlAyZTA5VTJyOGM7XWVAWkVVODVjSWI2OmREL0xfZSZXIllLZDJwYDxyfj5lbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA4CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMDkyIDAwMDAwIG4gCjAwMDAwMDAxOTkgMDAwMDAgbiAKMDAwMDAwMDM5MiAwMDAwMCBuIAowMDAwMDAwNDYwIDAwMDAwIG4gCjAwMDAwMDA3MjEgMDAwMDAgbiAKMDAwMDAwMDc4MCAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9JRCAKWzw2MGIyN2JmMjQwYzc1Y2FmNjQ3Njk3ZDEyMzYxMzZhNz48NjBiMjdiZjI0MGM3NWNhZjY0NzY5N2QxMjM2MTM2YTc+XQolIFJlcG9ydExhYiBnZW5lcmF0ZWQgUERGIGRvY3VtZW50IC0tIGRpZ2VzdCAob3BlbnNvdXJjZSkKCi9JbmZvIDUgMCBSCi9Sb290IDQgMCBSCi9TaXplIDgKPj4Kc3RhcnR4cmVmCjEwMDYKJSVFT0YK';
+
+export async function probeRecruitingAiProvider(actor:ActorContext){
+ if(!canUseRecruitingEvidenceAi(actor))throw new ApiError(403,'Recruiting management or AI-use permission required.','forbidden');
+ const profile=await safeRecruitingAiProfile(actor);
+ if(!profile||profile.provider==='demo'||!profile.model)throw new ApiError(503,'Recruiting AI model/profile is not available for a live provider test.','ai_governance_required');
+ const started=Date.now();
+ const result:any=await aiJson(
+   profile,
+   `${BOUNDARY}\nLIVE PROVIDER DOCUMENT PROBE. Read the attached PDF and return JSON only: {"ok":true,"documentText":"OPSIQO recruiting provider document probe"}. Do not return any other fields.`,
+   {
+     name:'opsiqo-recruiting-provider-probe.pdf',
+     mimeType:'application/pdf',
+     bytes:Buffer.from(RECRUITING_DOCUMENT_PROBE_PDF_B64,'base64'),
+   },
+ );
+ if(result?.ok!==true||!String(result?.documentText||'').toLowerCase().includes('opsiqo'))throw new ApiError(502,'Recruiting AI provider responded, but document understanding could not be verified.','ai_document_probe_failed');
+ return{
+   ok:true,
+   provider:profile.provider,
+   model:profile.model,
+   promptCode:profile.promptCode||null,
+   promptVersion:profile.promptVersion||0,
+   documentInput:true,
+   latencyMs:Math.max(0,Date.now()-started),
+   checkedAt:new Date().toISOString(),
+ };
+}
+
 export async function governedResumeParse(actor:ActorContext,input:{name:string;mimeType:string;bytes:Buffer;text:string}){
  if(!canUseRecruitingEvidenceAi(actor))return null;
  const profile=await safeRecruitingAiProfile(actor);if(!profile||profile.provider==='demo'||!profile.model)return null;

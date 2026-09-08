@@ -78,10 +78,17 @@ describe("H50.6D recruiting document AI parser assurance", () => {
     expect(historical).toContain("toBeGreaterThanOrEqual");
   });
 
-  it("publishes H50.6D runtime identity", () => {
+  it("preserves H50.6D-or-later runtime lineage", () => {
     const identity = read("src/lib/release/identity.ts");
-    expect(identity).toContain(
-      "OPSIQO_PATCH_RELEASE = process.env.OPSIQO_PATCH_RELEASE || 'H50.6D'",
+    const match = identity.match(
+      /OPSIQO_PATCH_RELEASE = process\.env\.OPSIQO_PATCH_RELEASE \|\| 'H(\d+)\.(\d+)([A-Z]?)'/,
+    );
+    expect(match).not.toBeNull();
+    const major = Number(match?.[1] || 0);
+    const minor = Number(match?.[2] || 0);
+    const letter = match?.[3] ? match[3].charCodeAt(0) - 64 : 0;
+    expect(major * 100000 + minor * 100 + letter).toBeGreaterThanOrEqual(
+      50 * 100000 + 6 * 100 + 4,
     );
   });
 });

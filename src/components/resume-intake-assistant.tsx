@@ -167,10 +167,20 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
       setParsedProfile(null);
       delete form.dataset.resumeIntakeReady;
       delete form.dataset.autoSubmitting;
+      const liveProviderCodes = new Set([
+        "ai_credential_invalid",
+        "ai_model_unavailable",
+        "ai_rate_limited",
+        "ai_provider_unavailable",
+        "ai_provider_error",
+        "ai_document_probe_failed",
+      ]);
       if (e instanceof ApiRequestError && e.code === "recruiting_ai_setup_required") {
-        setError("This resume needs Recruiting AI because it has no reliable readable text layer. Complete Recruiting AI setup or use a text-based PDF/DOCX/TXT/RTF/Markdown file.");
+        setError(`Recruiting AI configuration is not operational. ${e.message}`);
+      } else if (e instanceof ApiRequestError && liveProviderCodes.has(e.code)) {
+        setError(`Recruiting AI live document request failed. ${e.message} Open Recruiting AI governance and run the live document test before retrying this resume.`);
       } else if (e instanceof ApiRequestError && e.code === "resume_parser_unavailable") {
-        setError("This PDF has no reliable text layer. OPSIQO attempted governed AI document recovery but could not produce verified candidate evidence. Check Recruiting AI readiness, then retry; a clean text-based PDF/DOCX/TXT/RTF/Markdown file remains the safest fallback.");
+        setError("This PDF has no reliable text layer and the AI recovery path did not produce usable candidate evidence. Run the live Recruiting AI document test, then retry; a clean text-based PDF/DOCX/TXT/RTF/Markdown file remains the safest fallback.");
       } else {
         setError(e instanceof Error ? e.message : "Resume parsing failed.");
       }

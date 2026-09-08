@@ -26,6 +26,8 @@ export function RecruitingAiGovernanceSetup({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [probeState, setProbeState] = useState<'idle' | 'running' | 'pass' | 'fail'>('idle');
+  const [probeDetail, setProbeDetail] = useState('');
 
   async function createModel() {
     setBusy(true); setError(''); setNotice('');
@@ -59,6 +61,41 @@ export function RecruitingAiGovernanceSetup({
     finally { setBusy(false); }
   }
 
+  async function testLiveRecruitingAi() {
+    setBusy(true);
+    setProbeState('running');
+    setProbeDetail('');
+    setError('');
+    setNotice('');
+    try {
+      const response = await apiFetch<{
+        data: {
+          ok: boolean;
+          provider: string;
+          model: string;
+          documentInput: boolean;
+          latencyMs: number;
+          checkedAt: string;
+        };
+      }>(`/api/organizations/${activeOrgId()}/recruiting/ats/provider-probe`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      setProbeState('pass');
+      setProbeDetail(
+        `${response.data.provider} · ${response.data.model} · PDF document input verified · ${response.data.latencyMs} ms`,
+      );
+      setNotice('Recruiting AI live provider and PDF document understanding are verified for this runtime.');
+    } catch (e) {
+      setProbeState('fail');
+      const message = e instanceof Error ? e.message : 'Live Recruiting AI document verification failed.';
+      setProbeDetail(message);
+      setError(message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function activate(kind: 'model' | 'prompt', id: string) {
     setBusy(true); setError(''); setNotice('');
     try {
@@ -71,11 +108,18 @@ export function RecruitingAiGovernanceSetup({
   }
 
   const ready = Boolean(activeModel?.approvedBy && activePrompt?.activatedBy && activeModel.provider !== 'demo');
+  const readinessLabel = !ready
+    ? 'Setup required'
+    : probeState === 'pass'
+      ? 'Live verified'
+      : probeState === 'fail'
+        ? 'Live test failed'
+        : 'Configured · live test required';
 
   return <section className="card stack" data-opsiqo-recruiting-ai-setup="true">
     <div className="toolbar">
       <div><h2 className="sectionTitle">Recruiting AI setup</h2><p className="muted">Dedicated governed configuration for resume parsing, ATS evidence, and interview-question enhancement.</p></div>
-      <span className="badge">{ready ? 'Ready' : 'Setup required'}</span>
+      <span className="badge">{readinessLabel}</span>
     </div>
     {error && <div className="error" role="alert">{error}</div>}
     {notice && <div className="success" role="status">{notice}</div>}
@@ -84,6 +128,13 @@ export function RecruitingAiGovernanceSetup({
       <div className="notice"><strong>Prompt</strong><div>{activePrompt ? `RECRUITING_ATS v${activePrompt.version} · active` : promptDraft ? `RECRUITING_ATS v${promptDraft.version} · draft` : 'Not configured'}</div></div>
     </div>
     {!ready && <div className="notice">Creating a draft does not enable Recruiting AI. Activation requires an independent authorized approver. Deterministic text-resume parsing and deterministic interview-kit generation remain available where supported.</div>}
+    {ready && <div className="notice">Configuration readiness confirms active governance records and a configured server credential reference. It does not prove that the live provider accepts the credential, model, JSON request, or PDF document input. Run the live document test before relying on remote resume parsing.</div>}
+    {ready && <div className="stack">
+      <button className="button secondary" type="button" disabled={busy} onClick={()=>void testLiveRecruitingAi()}>
+        {probeState === 'running' ? 'Testing live Recruiting AI…' : 'Test live Recruiting AI document parser'}
+      </button>
+      {probeDetail && <div className={probeState === 'pass' ? 'success' : 'notice'}>{probeDetail}</div>}
+    </div>}
     {canManage && !activeModel && !modelDraft && <div className="stack"><h3>Create Recruiting ATS model draft</h3><div className="row wrap"><select className="input" value={provider} onChange={(e)=>setProvider(e.target.value as 'openai'|'gemini')}><option value="openai">OpenAI</option><option value="gemini">Gemini</option></select><input className="input" value={model} onChange={(e)=>setModel(e.target.value)} placeholder="Approved model ID" /></div><button className="button" type="button" disabled={busy || model.trim().length < 2} onClick={()=>void createModel()}>Create model draft</button></div>}
     {canManage && !activePrompt && !promptDraft && <button className="button secondary" type="button" disabled={busy} onClick={()=>void createPrompt()}>Create Recruiting ATS prompt draft</button>}
     {canApprove && modelDraft && <button className="button" type="button" disabled={busy} onClick={()=>void activate('model', modelDraft.id)}>Activate model draft</button>}
