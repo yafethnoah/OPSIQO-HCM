@@ -12,6 +12,7 @@ import { buildDomainEvent } from '@/lib/events/build';
 import { isDirectReport } from '@/lib/hr/service';
 import { breakActionSchema, expenseActionSchema, expenseClaimSchema, shiftActionSchema, shiftSchema, workLocationSchema } from './frontline-schemas';
 import { exactMinutesBetween, exactWorkedMinutes } from './precision';
+import { normalizeAttendanceActivityRange, type AttendanceActivityRangeInput } from './attendance-activity';
 
 const now=()=>new Date().toISOString();
 const hrRoles=new Set(['super_admin','org_admin','hr_admin','hr_partner']);
@@ -93,29 +94,176 @@ export async function liveAttendance(actor:ActorContext){
   return{generatedAt,working:rows.filter(x=>x.breakState==='working'),onBreak:rows.filter(x=>x.breakState==='on_break'),count:rows.length};
 }
 
-export async function attendanceActivity(actor:ActorContext,limit=100){
+export type AttendanceActivityOptions=AttendanceActivityRangeInput&{limit?:number};
+
+export async function attendanceActivity(actor:ActorContext,options:AttendanceActivityOptions={}){
   if(!actor.permissions.includes('time.read'))throw new ApiError(403,'Time read permission required.','forbidden');
-  const safeLimit=Math.max(1,Math.min(limit,200)),db=adminDb();
-  const [entrySnap,auditSnap,locations]=await Promise.all([
-    db.collection(`organizations/${actor.orgId}/timeEntries`).orderBy('updatedAt','desc').limit(Math.min(300,Math.max(100,safeLimit*2))).get(),
-    db.collection(`organizations/${actor.orgId}/auditLogs`).orderBy('createdAt','desc').limit(500).get(),
+
+  let range;
+  try{
+    range=normalizeAttendanceActivityRange(options);
+  }catch(e){
+    const reason=e instanceof Error?e.message:'invalid_range';
+    const message=reason==='range_too_large'
+      ?'Attendance history is limited to 366 days per request. Choose a shorter period.'
+      :'A valid attendance date range and timezone are required.';
+    throw new ApiError(400,message,'invalid_attendance_activity_range');
+  }
+
+  const safeLimit=Math.max(1,Math.min(Number(options.limit||500),10000));
+  const entryLimit=Math.min(10000,Math.max(100,safeLimit));
+  const db=adminDb();
+  const entriesRef=db.collection(`organizations/${actor.orgId}/timeEntries`);
+
+  const [startSnap,endSnap,locations]=await Promise.all([
+    entriesRef
+      .where('startAt','>=',range.startIso)
+      .where('startAt','<',range.endExclusiveIso)
+      .orderBy('startAt','desc')
+      .limit(entryLimit)
+      .get(),
+    entriesRef
+      .where('endAt','>=',range.startIso)
+      .where('endAt','<',range.endExclusiveIso)
+      .orderBy('endAt','desc')
+      .limit(entryLimit)
+      .get(),
     listWorkLocations(actor),
   ]);
-  const locationMap=Object.fromEntries(locations.map(x=>[x.id,x.name]));
-  const auditByEvent=new Map<string,string>();
-  for(const doc of auditSnap.docs){const a=doc.data() as {id?:string;action?:string;entityId?:string};if(!a.entityId||!a.action)continue;const key=`${a.action}:${a.entityId}`;if(!auditByEvent.has(key))auditByEvent.set(key,a.id||doc.id);}
-  const events:Array<Record<string,unknown>>=[];
-  for(const doc of entrySnap.docs){
-    const e=doc.data() as TimeEntry;
-    if(!await canReadWorker(actor,e.workerId))continue;
-    const w=await getWorker(actor.orgId,e.workerId),startLocationId=e.startEvidence?.locationId,endLocationId=e.endEvidence?.locationId;
-    events.push({id:`${e.id}:clock_in`,entryId:e.id,workerId:e.workerId,workerName:w.displayName,employeeNumber:w.employeeNumber||'',eventType:e.source==='manual'?'manual_entry':'clock_in',eventAt:e.startAt,source:e.source,locationId:startLocationId||null,locationName:startLocationId?locationMap[startLocationId]||startLocationId:null,deviceVerification:e.startEvidence?.deviceVerification||'none',integrityRisk:e.startEvidence?.integrityRisk||'none',auditRef:auditByEvent.get(`${e.source==='manual'?'time_entry.manual_create':'time.clock_in'}:${e.id}`)||null});
-    if(e.endAt)events.push({id:`${e.id}:clock_out`,entryId:e.id,workerId:e.workerId,workerName:w.displayName,employeeNumber:w.employeeNumber||'',eventType:e.source==='manual'?'manual_entry_complete':'clock_out',eventAt:e.endAt,source:e.source,actualMinutes:exactWorkedMinutes(e.startAt,e.endAt,e.breakMinutes||0),locationId:endLocationId||null,locationName:endLocationId?locationMap[endLocationId]||endLocationId:null,deviceVerification:e.endEvidence?.deviceVerification||'none',integrityRisk:e.endEvidence?.integrityRisk||'none',auditRef:auditByEvent.get(`${e.source==='manual'?'time_entry.manual_create':'time.clock_out'}:${e.id}`)||null});
+
+  const entryMap=new Map<string,TimeEntry>();
+  for(const doc of [...startSnap.docs,...endSnap.docs]){
+    const row=doc.data() as TimeEntry;
+    entryMap.set(row.id,row);
   }
-  events.sort((a,b)=>String(b.eventAt).localeCompare(String(a.eventAt)));
-  return{generatedAt:now(),events:events.slice(0,safeLimit)};
+
+  const visibleEntries:TimeEntry[]=[];
+  const workerMap=new Map<string,Worker>();
+  for(const e of entryMap.values()){
+    if(!await canReadWorker(actor,e.workerId))continue;
+    if(!workerMap.has(e.workerId))workerMap.set(e.workerId,await getWorker(actor.orgId,e.workerId));
+    visibleEntries.push(e);
+  }
+
+  const auditByEvent=new Map<string,string>();
+  const entryIds=visibleEntries.map(e=>e.id);
+  for(let i=0;i<entryIds.length;i+=30){
+    const chunk=entryIds.slice(i,i+30);
+    if(!chunk.length)continue;
+    const snap=await db.collection(`organizations/${actor.orgId}/auditLogs`)
+      .where('entityId','in',chunk)
+      .limit(Math.max(60,chunk.length*4))
+      .get();
+    for(const doc of snap.docs){
+      const a=doc.data() as {id?:string;action?:string;entityId?:string};
+      if(!a.entityId||!a.action)continue;
+      const key=`${a.action}:${a.entityId}`;
+      if(!auditByEvent.has(key))auditByEvent.set(key,a.id||doc.id);
+    }
+  }
+
+  const locationMap=Object.fromEntries(locations.map(x=>[x.id,x.name]));
+  const events:Array<Record<string,unknown>>=[];
+
+  for(const e of visibleEntries){
+    const w=workerMap.get(e.workerId);
+    if(!w)continue;
+    const startLocationId=e.startEvidence?.locationId;
+    const endLocationId=e.endEvidence?.locationId;
+
+    if(e.startAt>=range.startIso&&e.startAt<range.endExclusiveIso){
+      events.push({
+        id:`${e.id}:clock_in`,
+        entryId:e.id,
+        workerId:e.workerId,
+        workerName:w.displayName,
+        employeeNumber:w.employeeNumber||'',
+        eventType:e.source==='manual'?'manual_entry':'clock_in',
+        eventAt:e.startAt,
+        source:e.source,
+        locationId:startLocationId||null,
+        locationName:startLocationId?locationMap[startLocationId]||startLocationId:null,
+        deviceVerification:e.startEvidence?.deviceVerification||'none',
+        integrityRisk:e.startEvidence?.integrityRisk||'none',
+        auditRef:auditByEvent.get(`${e.source==='manual'?'time_entry.manual_create':'time.clock_in'}:${e.id}`)||null,
+      });
+    }
+
+    if(e.endAt&&e.endAt>=range.startIso&&e.endAt<range.endExclusiveIso){
+      events.push({
+        id:`${e.id}:clock_out`,
+        entryId:e.id,
+        workerId:e.workerId,
+        workerName:w.displayName,
+        employeeNumber:w.employeeNumber||'',
+        eventType:e.source==='manual'?'manual_entry_complete':'clock_out',
+        eventAt:e.endAt,
+        source:e.source,
+        actualMinutes:exactWorkedMinutes(e.startAt,e.endAt,e.breakMinutes||0),
+        locationId:endLocationId||null,
+        locationName:endLocationId?locationMap[endLocationId]||endLocationId:null,
+        deviceVerification:e.endEvidence?.deviceVerification||'none',
+        integrityRisk:e.endEvidence?.integrityRisk||'none',
+        auditRef:auditByEvent.get(`${e.source==='manual'?'time_entry.manual_create':'time.clock_out'}:${e.id}`)||null,
+      });
+    }
+  }
+
+  const bounded=events.filter(event=>{
+    const eventAt=String(event.eventAt||'');
+    return eventAt>=range.startIso&&eventAt<range.endExclusiveIso;
+  });
+  bounded.sort((a,b)=>String(b.eventAt).localeCompare(String(a.eventAt)));
+
+  const truncated=bounded.length>safeLimit||startSnap.size>=entryLimit||endSnap.size>=entryLimit;
+  return{
+    generatedAt:now(),
+    range:{from:range.from,to:range.to,timeZone:range.timeZone,mode:range.mode},
+    events:bounded.slice(0,safeLimit),
+    truncated,
+  };
 }
 
+function attendanceCsvCell(value:unknown){
+  const text=String(value??'');
+  return /[",\n\r]/.test(text)?`"${text.replaceAll('"','""')}"`:text;
+}
+
+export async function exportAttendanceActivityCsv(actor:ActorContext,options:AttendanceActivityOptions={}){
+  const result=await attendanceActivity(actor,{...options,limit:10000});
+  if(result.truncated)throw new ApiError(
+    409,
+    'The selected attendance period contains too many events for one export. Choose a shorter date range.',
+    'attendance_export_range_too_large',
+  );
+
+  const header=[
+    'Event ID','Employee','Employee number','Worker ID','Event','Timestamp',
+    'Actual minutes','Source','Location','Device verification','Integrity risk','Audit reference',
+  ];
+  const rows=result.events.map(event=>[
+    event.id,event.workerName,event.employeeNumber,event.workerId,event.eventType,event.eventAt,
+    event.actualMinutes??'',event.source,event.locationName??'',event.deviceVerification??'',
+    event.integrityRisk??'',event.auditRef??'',
+  ]);
+  const csv=[header,...rows].map(row=>row.map(attendanceCsvCell).join(',')).join('\r\n')+'\r\n';
+
+  const range=result.range;
+  const audit=buildAudit(actor,{
+    action:'time.attendance_activity.export',
+    entityType:'attendanceActivityExport',
+    entityId:`${range.from}:${range.to}`,
+    after:{
+      periodStart:range.from,
+      periodEnd:range.to,
+      timeZone:range.timeZone,
+      rowCount:rows.length,
+    },
+  });
+  await adminDb().doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`).create(audit);
+
+  return{csv,rowCount:rows.length,range};
+}
 
 function validAttendanceImage(bytes:Buffer,type:string){if(type==='image/png')return bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]));if(type==='image/jpeg')return bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff;return false;}
 export async function uploadAttendancePhoto(actor:ActorContext,form:FormData){if(!actor.workerId)throw new ApiError(409,'Membership is not linked to an employee.','worker_link_required');const file=form.get('file');if(!(file instanceof File))throw new ApiError(400,'Attendance photo is required.','file_required');if(file.size<=0||file.size>5*1024*1024)throw new ApiError(400,'Attendance photo must be between 1 byte and 5 MB.','invalid_file_size');if(!['image/jpeg','image/png'].includes(file.type))throw new ApiError(400,'Attendance photo must be JPG or PNG.','unsupported_file_type');const bytes=Buffer.from(await file.arrayBuffer());if(!validAttendanceImage(bytes,file.type))throw new ApiError(400,'Attendance photo signature does not match its declared type.','file_signature_mismatch');const id=randomUUID(),timestamp=now(),safe=file.name.replace(/[^A-Za-z0-9._-]/g,'_').slice(-120),storagePath=`organizations/${actor.orgId}/attendance-evidence/${actor.workerId}/${id}-${safe}`,digest=sha(bytes);await adminBucket().file(storagePath).save(bytes,{resumable:false,contentType:file.type,metadata:{cacheControl:'private,max-age=0,no-store',metadata:{orgId:actor.orgId,workerId:actor.workerId,evidenceId:id}}});const row={id,workerId:actor.workerId,fileName:safe,contentType:file.type,size:file.size,storagePath,sha256:digest,status:'pending',capturedAt:timestamp,createdAt:timestamp,updatedAt:timestamp};const db=adminDb(),audit=buildAudit(actor,{action:'time.attendance_photo.capture',entityType:'attendancePhotoEvidence',entityId:id,after:{...row,storagePath:'[protected]'}}),b=db.batch();b.create(db.doc(`organizations/${actor.orgId}/attendancePhotoEvidence/${id}`),row);b.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);await b.commit();return{id,capturedAt:timestamp,fileName:safe};}

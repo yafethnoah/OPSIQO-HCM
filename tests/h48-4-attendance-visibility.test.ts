@@ -59,6 +59,6 @@ describe('H48.4 attendance visibility and timestamp consistency',()=>{
     expect(ui).toContain('formatTimestampToSecond');
     expect(timeUi()).toContain('formatTimestampToSecond(e.startAt)');
     expect(route()).toContain("requirePermission(actor,'time.read')");
-    expect(route()).toContain('attendanceActivity(actor,limit)');
+    expect(route()).toMatch(/attendanceActivity\(actor,(?:limit|input)\)/);
   });
 });
