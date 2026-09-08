@@ -84,10 +84,14 @@ describe("H50.6E Recruiting AI live provider verification", () => {
     expect(historical).toContain("toBeGreaterThanOrEqual");
   });
 
-  it("publishes H50.6E runtime identity", () => {
+  it("publishes H50.6E or a later lettered successor runtime identity", () => {
     const identity = read("src/lib/release/identity.ts");
-    expect(identity).toContain(
-      "OPSIQO_PATCH_RELEASE = process.env.OPSIQO_PATCH_RELEASE || 'H50.6E'",
+    const match = identity.match(
+      /OPSIQO_PATCH_RELEASE = process\.env\.OPSIQO_PATCH_RELEASE \|\| 'H50\.6([A-Z])'/,
+    );
+    expect(match).not.toBeNull();
+    expect(match![1]!.charCodeAt(0)).toBeGreaterThanOrEqual(
+      "E".charCodeAt(0),
     );
   });
 });
