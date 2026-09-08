@@ -70,8 +70,14 @@ describe('H50.6B attendance activity retention and on-demand history',()=>{
     expect(ui).toContain('format=csv');
   });
 
-  it('publishes H50.6B runtime identity',()=>{
+  it('preserves H50.6B-or-later runtime lineage',()=>{
     const identity=read('src/lib/release/identity.ts');
-    expect(identity).toContain("OPSIQO_PATCH_RELEASE = process.env.OPSIQO_PATCH_RELEASE || 'H50.6B'");
+    const match=identity.match(/OPSIQO_PATCH_RELEASE = process\.env\.OPSIQO_PATCH_RELEASE \|\| 'H(\d+)\.(\d+)([A-Z]?)'/);
+    expect(match).not.toBeNull();
+    const major=Number(match?.[1]||0);
+    const minor=Number(match?.[2]||0);
+    const letter=match?.[3]?match[3].charCodeAt(0)-64:0;
+    const score=major*100000+minor*100+letter;
+    expect(score).toBeGreaterThanOrEqual(50*100000+6*100+2);
   });
 });

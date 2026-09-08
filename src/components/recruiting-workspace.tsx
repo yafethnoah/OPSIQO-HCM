@@ -103,6 +103,8 @@ const manualTransitions: Record<string, string[]> = {
   withdrawn: [],
 };
 
+const CREATE_NEW_POSITION_VALUE = "__create_new_position__";
+
 export function RecruitingWorkspace() {
   const translationRoot = useRef<HTMLDivElement>(null);
   useLegacySurfaceTranslation("recruiting", translationRoot);
@@ -119,6 +121,17 @@ export function RecruitingWorkspace() {
   const [preferredInterviewId, setPreferredInterviewId] = useState("");
   const [reqUnitId, setReqUnitId] = useState(""),
     [reqPositionId, setReqPositionId] = useState("");
+  const [newPositionOpen, setNewPositionOpen] = useState(false),
+    [newPositionBusy, setNewPositionBusy] = useState(false),
+    [newPositionTitle, setNewPositionTitle] = useState(""),
+    [newPositionCode, setNewPositionCode] = useState(""),
+    [newPositionStatus, setNewPositionStatus] = useState("open"),
+    [newPositionFte, setNewPositionFte] = useState("1"),
+    [newPositionHeadcount, setNewPositionHeadcount] = useState("1"),
+    [newPositionLocation, setNewPositionLocation] = useState(""),
+    [newPositionJobFamily, setNewPositionJobFamily] = useState(""),
+    [newPositionGrade, setNewPositionGrade] = useState(""),
+    [newPositionReportsTo, setNewPositionReportsTo] = useState("");
   const [disposition, setDisposition] = useState<{
     applicationId: string;
     candidateName: string;
@@ -191,6 +204,7 @@ export function RecruitingWorkspace() {
     const onOrg = () => {
       setReqUnitId("");
       setReqPositionId("");
+      resetNewPositionDraft();
       void load();
     };
     window.addEventListener("opsiqo:organization-changed", onOrg);
@@ -225,10 +239,181 @@ export function RecruitingWorkspace() {
       return false;
     }
   };
+  function resetNewPositionDraft() {
+    setNewPositionOpen(false);
+    setNewPositionBusy(false);
+    setNewPositionTitle("");
+    setNewPositionCode("");
+    setNewPositionStatus("open");
+    setNewPositionFte("1");
+    setNewPositionHeadcount("1");
+    setNewPositionLocation("");
+    setNewPositionJobFamily("");
+    setNewPositionGrade("");
+    setNewPositionReportsTo("");
+  }
+
+  function suggestPositionCode(title: string) {
+    const slug =
+      title
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "") || "POSITION";
+    const stem = `POS-${slug}`.slice(0, 40).replace(/-+$/g, "");
+    const used = new Set(
+      positions.map((position) => position.positionCode.trim().toUpperCase()),
+    );
+    if (!used.has(stem)) return stem;
+    for (let sequence = 2; sequence <= 999; sequence += 1) {
+      const suffix = `-${String(sequence).padStart(3, "0")}`;
+      const candidate = `${stem.slice(0, 40 - suffix.length)}${suffix}`;
+      if (!used.has(candidate)) return candidate;
+    }
+    return `POS-${Date.now().toString(36).toUpperCase()}`.slice(0, 40);
+  }
+
+  function startNewPositionFromRequisition() {
+    if (!can("positions.manage")) {
+      setError(
+        "You need Position Management permission to create a new position.",
+      );
+      setReqPositionId("");
+      return;
+    }
+    if (!reqUnitId) {
+      setError("Select an organization unit before creating a position.");
+      setReqPositionId("");
+      return;
+    }
+    const form = document.getElementById(
+      "requisition-create-form",
+    ) as HTMLFormElement | null;
+    if (!form) {
+      setError("The requisition form is unavailable.");
+      setReqPositionId("");
+      return;
+    }
+    const values = new FormData(form);
+    const title = String(values.get("title") || "").trim();
+    const location = String(values.get("location") || "").trim();
+    const requestedHeadcount = Math.max(
+      1,
+      Math.min(100, Math.trunc(Number(values.get("headcount") || 1) || 1)),
+    );
+
+    setNewPositionTitle(title);
+    setNewPositionCode(suggestPositionCode(title));
+    setNewPositionStatus("open");
+    setNewPositionFte("1");
+    setNewPositionHeadcount(String(requestedHeadcount));
+    setNewPositionLocation(location);
+    setNewPositionJobFamily("");
+    setNewPositionGrade("");
+    setNewPositionReportsTo("");
+    setReqPositionId(CREATE_NEW_POSITION_VALUE);
+    setNewPositionOpen(true);
+    setError("");
+    setNotice(
+      title
+        ? "Review the new position details, then create and select it."
+        : "Enter the new position title, then create and select it.",
+    );
+  }
+
+  async function createNewPositionFromRequisition() {
+    setError("");
+    setNotice("");
+    if (!can("positions.manage")) {
+      setError(
+        "You need Position Management permission to create a new position.",
+      );
+      return;
+    }
+    if (!reqUnitId) {
+      setError("Select an organization unit before creating a position.");
+      return;
+    }
+
+    const title = newPositionTitle.trim();
+    const positionCode = newPositionCode.trim().toUpperCase();
+    if (!title) {
+      setError("Position title is required.");
+      return;
+    }
+    if (!positionCode) {
+      setError("Position code is required.");
+      return;
+    }
+    if (
+      positions.some(
+        (position) =>
+          position.positionCode.trim().toUpperCase() === positionCode,
+      )
+    ) {
+      setError(
+        "That position code already exists. Use a different code before creating the position.",
+      );
+      return;
+    }
+
+    const fte = Math.max(0, Math.min(2, Number(newPositionFte) || 1));
+    const headcountLimit = Math.max(
+      1,
+      Math.min(100, Math.trunc(Number(newPositionHeadcount) || 1)),
+    );
+
+    setNewPositionBusy(true);
+    try {
+      const response = await apiFetch<{ data: Position }>(
+        `/api/organizations/${activeOrgId()}/positions`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            positionCode,
+            title,
+            orgUnitId: reqUnitId,
+            reportsToPositionId: newPositionReportsTo || undefined,
+            status: newPositionStatus,
+            fte,
+            headcountLimit,
+            location: newPositionLocation.trim() || undefined,
+            jobFamily: newPositionJobFamily.trim() || undefined,
+            grade: newPositionGrade.trim() || undefined,
+          }),
+        },
+      );
+      const created = response.data;
+      setPositions((current) =>
+        [...current.filter((position) => position.id !== created.id), created].sort(
+          (left, right) =>
+            left.title.localeCompare(right.title) ||
+            left.positionCode.localeCompare(right.positionCode),
+        ),
+      );
+      setReqPositionId(created.id);
+      setNewPositionOpen(false);
+      setNotice(
+        `Position ${created.title} · ${created.positionCode} created and selected. You can now create the requisition.`,
+      );
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Unable to create the new position.",
+      );
+    } finally {
+      setNewPositionBusy(false);
+    }
+  }
+
   async function createReq(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget;
     const f = new FormData(form);
+    if (reqPositionId === CREATE_NEW_POSITION_VALUE) {
+      setError("Create and select the new position before creating the requisition.");
+      return;
+    }
     await submit(
       `/api/organizations/${activeOrgId()}/recruiting/requisitions`,
       "POST",
@@ -251,6 +436,7 @@ export function RecruitingWorkspace() {
     form.reset();
     setReqUnitId("");
     setReqPositionId("");
+    resetNewPositionDraft();
   }
   async function addCandidate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -456,22 +642,45 @@ export function RecruitingWorkspace() {
                   className="input"
                   name="positionId"
                   value={reqPositionId}
-                  onChange={(e) => setReqPositionId(e.target.value)}
-                  disabled={!reqUnitId || requisitionPositions.length === 0}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === CREATE_NEW_POSITION_VALUE) {
+                      startNewPositionFromRequisition();
+                      return;
+                    }
+                    setReqPositionId(value);
+                    setNewPositionOpen(false);
+                  }}
+                  disabled={!reqUnitId}
                 >
                   <option value="">
                     {!reqUnitId
                       ? "Select organization unit first"
                       : requisitionPositions.length
                         ? "Select applicable position"
-                        : "No applicable positions available"}
+                        : can("positions.manage")
+                          ? "No position yet — create one below"
+                          : "No applicable positions available"}
                   </option>
                   {requisitionPositions.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.title} · {p.positionCode}
                     </option>
                   ))}
+                  {reqUnitId && can("positions.manage") && (
+                    <option value={CREATE_NEW_POSITION_VALUE}>
+                      + Create new position from this requisition
+                    </option>
+                  )}
                 </select>
+                {reqUnitId &&
+                  !requisitionPositions.length &&
+                  !can("positions.manage") && (
+                    <span className="muted">
+                      No applicable position exists. Ask a user with Position
+                      Management permission to create one.
+                    </span>
+                  )}
               </label>
               <label className="field">
                 <span>Hiring manager</span>
@@ -523,9 +732,188 @@ export function RecruitingWorkspace() {
               <span>Role description</span>
               <textarea className="input" name="description" rows={6} />
             </label>
+
+            {newPositionOpen && (
+              <div
+                className="card stack"
+                data-h50-6c-new-position="true"
+                role="region"
+                aria-label="Create new position from requisition"
+              >
+                <div className="toolbar">
+                  <div>
+                    <h3 className="sectionTitle">Create new position</h3>
+                    <span className="muted">
+                      Prefilled from this requisition. The new position will be
+                      created first, then selected automatically.
+                    </span>
+                  </div>
+                  <span className="badge">Position Management</span>
+                </div>
+
+                <div className="formGrid">
+                  <label className="field">
+                    <span>Position title</span>
+                    <input
+                      className="input"
+                      value={newPositionTitle}
+                      maxLength={160}
+                      onChange={(e) => {
+                        const title = e.target.value;
+                        setNewPositionTitle(title);
+                        setNewPositionCode(suggestPositionCode(title));
+                      }}
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Position code</span>
+                    <input
+                      className="input"
+                      value={newPositionCode}
+                      maxLength={40}
+                      onChange={(e) =>
+                        setNewPositionCode(
+                          e.target.value
+                            .toUpperCase()
+                            .replace(/[^A-Z0-9-]/g, "-")
+                            .replace(/-+/g, "-")
+                            .slice(0, 40),
+                        )
+                      }
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Status</span>
+                    <select
+                      className="input"
+                      value={newPositionStatus}
+                      onChange={(e) => setNewPositionStatus(e.target.value)}
+                    >
+                      <option value="open">Open</option>
+                      <option value="planned">Planned</option>
+                    </select>
+                  </label>
+
+                  <label className="field">
+                    <span>Headcount limit</span>
+                    <input
+                      className="input"
+                      type="number"
+                      min="1"
+                      max="100"
+                      step="1"
+                      value={newPositionHeadcount}
+                      onChange={(e) => setNewPositionHeadcount(e.target.value)}
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>FTE</span>
+                    <input
+                      className="input"
+                      type="number"
+                      min="0"
+                      max="2"
+                      step="0.05"
+                      value={newPositionFte}
+                      onChange={(e) => setNewPositionFte(e.target.value)}
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Location</span>
+                    <input
+                      className="input"
+                      value={newPositionLocation}
+                      maxLength={160}
+                      onChange={(e) => setNewPositionLocation(e.target.value)}
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Job family · optional</span>
+                    <input
+                      className="input"
+                      value={newPositionJobFamily}
+                      maxLength={120}
+                      onChange={(e) => setNewPositionJobFamily(e.target.value)}
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Grade · optional</span>
+                    <input
+                      className="input"
+                      value={newPositionGrade}
+                      maxLength={40}
+                      onChange={(e) => setNewPositionGrade(e.target.value)}
+                    />
+                  </label>
+
+                  <label className="field">
+                    <span>Reports to position · optional</span>
+                    <select
+                      className="input"
+                      value={newPositionReportsTo}
+                      onChange={(e) => setNewPositionReportsTo(e.target.value)}
+                    >
+                      <option value="">No reporting position selected</option>
+                      {positions
+                        .filter(
+                          (position) =>
+                            !["closed", "frozen"].includes(
+                              String(position.status || "").toLowerCase(),
+                            ),
+                        )
+                        .map((position) => (
+                          <option key={position.id} value={position.id}>
+                            {position.title} · {position.positionCode}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="toolbar">
+                  <button
+                    type="button"
+                    className="button"
+                    disabled={
+                      newPositionBusy ||
+                      !newPositionTitle.trim() ||
+                      !newPositionCode.trim()
+                    }
+                    onClick={() => void createNewPositionFromRequisition()}
+                  >
+                    {newPositionBusy
+                      ? "Creating position…"
+                      : "Create & select position"}
+                  </button>
+                  <button
+                    type="button"
+                    className="secondaryButton"
+                    disabled={newPositionBusy}
+                    onClick={() => {
+                      setReqPositionId("");
+                      resetNewPositionDraft();
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
             <button
               className="button"
-              disabled={!reqUnitId || !reqPositionId || !eligibleWorkers.length}
+              disabled={
+                !reqUnitId ||
+                !reqPositionId ||
+                reqPositionId === CREATE_NEW_POSITION_VALUE ||
+                !eligibleWorkers.length
+              }
             >
               Create draft
             </button>
