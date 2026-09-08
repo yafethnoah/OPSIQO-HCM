@@ -23,7 +23,7 @@ import {
 import { classifyRecruitingDocument, isPlausibleProfessionalHeadline } from "./document-classifier";
 import { applyResumeAssurance, resumeParseCoverage } from "./resume-assurance";
 import { assessStructuredResume, deterministicStructuredResume, mergeStructuredResume } from "./resume-structure";
-import { governedCoverLetterDraft, governedResumeParse } from "./ats-provider";
+import { governedCoverLetterDraft, governedJobDescriptionParse, governedResumeParse } from "./ats-provider";
 import { listRequisitions } from "./service";
 
 const now = () => new Date().toISOString();
@@ -336,6 +336,40 @@ function jobEmploymentTypeFromText(text: string) {
   return "";
 }
 
+
+function uniqueJobValues(values:Array<string|undefined>,limit:number){
+ return [...new Set(values.map(x=>String(x||'').trim()).filter(Boolean))].slice(0,limit);
+}
+function mergeJobDescriptionEvidence(
+ text:string,
+ ai:Awaited<ReturnType<typeof governedJobDescriptionParse>>|null,
+){
+ const evidence=String(ai?.evidenceText||text||'').replace(/\u0000/g,'').trim().slice(0,500000);
+ const deterministic=analyzeJobDescription(evidence);
+ return{
+   title:ai?.title||jobTitleFromText(evidence),
+   location:ai?.location||jobLocationFromText(evidence),
+   employmentType:ai?.employmentType||jobEmploymentTypeFromText(evidence),
+   description:evidence.slice(0,120000),
+   requirements:uniqueJobValues([...(ai?.requirements||[]),...(deterministic.requirements||[])],50),
+   preferredQualifications:uniqueJobValues([...(ai?.preferredQualifications||[]),...(deterministic.preferredQualifications||[])],40),
+   responsibilities:uniqueJobValues([...(ai?.responsibilities||[]),...(deterministic.responsibilities||[])],60),
+   skills:uniqueJobValues([...(ai?.skills||[]),...(deterministic.skills||[])],80),
+   educationSignals:uniqueJobValues([...(ai?.educationSignals||[]),...(deterministic.educationSignals||[])],30),
+   requiredYears:ai?.requiredYears??deterministic.requiredYears,
+   warnings:uniqueJobValues([...(ai?.warnings||[]),...(deterministic.warnings||[])],60),
+   parser:ai?'governed_ai_dual_pass+deterministic':'deterministic',
+   parseTrust:ai?.parseTrust??69,
+   aiVerified:Boolean(ai?.aiVerified),
+   fieldConfidence:ai?.fieldConfidence||{},
+   unresolvedFields:ai?.unresolvedFields||[],
+   parserPasses:ai?.parserPasses||['deterministic_job_description'],
+   provider:ai?.provider,
+   model:ai?.model,
+   promptVersion:ai?.promptVersion,
+ };
+}
+
 export async function parseJobDescriptionIntake(
   actor: ActorContext,
   form: FormData,
@@ -359,23 +393,84 @@ export async function parseJobDescriptionIntake(
   const bytes = Buffer.from(await file.arrayBuffer());
   validateResumeFile(file, bytes);
   const text = textFromResume(file.name, bytes);
-  if (text.trim().length < 80)
+
+  let ai: Awaited<ReturnType<typeof governedJobDescriptionParse>> = null;
+  let aiFailure: unknown = null;
+  try {
+    ai = await governedJobDescriptionParse(actor, {
+      name: file.name,
+      mimeType: mimeFor(file),
+      bytes,
+      text,
+    });
+  } catch (e) {
+    aiFailure = e;
+  }
+
+  if (!text.trim() && !ai?.evidenceText) {
+    const code = aiFailure instanceof ApiError ? aiFailure.code : "";
+    if (
+      ["ai_governance_required", "ai_unavailable", "ai_provider_error"].includes(
+        code,
+      )
+    )
+      throw new ApiError(
+        503,
+        "This job posting has no reliable readable text layer and needs governed Recruiting AI document analysis. Complete Recruiting AI model/prompt approval and server credential setup, then retry.",
+        "recruiting_ai_setup_required",
+      );
     throw new ApiError(
-      400,
-      "No usable job-description text was detected. For scanned PDFs, configure the governed Recruiting AI parser or upload DOCX/TXT/RTF/MD.",
+      422,
+      "OPSIQO could not recover reliable job-posting evidence from this file. No requisition fields were accepted.",
       "job_description_text_unavailable",
     );
-  const analysis = analyzeJobDescription(text);
+  }
+
+  const merged = mergeJobDescriptionEvidence(text, ai);
   return {
     fileName: file.name.replace(/[^A-Za-z0-9._ -]/g, "_").slice(-180),
     sha256: sha(bytes),
-    title: jobTitleFromText(text),
-    location: jobLocationFromText(text),
-    employmentType: jobEmploymentTypeFromText(text),
-    description: text.slice(0, 120000),
-    ...analysis,
+    ...merged,
   };
 }
+
+export async function parseJobDescriptionTextIntake(
+  actor: ActorContext,
+  textInput: string,
+) {
+  if (!(
+    actor.permissions.includes("recruiting.manage" as any) ||
+    actor.permissions.includes("recruiting.manage.team" as any)
+  ))
+    throw new ApiError(
+      403,
+      "Recruiting management permission required.",
+      "forbidden",
+    );
+
+  const text = String(textInput || "").replace(/\u0000/g, "").trim().slice(0, 120000);
+  if (text.length < 80)
+    throw new ApiError(
+      400,
+      "Job description must be between 80 and 120,000 characters.",
+      "invalid_job_description",
+    );
+
+  let ai: Awaited<ReturnType<typeof governedJobDescriptionParse>> = null;
+  try {
+    ai = await governedJobDescriptionParse(actor, {
+      name: "entered-job-description.txt",
+      mimeType: "text/plain",
+      bytes: Buffer.from(text, "utf8"),
+      text,
+    });
+  } catch {
+    ai = null;
+  }
+
+  return mergeJobDescriptionEvidence(text, ai);
+}
+
 
 export async function reviewApplicationResume(
   actor: ActorContext,

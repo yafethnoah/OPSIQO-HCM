@@ -69,10 +69,17 @@ describe("H50.6C recruiting new-position workflow", () => {
     }
   });
 
-  it("publishes H50.6C release identity", () => {
+  it("preserves H50.6C-or-later release lineage", () => {
     const identity = read("src/lib/release/identity.ts");
-    expect(identity).toContain(
-      "OPSIQO_PATCH_RELEASE = process.env.OPSIQO_PATCH_RELEASE || 'H50.6C'",
+    const match = identity.match(
+      /OPSIQO_PATCH_RELEASE = process\.env\.OPSIQO_PATCH_RELEASE \|\| 'H(\d+)\.(\d+)([A-Z]?)'/,
+    );
+    expect(match).not.toBeNull();
+    const major = Number(match?.[1] || 0);
+    const minor = Number(match?.[2] || 0);
+    const letter = match?.[3] ? match[3].charCodeAt(0) - 64 : 0;
+    expect(major * 100000 + minor * 100 + letter).toBeGreaterThanOrEqual(
+      50 * 100000 + 6 * 100 + 3,
     );
   });
 });

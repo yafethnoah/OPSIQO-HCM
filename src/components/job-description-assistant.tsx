@@ -12,6 +12,11 @@ type ParsedJd = {
   skills: string[];
   requiredYears?: number;
   warnings: string[];
+  parser?: string;
+  parseTrust?: number;
+  aiVerified?: boolean;
+  unresolvedFields?: string[];
+  parserPasses?: string[];
 };
 
 function setValue(form: HTMLFormElement, name: string, value: string) {
@@ -70,7 +75,7 @@ export function JobDescriptionAssistant({ formId }: { formId: string }) {
       );
       apply(form, r.data);
       setMessage(
-        `Job description parsed. Prefilled the supported fields and ${r.data.requirements.length} requirement(s). Select the organization unit, position and hiring manager, then review before creating the draft.${r.data.warnings[0] ? ` ${r.data.warnings[0]}` : ""}`,
+        `${r.data.aiVerified ? "Governed AI + deterministic verification" : "Deterministic evidence parsing"} completed${r.data.parseTrust == null ? "" : ` at ${r.data.parseTrust}% machine evidence confidence`}. Prefilled the supported fields and ${r.data.requirements.length} requirement(s). Select the organization unit, position and hiring manager, then review before creating the draft.${r.data.warnings[0] ? ` ${r.data.warnings[0]}` : ""}`,
       );
     } catch (e) {
       setMessage(
@@ -100,7 +105,7 @@ export function JobDescriptionAssistant({ formId }: { formId: string }) {
       );
       apply(form, { ...r.data, description: desc.value });
       setMessage(
-        `Detected ${r.data.requirements.length} job-related requirement(s) and ${r.data.skills.length} role signals. Review the extracted criteria before creating the requisition.${r.data.warnings[0] ? ` ${r.data.warnings[0]}` : ""}`,
+        `${r.data.aiVerified ? "Governed AI + deterministic verification" : "Deterministic evidence parsing"} detected ${r.data.requirements.length} job-related requirement(s) and ${r.data.skills.length} role signals${r.data.parseTrust == null ? "" : ` at ${r.data.parseTrust}% machine evidence confidence`}. Review the extracted criteria before creating the requisition.${r.data.warnings[0] ? ` ${r.data.warnings[0]}` : ""}`,
       );
     } catch (e) {
       setMessage(
@@ -116,8 +121,9 @@ export function JobDescriptionAssistant({ formId }: { formId: string }) {
         <div>
           <strong>1. Attach job description to prefill requisition</strong>
           <div className="muted">
-            PDF, DOCX, TXT, RTF or Markdown. Selecting a file immediately parses
-            and prefills the supported requisition fields.
+            PDF, DOCX, TXT, RTF or Markdown. Governed Recruiting AI analyzes the
+            original posting and a deterministic parser independently reconciles
+            the extracted criteria before requisition fields are prefilled.
           </div>
         </div>
         <span className="badge">Human review required</span>

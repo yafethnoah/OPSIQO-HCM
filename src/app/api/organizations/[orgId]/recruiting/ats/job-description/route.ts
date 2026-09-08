@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { actorFromRequest, requirePermission } from "@/lib/auth/session";
 import { apiErrorResponse } from "@/lib/http/errors";
-import { analyzeJobDescription } from "@/lib/recruiting/ats-engine";
-import { parseJobDescriptionIntake } from "@/lib/recruiting/ats-service";
+import {
+  parseJobDescriptionIntake,
+  parseJobDescriptionTextIntake,
+} from "@/lib/recruiting/ats-service";
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ orgId: string }> },
@@ -19,16 +22,12 @@ export async function POST(
       return NextResponse.json({
         data: await parseJobDescriptionIntake(actor, await request.formData()),
       });
+
     const body = await request.json();
     const text = String(body?.text || "").trim();
-    if (text.length < 80 || text.length > 120000)
-      return NextResponse.json(
-        {
-          message: "Job description must be between 80 and 120,000 characters.",
-        },
-        { status: 400 },
-      );
-    return NextResponse.json({ data: analyzeJobDescription(text) });
+    return NextResponse.json({
+      data: await parseJobDescriptionTextIntake(actor, text),
+    });
   } catch (e) {
     return apiErrorResponse(e);
   }

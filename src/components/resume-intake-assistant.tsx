@@ -21,6 +21,10 @@ type Parsed = {
     yearsOfExperience?: number;
     warnings?: string[];
     parseQuality?: number;
+    parseTrust?: number;
+    aiVerified?: boolean;
+    unresolvedFields?: string[];
+    parserPasses?: string[];
     extractionSignals?: string[];
     parser: string;
   };
@@ -140,11 +144,24 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
       setNamedValue(form, "resumeText", r.data.resumeText);
       setNamedValue(form, "source", "Resume import");
       selectSingleOpenRequisition(form);
-      form.dataset.resumeIntakeReady = "true";
-      setNotice(
-        `Resume parsed with ${p.parser.replaceAll("_", " ")}. Candidate fields were prefilled. Review the extracted data; when an open requisition is selected and consent is confirmed, OPSIQO creates the application automatically.`,
+      const unresolved = p.unresolvedFields?.length || 0;
+      const autoReady = Boolean(
+        p.aiVerified &&
+          (p.parseTrust ?? 0) >= 90 &&
+          unresolved === 0,
       );
-      queueMicrotask(() => tryAutoEnroll(form));
+      if (autoReady) {
+        form.dataset.resumeIntakeReady = "true";
+        setNotice(
+          `Resume parsed with governed AI plus deterministic evidence verification at ${p.parseTrust}% machine evidence confidence. Candidate fields were prefilled. Review the extracted data; when an open requisition is selected and consent is confirmed, OPSIQO can create the application automatically.`,
+        );
+        queueMicrotask(() => tryAutoEnroll(form));
+      } else {
+        delete form.dataset.resumeIntakeReady;
+        setNotice(
+          `Resume parsed as a review draft${p.parseTrust == null ? "" : ` at ${p.parseTrust}% machine evidence confidence`}. Candidate fields were prefilled, but automatic enrollment is paused until the recruiter reviews the extracted evidence${unresolved ? ` and resolves ${unresolved} unresolved field(s)` : ""}.`,
+        );
+      }
     } catch (e) {
       clearParsedValues(form);
       setParsedProfile(null);
@@ -153,7 +170,7 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
       if (e instanceof ApiRequestError && e.code === "recruiting_ai_setup_required") {
         setError("This resume needs Recruiting AI because it has no reliable readable text layer. Complete Recruiting AI setup or use a text-based PDF/DOCX/TXT/RTF/Markdown file.");
       } else if (e instanceof ApiRequestError && e.code === "resume_parser_unavailable") {
-        setError("This PDF could not be read safely because its text layer appears corrupted or binary-like. Export a clean text-based PDF or upload DOCX/TXT/RTF/Markdown instead.");
+        setError("This PDF has no reliable text layer. OPSIQO attempted governed AI document recovery but could not produce verified candidate evidence. Check Recruiting AI readiness, then retry; a clean text-based PDF/DOCX/TXT/RTF/Markdown file remains the safest fallback.");
       } else {
         setError(e instanceof Error ? e.message : "Resume parsing failed.");
       }
@@ -167,9 +184,10 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
         <div>
           <strong>1. Attach resume to prefill candidate</strong>
           <div className="muted">
-            PDF, DOCX, TXT, RTF or Markdown. Selecting a file immediately parses
-            and prefills the candidate form. Data remains transient until
-            the recruiter reviews the fields and confirms recorded candidate consent.
+            PDF, DOCX, TXT, RTF or Markdown. Governed Recruiting AI analyzes the
+            original document when available, while deterministic evidence checks
+            independently reconcile the extracted fields. Data remains transient
+            until the recruiter reviews the fields and confirms recorded candidate consent.
           </div>
         </div>
         <span className="badge">Auto-enrollment · human reviewed</span>
@@ -213,10 +231,11 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
               <strong>Parsing evidence summary</strong>
               <div className="muted">Parse quality measures extraction confidence and completeness, not candidate suitability.</div>
             </div>
-            <span className="badge">{parsedProfile.parseQuality == null ? "Quality not assessed" : `${parsedProfile.parseQuality}% parse quality`}</span>
+            <span className="badge">{parsedProfile.parseTrust == null ? "Evidence confidence not assessed" : `${parsedProfile.parseTrust}% machine evidence confidence`}</span>
           </div>
           <div className="grid4">
             <ParsingMetric label="Parser" value={parsedProfile.parser.replaceAll("_", " ")} />
+            <ParsingMetric label="AI verification" value={parsedProfile.aiVerified ? "Governed AI verified" : "Human review required"} />
             <ParsingMetric label="Experience evidence" value={parsedProfile.yearsOfExperience == null ? "Not verified" : `${parsedProfile.yearsOfExperience} years`} />
             <ParsingMetric label="Job titles found" value={String(parsedProfile.jobTitles?.length || 0)} />
             <ParsingMetric label="Employers found" value={String(parsedProfile.employers?.length || 0)} />
@@ -230,7 +249,7 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
               <ul>{parsedProfile.warnings.slice(0, 8).map((warning, index) => <li key={index}>{warning}</li>)}</ul>
             </div>
           ) : null}
-          <div className="muted">All extracted evidence remains transient until the recruiter reviews the candidate fields and confirms recorded candidate consent.</div>
+          <div className="muted">Machine extraction confidence is intentionally never represented as guaranteed 100% accuracy. A 100% verified state is reserved for completed human review of the source evidence. All extracted evidence remains transient until the recruiter reviews the candidate fields and confirms recorded candidate consent.</div>
         </div>
       )}
     </div>
