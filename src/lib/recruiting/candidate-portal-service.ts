@@ -10,6 +10,7 @@ import {buildAudit} from '@/lib/audit/service';
 import {buildDomainEvent} from '@/lib/events/build';
 import {extractRecruitingDocumentFile,parseResumeFile} from './ats-service';
 import {autoScoreStoredApplication,recordAtsAnalysisFailure} from './candidate-fit-service';
+import {deterministicStructuredResume,mergeStructuredResume} from './resume-structure';
 
 const now=()=>new Date().toISOString(),sha=(v:string|Buffer)=>createHash('sha256').update(v).digest('hex');
 const hrRoles=new Set(['super_admin','org_admin','hr_admin','hr_partner']);
@@ -70,25 +71,9 @@ function editableResumeFromProfile(profile:any){
  };
 }
 function structuredResumeFromProfile(profile:any){
- const sr=profile?.structuredResume;
- if(sr)return sr;
  const source=String(profile?.sourceText||'');
- const employmentHistory=(profile?.jobTitles||[]).map((positionTitle:string,index:number)=>({positionTitle,employer:String(profile?.employers?.[index]||''),responsibilities:[]}));
- const educationHistory=(profile?.education||[]).map((degree:string)=>({degree,institution:''}));
- const certifications=(profile?.certifications||[]).map((name:string)=>({name}));
- const lines=(text:string)=>text.split(/\n|;/).map(x=>x.trim()).filter(Boolean);
- return{
-  employmentHistory,
-  educationHistory,
-  skills:profile?.skills||[],
-  certifications,
-  languages:lines(editableSectionText(source,['Languages','Language Skills'])).map(language=>({language})),
-  projects:editableSectionText(source,['Projects','Selected Projects','Key Projects'])?[{name:'Project',description:editableSectionText(source,['Projects','Selected Projects','Key Projects'])}]:[],
-  volunteerExperience:editableSectionText(source,['Volunteer Experience','Volunteering','Community Experience','Community Involvement'])?[{organization:'',description:editableSectionText(source,['Volunteer Experience','Volunteering','Community Experience','Community Involvement'])}]:[],
-  awards:lines(editableSectionText(source,['Awards','Honours','Honors','Achievements'])).map(title=>({title})),
-  publications:lines(editableSectionText(source,['Publications','Presentations'])).map(title=>({title})),
-  additionalInformation:editableSectionText(source,['Additional Information','Professional Affiliations','Memberships','Interests']),
- };
+ const fallback=deterministicStructuredResume(profile);
+ return mergeStructuredResume(profile?.structuredResume,fallback,source);
 }
 function actor(orgId:string,linkId:string):ActorContext{return{uid:`system:candidate-portal:${linkId}`,orgId,role:'employee',permissions:['ai.use'],guest:true}}
 async function reqScope(a:ActorContext,id:string){const s=await adminDb().doc(`organizations/${a.orgId}/requisitions/${id}`).get();if(!s.exists)throw new ApiError(404,'Requisition not found.','requisition_not_found');const r=s.data() as Requisition;if(!hrRoles.has(a.role)&&r.hiringManagerWorkerId!==a.workerId)throw new ApiError(403,'Requisition is outside your recruiting scope.','recruiting_scope');return r}
@@ -137,7 +122,39 @@ export async function enforceCandidatePortalRateLimit(token:string,request:Reque
  const p={context:[120,600000],parse:[12,600000],draft:[30,600000],submit:[6,3600000]}[action],ip=String(request.headers.get('x-forwarded-for')||request.headers.get('x-real-ip')||'unknown').split(',')[0],bucket=Math.floor(Date.now()/p[1]),id=sha(`${token}|${ip}|${request.headers.get('user-agent')||''}|${action}|${bucket}`),ref=adminDb().doc(`publicRecruitingRateLimits/${id}`);
  await adminDb().runTransaction(async tx=>{const s=await tx.get(ref),count=Number(s.data()?.count||0);if(count>=p[0])throw new ApiError(429,'Too many application requests. Please wait and try again.','candidate_portal_rate_limited');tx.set(ref,{count:count+1,action,bucket,expiresAt:new Date((bucket+2)*p[1]),updatedAt:now()},{merge:true})});
 }
-export async function parsePublicCandidateResume(token:string,form:FormData){const x=await resolve(token),file=form.get('file');if(!(file instanceof File))throw new ApiError(400,'Resume file is required.','resume_required');const p=await parseResumeFile(actor(x.orgId,x.link.id),file),structuredResume=structuredResumeFromProfile(p.profile),{sourceText:_,...profile}=p.profile,trust=Number(p.profile.parseTrust??p.profile.parseQuality??0),unresolved=p.profile.unresolvedFields||[];return{profile,structuredResume,sourceMeta:p.sourceMeta,parser:p.profile.parser,documentClassification:p.documentClassification,assurance:{machineTrust:trust,aiVerified:Boolean(p.profile.aiVerified),fieldConfidence:p.profile.fieldConfidence||{},unresolvedFields:unresolved,requiresCandidateReview:true,verifiedStatus:trust>=90&&!unresolved.length?'high_confidence':'review_required'},note:'Resume was parsed into editable structured application fields. AI verification may improve extraction, but the candidate must review and confirm every section before submission.'}}
+export async function parsePublicCandidateResume(token:string,form:FormData){
+ const x=await resolve(token),file=form.get('file');
+ if(!(file instanceof File))throw new ApiError(400,'Resume file is required.','resume_required');
+ const parsed=await parseResumeFile(actor(x.orgId,x.link.id),file);
+ const structuredResume=structuredResumeFromProfile(parsed.profile);
+ const {sourceText:_,...profile}=parsed.profile;
+ const machineTrust=Number(parsed.profile.parseTrust??parsed.profile.parseQuality??0);
+ const unresolvedFields=parsed.profile.unresolvedFields||[];
+ const structuredQuality=Number(parsed.profile.structuredQuality||0);
+ const structuredCoverage=Number(parsed.profile.structuredCoverage||0);
+ const structuredRecordCount=Number(parsed.profile.structuredRecordCount||0);
+ const structuredIssues=[...(parsed.profile.structuredCriticalIssues||[]),...(parsed.profile.structuredIssues||[])].slice(0,40);
+ return{
+  profile,
+  structuredResume,
+  sourceMeta:parsed.sourceMeta,
+  parser:parsed.profile.parser,
+  documentClassification:parsed.documentClassification,
+  assurance:{
+   machineTrust,
+   aiVerified:Boolean(parsed.profile.aiVerified),
+   fieldConfidence:parsed.profile.fieldConfidence||{},
+   unresolvedFields,
+   requiresCandidateReview:true,
+   verifiedStatus:machineTrust>=90&&structuredQuality>=85&&!unresolvedFields.length&&!parsed.profile.structuredCriticalIssues?.length?'high_confidence':'review_required',
+   structuredQuality,
+   structuredCoverage,
+   structuredRecordCount,
+   structuredIssues,
+  },
+  note:'Resume was parsed into editable structured application fields. Employment and education relationships are evidence-checked; the candidate must review and confirm every section before submission.'
+ };
+}
 
 function answers(link:CandidateApplicationLink,a:Record<string,string|number|boolean>){for(const q of link.screeningQuestions||[]){const v=a[q.id],missing=v===undefined||v===null||String(v).trim()==='';if(q.required&&missing)throw new ApiError(400,`Please answer: ${q.label}`,'screening_answer_required');if(q.type==='select'&&!missing&&!(q.options||[]).includes(String(v)))throw new ApiError(400,`Invalid answer: ${q.label}`,'invalid_screening_answer')}}
 async function save(path:string,bytes:Buffer,type:string){await adminBucket().file(path).save(bytes,{resumable:false,metadata:{contentType:type,cacheControl:'private, no-store, max-age=0'}})}

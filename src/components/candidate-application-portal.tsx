@@ -24,7 +24,7 @@ type Context={
   application:{coverLetterRequired:boolean;allowTalentPoolConsent:boolean;screeningQuestions:Q[];closingAt?:string}
 };
 type CustomSection={id:string;title:string;content:string};
-type ParseAssurance={machineTrust:number;aiVerified:boolean;fieldConfidence:Record<string,number>;unresolvedFields:string[];requiresCandidateReview:true;verifiedStatus:'high_confidence'|'review_required'};
+type ParseAssurance={machineTrust:number;aiVerified:boolean;fieldConfidence:Record<string,number>;unresolvedFields:string[];requiresCandidateReview:true;verifiedStatus:'high_confidence'|'review_required';structuredQuality:number;structuredCoverage:number;structuredRecordCount:number;structuredIssues:string[]};
 type Profile={
   firstName:string;lastName:string;email:string;phone:string;location:string;
   linkedinUrl:string;portfolioUrl:string;githubUrl:string;socialMediaUrl:string;
@@ -225,7 +225,9 @@ export function CandidateApplicationPortal({token}:{token:string}){
         {parseNote&&<div className="success">{parseNote}</div>}
         {parseAssurance&&<div className="notice" data-h50-5h-parse-assurance="true">
           <strong>{parseAssurance.aiVerified?'AI-verified parse':'Deterministic draft'} · Machine Parse Trust {parseAssurance.machineTrust}%</strong><br/>
+          <strong>Structured Record Quality {parseAssurance.structuredQuality}% · Coverage {parseAssurance.structuredCoverage}% · {parseAssurance.structuredRecordCount} extracted record(s)</strong><br/>
           {parseAssurance.unresolvedFields.length?`Needs review: ${parseAssurance.unresolvedFields.join(', ')}`:'No machine-detected unresolved fields.'}<br/>
+          {parseAssurance.structuredIssues.length?<span className="muted">Structured review: {parseAssurance.structuredIssues.slice(0,4).join(' · ')}</span>:null}<br/>
           <span className="muted">Machine parse trust is an evidence-backed confidence indicator. Machine parsing is never represented as 100% certain. The application becomes 100% candidate-verified only after you review and confirm the parsed information.</span>
         </div>}
         <button type="button" className="button" disabled={!resume||busy==='parse'} onClick={()=>resume&&void parse(resume)}>{busy==='parse'?'AI parsing & verifying…':'AI parse / retry'}</button>

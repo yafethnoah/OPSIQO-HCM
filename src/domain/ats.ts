@@ -39,6 +39,11 @@ export interface ParsedResumeProfile {
   aiVerified?: boolean;
   parserPasses?: string[];
   structuredResume?: StructuredResumeProfile;
+  structuredQuality?: number;
+  structuredCoverage?: number;
+  structuredRecordCount?: number;
+  structuredIssues?: string[];
+  structuredCriticalIssues?: string[];
 }
 
 export interface AtsEvidenceMatch {

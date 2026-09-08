@@ -22,6 +22,7 @@ import {
 } from "./ats-engine";
 import { classifyRecruitingDocument, isPlausibleProfessionalHeadline } from "./document-classifier";
 import { applyResumeAssurance, resumeParseCoverage } from "./resume-assurance";
+import { assessStructuredResume, deterministicStructuredResume, mergeStructuredResume } from "./resume-structure";
 import { governedCoverLetterDraft, governedResumeParse } from "./ats-provider";
 import { listRequisitions } from "./service";
 
@@ -154,7 +155,7 @@ async function bundle(actor: ActorContext, applicationId: string) {
   };
 }
 
-export async function parseResumeFile(actor: ActorContext, file: File) {
+export async function parseResumeFile(actor: ActorContext, file: File, options: { requireStructuredPrefill?: boolean } = {}) {
   const bytes = Buffer.from(await file.arrayBuffer());
   validateResumeFile(file, bytes);
   const text = textFromResume(file.name, bytes);
@@ -214,12 +215,17 @@ export async function parseResumeFile(actor: ActorContext, file: File) {
       "This resume has no reliable readable text layer. Upload a text-based PDF, DOCX, TXT, RTF or Markdown file, or ask an administrator to complete Recruiting AI setup.",
       "recruiting_ai_setup_required",
     );
+  const deterministicStructure=deterministicStructuredResume(profile);
+  const structuredResume=mergeStructuredResume(profile.structuredResume,deterministicStructure,profile.sourceText||text);
+  profile={...profile,structuredResume};
+  const structuredAssessment=assessStructuredResume(structuredResume,profile.sourceText||text);
+  profile={...profile,structuredQuality:structuredAssessment.quality,structuredCoverage:structuredAssessment.coverage,structuredRecordCount:structuredAssessment.recordCount,structuredIssues:structuredAssessment.issues,structuredCriticalIssues:structuredAssessment.criticalIssues};
   profile = applyResumeAssurance(profile,{fileName:file.name,sourceText:profile.sourceText||text,aiUsed:Boolean(ai?.profile)});
   const coverage=resumeParseCoverage(profile);
-  if(!coverage.meaningful){
+  if(options.requireStructuredPrefill!==false&&!coverage.prefillReady){
     const aiCode=aiFailure instanceof ApiError?aiFailure.code:'';
-    if(aiFailure||!ai?.profile)throw new ApiError(503,aiCode==='ai_governance_required'?'Recruiting AI is not ready for this organization. The resume was not accepted because deterministic parsing did not produce reliable structured fields.':'Recruiting AI could not produce a reliable structured profile from this resume. OPSIQO will not continue with blank candidate fields. Retry parsing, or upload a clean text-based PDF or DOCX.',aiCode==='ai_governance_required'?'recruiting_ai_setup_required':'resume_ai_parse_failed');
-    throw new ApiError(422,'OPSIQO could not extract enough reliable candidate information from this resume. The application was not advanced with blank fields. Please retry or upload a cleaner text-based resume.','resume_parse_insufficient');
+    if(aiFailure||!ai?.profile)throw new ApiError(503,aiCode==='ai_governance_required'?'Recruiting AI is not ready for this organization. Initialize governed AI so RECRUITING_ATS and RECRUITING_ATS_MODEL are active, then retry this resume. The application was not advanced with weak structured fields.':'Recruiting AI could not produce a reliable structured profile from this resume. OPSIQO will not continue with blank candidate fields or semantically weak employment/education records. Retry parsing, or upload a clean text-based PDF or DOCX.',aiCode==='ai_governance_required'?'recruiting_ai_setup_required':'resume_ai_parse_failed');
+    throw new ApiError(422,'OPSIQO could not extract enough reliable candidate information into correctly related resume fields. The application was not advanced with blank or low-quality structured records. Please retry or upload a cleaner text-based resume.','resume_parse_insufficient');
   }
   if (profile.headline && !isPlausibleProfessionalHeadline(profile.headline))
     profile = {
@@ -281,7 +287,7 @@ export async function parseResumeIntake(actor: ActorContext, form: FormData) {
         "requisition_not_open",
       );
   }
-  const parsed = await parseResumeFile(actor, file);
+  const parsed = await parseResumeFile(actor, file, { requireStructuredPrefill: false });
   const { sourceText, ...profile } = parsed.profile;
   return {
     profile,

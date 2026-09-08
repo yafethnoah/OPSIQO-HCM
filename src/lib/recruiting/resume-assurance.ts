@@ -1,4 +1,5 @@
 import type {ParsedResumeProfile} from '@/domain/ats';
+import {assessStructuredResume} from './resume-structure';
 
 const GENERIC_IDENTITY=/^(?:hr|human resources|department|recruiting|recruitment|recruiter|hiring|talent|team|office|admin|administrator|manager|careers?|jobs?)$/i;
 const GENERIC_EMAIL=/^(?:hr|jobs?|careers?|recruit(?:ing|ment)?|talent|info|admin|office|contact|hello|people|humanresources)$/i;
@@ -18,10 +19,20 @@ function filenameNameHint(fileName:string,sourceText:string){
 
 export function resumeParseCoverage(profile:ParsedResumeProfile){
  const sr=profile.structuredResume;
+ const assessment=sr?assessStructuredResume(sr,profile.sourceText||''):{quality:0,coverage:0,recordCount:0,issues:[],criticalIssues:[]};
  const identity=[profile.firstName&&profile.lastName?1:0,profile.email?1:0,profile.phone?1:0,profile.location?1:0,profile.headline?1:0].reduce((a,b)=>a+b,0);
- const structuredCount=(sr?.employmentHistory?.length||0)+(sr?.educationHistory?.length||0)+(sr?.skills?.length||0)+(sr?.certifications?.length||0)+(sr?.languages?.length||0)+(sr?.projects?.length||0)+(sr?.volunteerExperience?.length||0)+(sr?.awards?.length||0)+(sr?.publications?.length||0);
+ const structuredCount=assessment.recordCount;
  const legacyCount=[profile.summary,profile.skills?.length,profile.certifications?.length,profile.education?.length,profile.employers?.length,profile.jobTitles?.length].filter(Boolean).length;
- return{identitySignals:identity,sectionSignals:structuredCount+legacyCount,meaningful:Boolean((identity>=1&&(structuredCount+legacyCount)>=1)||(structuredCount+legacyCount)>=3)};
+ const meaningful=Boolean((identity>=1&&(structuredCount+legacyCount)>=1)||(structuredCount+legacyCount)>=3);
+ const structuredQuality=Number(profile.structuredQuality??assessment.quality);
+ const criticalIssues=profile.structuredCriticalIssues||assessment.criticalIssues;
+ const prefillReady=Boolean(
+   meaningful &&
+   structuredCount>=1 &&
+   structuredQuality>=60 &&
+   criticalIssues.length===0
+ );
+ return{identitySignals:identity,sectionSignals:structuredCount+legacyCount,structuredRecords:structuredCount,structuredQuality,criticalIssues,meaningful,prefillReady};
 }
 
 export function applyResumeAssurance(profile:ParsedResumeProfile,input:{fileName:string;sourceText:string;aiUsed:boolean}){
@@ -70,6 +81,10 @@ export function applyResumeAssurance(profile:ParsedResumeProfile,input:{fileName
      trust=Math.min(trust||100,74);
    }
  }
+
+ const structuredQuality=Number(profile.structuredQuality||0);
+ if(structuredQuality>0&&structuredQuality<75){trust=Math.min(trust||100,structuredQuality);unresolved.add('structuredResume');warnings.push('Structured resume relationships require review because record quality is below the high-confidence threshold.');}
+ for(const issue of profile.structuredCriticalIssues||[]){unresolved.add('structuredResume');warnings.push(issue);}
 
  if(!input.aiUsed){
    trust=Math.min(trust||Number(profile.parseQuality||0),69);
