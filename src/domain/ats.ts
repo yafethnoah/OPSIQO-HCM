@@ -1,3 +1,4 @@
+import type { StructuredResumeProfile } from './structured-resume';
 export type AtsReviewBand = 'strong_alignment' | 'good_alignment' | 'partial_alignment' | 'limited_evidence';
 export type AtsCriterionCategory = 'required_qualification' | 'skill' | 'responsibility' | 'experience' | 'education_certification' | 'document_quality';
 
@@ -37,6 +38,7 @@ export interface ParsedResumeProfile {
   unresolvedFields?: string[];
   aiVerified?: boolean;
   parserPasses?: string[];
+  structuredResume?: StructuredResumeProfile;
 }
 
 export interface AtsEvidenceMatch {

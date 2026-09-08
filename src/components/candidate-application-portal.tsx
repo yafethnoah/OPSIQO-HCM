@@ -5,6 +5,17 @@ import type {ReactNode} from 'react';
 import {firebaseAppCheck} from '@/lib/firebase/client';
 import {getToken as getAppCheckToken} from 'firebase/app-check';
 import {LoadingState} from '@/components/data-states';
+import type {
+  StructuredResumeProfile,
+  ResumeEmploymentEntry,
+  ResumeEducationEntry,
+  ResumeCertificationEntry,
+  ResumeLanguageEntry,
+  ResumeProjectEntry,
+  ResumeVolunteerEntry,
+  ResumeAwardEntry,
+  ResumePublicationEntry,
+} from '@/domain/structured-resume';
 
 type Q={id:string;label:string;type:'yes_no'|'text'|'number'|'select';required:boolean;options?:string[]};
 type Context={
@@ -13,32 +24,22 @@ type Context={
   application:{coverLetterRequired:boolean;allowTalentPoolConsent:boolean;screeningQuestions:Q[];closingAt?:string}
 };
 type CustomSection={id:string;title:string;content:string};
+type ParseAssurance={machineTrust:number;aiVerified:boolean;fieldConfidence:Record<string,number>;unresolvedFields:string[];requiresCandidateReview:true;verifiedStatus:'high_confidence'|'review_required'};
 type Profile={
   firstName:string;lastName:string;email:string;phone:string;location:string;
   linkedinUrl:string;portfolioUrl:string;githubUrl:string;socialMediaUrl:string;
   headline:string;summary:string;yearsOfExperience:string;
-  professionalExperience:string;skills:string;certifications:string;education:string;
-  languages:string;projects:string;volunteerExperience:string;awards:string;publications:string;
-  additionalInformation:string;candidateStatement:string;customResumeSections:CustomSection[];
-};
-type ParseAssurance={machineTrust:number;aiVerified:boolean;fieldConfidence:Record<string,number>;unresolvedFields:string[];requiresCandidateReview:true;verifiedStatus:'high_confidence'|'review_required'};
-type EditableResume={
-  professionalExperience?:string;
-  languages?:string;
-  projects?:string;
-  volunteerExperience?:string;
-  awards?:string;
-  publications?:string;
-  additionalInformation?:string;
+  candidateStatement:string;customResumeSections:CustomSection[];
 };
 
+const emptyStructured=():StructuredResumeProfile=>({
+  employmentHistory:[],educationHistory:[],skills:[],certifications:[],languages:[],
+  projects:[],volunteerExperience:[],awards:[],publications:[],additionalInformation:'',
+});
 const empty:Profile={
   firstName:'',lastName:'',email:'',phone:'',location:'',
   linkedinUrl:'',portfolioUrl:'',githubUrl:'',socialMediaUrl:'',
-  headline:'',summary:'',yearsOfExperience:'',
-  professionalExperience:'',skills:'',certifications:'',education:'',
-  languages:'',projects:'',volunteerExperience:'',awards:'',publications:'',
-  additionalInformation:'',candidateStatement:'',customResumeSections:[]
+  headline:'',summary:'',yearsOfExperience:'',candidateStatement:'',customResumeSections:[]
 };
 
 async function call<T>(path:string,init:RequestInit={},draftToken?:string){
@@ -50,16 +51,17 @@ async function call<T>(path:string,init:RequestInit={},draftToken?:string){
     if(ac)h.set('x-firebase-appcheck',(await getAppCheckToken(ac,false)).token);
   }
   const r=await fetch(path,{...init,headers:h,cache:'no-store'});
-  const p=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(p.message||`Request failed (${r.status})`);
-  return p as T;
+  const body=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(body.message||`Request failed (${r.status})`);
+  return body as T;
 }
-const list=(s:string)=>s.split(/\n|;/).map(x=>x.trim()).filter(Boolean);
-const safeCustom=(items:CustomSection[])=>items.map(({title,content})=>({title:title.trim(),content:content.trim()})).filter(x=>x.title&&x.content);
+const cleanCustom=(items:CustomSection[])=>items.map(({title,content})=>({title:title.trim(),content:content.trim()})).filter(x=>x.title&&x.content);
+const uid=()=>crypto.randomUUID();
 
 export function CandidateApplicationPortal({token}:{token:string}){
   const[ctx,setCtx]=useState<Context|null>(null);
   const[p,setP]=useState<Profile>(empty);
+  const[structured,setStructured]=useState<StructuredResumeProfile>(emptyStructured());
   const[answers,setAnswers]=useState<Record<string,string>>({});
   const[resume,setResume]=useState<File|null>(null);
   const[cover,setCover]=useState<File|null>(null);
@@ -88,82 +90,70 @@ export function CandidateApplicationPortal({token}:{token:string}){
         try{
           const x=await call<{data:{data:any}}>(`/api/public/recruiting/apply/${encodeURIComponent(token)}/draft`,{},d);
           const s=x.data.data||{};
-          setP(v=>({
-            ...v,...s,
-            skills:Array.isArray(s.skills)?s.skills.join('\n'):s.skills||v.skills,
-            certifications:Array.isArray(s.certifications)?s.certifications.join('\n'):s.certifications||v.certifications,
-            education:Array.isArray(s.education)?s.education.join('\n'):s.education||v.education,
-            yearsOfExperience:s.yearsOfExperience==null?v.yearsOfExperience:String(s.yearsOfExperience),
-            customResumeSections:Array.isArray(s.customResumeSections)
-              ?s.customResumeSections.map((z:any)=>({id:crypto.randomUUID(),title:String(z.title||''),content:String(z.content||'')}))
-              :v.customResumeSections,
-          }));
+          setP(v=>({...v,...s,yearsOfExperience:s.yearsOfExperience==null?v.yearsOfExperience:String(s.yearsOfExperience),customResumeSections:Array.isArray(s.customResumeSections)?s.customResumeSections.map((z:any)=>({id:uid(),title:String(z.title||''),content:String(z.content||'')})):v.customResumeSections}));
+          if(s.structuredResume)setStructured(s.structuredResume);
           if(s.screeningAnswers)setAnswers(s.screeningAnswers);
           if(s.coverLetterText)setCoverText(s.coverLetterText);
           if(typeof s.talentPoolConsent==='boolean')setTalent(s.talentPoolConsent);
           setNotice('Saved draft restored. Reattach resume/cover-letter files before final submission.');
-        }catch{
-          localStorage.removeItem(key);
-        }
+        }catch{localStorage.removeItem(key)}
       }
-    }catch(e){
-      setError(e instanceof Error?e.message:'Unable to open application.');
-    }
+    }catch(e){setError(e instanceof Error?e.message:'Unable to open application.')}
   })()},[token]);
 
   async function parse(f:File){
-    setBusy('parse');setError('');setParseNote('');
+    setBusy('parse');setError('');setParseNote('');setParseAssurance(null);setResumeReviewed(false);
     try{
       const d=new FormData();d.set('file',f);
-      const r=await call<{data:{profile:any;editableResume?:EditableResume;assurance:ParseAssurance;note:string}}>(
+      const r=await call<{data:{profile:any;structuredResume:StructuredResumeProfile;assurance:ParseAssurance;note:string}}>(
         `/api/public/recruiting/apply/${encodeURIComponent(token)}/parse`,
         {method:'POST',body:d},
       );
-      const x=r.data.profile,e=r.data.editableResume||{};
-      setParseAssurance(r.data.assurance);setResumeReviewed(false);
-      setP(v=>({
-        ...v,
-        firstName:x.firstName||v.firstName,
-        lastName:x.lastName||v.lastName,
-        email:x.email||v.email,
-        phone:x.phone||v.phone,
-        location:x.location||v.location,
-        linkedinUrl:x.linkedinUrl||v.linkedinUrl,
-        headline:x.headline||v.headline,
-        summary:x.summary||v.summary,
-        professionalExperience:e.professionalExperience||v.professionalExperience,
-        skills:x.skills?.length?x.skills.join('\n'):v.skills,
-        certifications:x.certifications?.length?x.certifications.join('\n'):v.certifications,
-        education:x.education?.length?x.education.join('\n'):v.education,
-        languages:e.languages||v.languages,
-        projects:e.projects||v.projects,
-        volunteerExperience:e.volunteerExperience||v.volunteerExperience,
-        awards:e.awards||v.awards,
-        publications:e.publications||v.publications,
-        additionalInformation:e.additionalInformation||v.additionalInformation,
+      const x=r.data.profile;
+      setP(v=>({...v,
+        firstName:x.firstName||v.firstName,lastName:x.lastName||v.lastName,email:x.email||v.email,
+        phone:x.phone||v.phone,location:x.location||v.location,linkedinUrl:x.linkedinUrl||v.linkedinUrl,
+        headline:x.headline||v.headline,summary:x.summary||v.summary,
         yearsOfExperience:x.yearsOfExperience==null?v.yearsOfExperience:String(x.yearsOfExperience),
       }));
-      setParseNote(`${r.data.note}${x.parseQuality==null?'':` Extraction quality: ${x.parseQuality}%.`}`);
+      setStructured({
+        ...emptyStructured(),
+        ...r.data.structuredResume,
+        employmentHistory:(r.data.structuredResume?.employmentHistory||[]).map(x=>({...x,id:x.id||uid()})),
+        educationHistory:(r.data.structuredResume?.educationHistory||[]).map(x=>({...x,id:x.id||uid()})),
+        certifications:(r.data.structuredResume?.certifications||[]).map(x=>({...x,id:x.id||uid()})),
+        languages:(r.data.structuredResume?.languages||[]).map(x=>({...x,id:x.id||uid()})),
+        projects:(r.data.structuredResume?.projects||[]).map(x=>({...x,id:x.id||uid()})),
+        volunteerExperience:(r.data.structuredResume?.volunteerExperience||[]).map(x=>({...x,id:x.id||uid()})),
+        awards:(r.data.structuredResume?.awards||[]).map(x=>({...x,id:x.id||uid()})),
+        publications:(r.data.structuredResume?.publications||[]).map(x=>({...x,id:x.id||uid()})),
+      });
+      setParseAssurance(r.data.assurance);
+      setParseNote(r.data.note);
       setStep(2);
     }catch(e){
       setResume(null);setParseNote('');setParseAssurance(null);setResumeReviewed(false);
       setError(e instanceof Error?e.message:'Resume parsing failed.');
-    }finally{
-      setBusy('');
-    }
+    }finally{setBusy('')}
   }
 
   function payload(){
     return {
       ...p,
-      skills:list(p.skills),
-      certifications:list(p.certifications),
-      education:list(p.education),
       yearsOfExperience:p.yearsOfExperience?Number(p.yearsOfExperience):undefined,
-      customResumeSections:safeCustom(p.customResumeSections),
-      screeningAnswers:answers,
-      coverLetterText:coverText,
-      talentPoolConsent:talent,
+      structuredResume:structured,
+      skills:structured.skills,
+      certifications:structured.certifications.map(x=>[x.name,x.issuer].filter(Boolean).join(' · ')).filter(Boolean),
+      education:structured.educationHistory.map(x=>[x.degree,x.fieldOfStudy,x.institution].filter(Boolean).join(' · ')).filter(Boolean),
+      professionalExperience:structured.employmentHistory.map(x=>[x.positionTitle,x.employer,x.startDate&&x.endDate?`${x.startDate}–${x.endDate}`:x.startDate||x.endDate||'',x.responsibilities.join('; ')].filter(Boolean).join(' | ')).join('\n'),
+      languages:structured.languages.map(x=>[x.language,x.proficiency].filter(Boolean).join(' · ')).join('\n'),
+      projects:structured.projects.map(x=>[x.name,x.role,x.description].filter(Boolean).join(' | ')).join('\n'),
+      volunteerExperience:structured.volunteerExperience.map(x=>[x.organization,x.role,x.description].filter(Boolean).join(' | ')).join('\n'),
+      awards:structured.awards.map(x=>[x.title,x.issuer,x.date].filter(Boolean).join(' · ')).join('\n'),
+      publications:structured.publications.map(x=>[x.title,x.publisher,x.date].filter(Boolean).join(' · ')).join('\n'),
+      additionalInformation:structured.additionalInformation,
+      customResumeSections:cleanCustom(p.customResumeSections),
+      screeningAnswers:answers,coverLetterText:coverText,talentPoolConsent:talent,
     };
   }
 
@@ -173,16 +163,11 @@ export function CandidateApplicationPortal({token}:{token:string}){
       const d=localStorage.getItem(key)||undefined;
       const r=await call<{data:{draftToken:string;expiresInDays:number}}>(
         `/api/public/recruiting/apply/${encodeURIComponent(token)}/draft`,
-        {method:'POST',body:JSON.stringify(payload())},
-        d,
+        {method:'POST',body:JSON.stringify(payload())},d,
       );
       localStorage.setItem(key,r.data.draftToken);
       setNotice(`Draft saved for ${r.data.expiresInDays} days. File attachments are not stored until submission.`);
-    }catch(e){
-      setError(e instanceof Error?e.message:'Unable to save draft.');
-    }finally{
-      setBusy('');
-    }
+    }catch(e){setError(e instanceof Error?e.message:'Unable to save draft.')}finally{setBusy('')}
   }
 
   async function submit(e:FormEvent){
@@ -193,29 +178,21 @@ export function CandidateApplicationPortal({token}:{token:string}){
     if(!consent||!accuracy){setError('Confirm the declaration and privacy consent.');return}
     setBusy('submit');setError('');
     try{
-      const d=new FormData();
-      d.set('resume',resume);
-      if(cover)d.set('coverLetter',cover);
+      const d=new FormData();d.set('resume',resume);if(cover)d.set('coverLetter',cover);
       d.set('application',JSON.stringify({...payload(),consent:true,accuracyConfirmed:true}));
       const r=await call<{data:{applicationId:string;submissionVersion:number;deduplicated:boolean}}>(
         `/api/public/recruiting/apply/${encodeURIComponent(token)}/submit`,
         {method:'POST',body:d},
       );
-      localStorage.removeItem(key);
-      setSubmitted(r.data);
-    }catch(e){
-      setError(e instanceof Error?e.message:'Unable to submit application.');
-    }finally{
-      setBusy('');
-    }
+      localStorage.removeItem(key);setSubmitted(r.data);
+    }catch(e){setError(e instanceof Error?e.message:'Unable to submit application.')}finally{setBusy('')}
   }
 
   if(error&&!ctx)return <Shell><section className="prehireCard"><h1>Candidate application</h1><div className="error">{error}</div></section></Shell>;
   if(!ctx)return <Shell><section className="prehireCard"><LoadingState label="Loading candidate application…"/></section></Shell>;
 
   if(submitted)return <Shell><section className="prehireCard stack">
-    <Brand ctx={ctx}/>
-    <h1>Application submitted successfully</h1>
+    <Brand ctx={ctx}/><h1>Application submitted successfully</h1>
     <p>Thank you for applying for <strong>{ctx.requisition.title}</strong>.</p>
     <div className="notice">Application reference: <strong>{submitted.applicationId}</strong><br/>Submission version: {submitted.submissionVersion}{submitted.deduplicated?' · Your existing application was updated.':''}</div>
     <p className="muted">OPSIQO may generate an internal job-fit evidence score for human recruiter review. It is not shown to candidates and does not automatically determine hiring, rejection or advancement.</p>
@@ -232,96 +209,91 @@ export function CandidateApplicationPortal({token}:{token:string}){
     <section className="prehireCard stack">
       <details><summary><strong>Position details</strong></summary><p style={{whiteSpace:'pre-wrap'}}>{ctx.requisition.description}</p>{ctx.requisition.requirements.length>0&&<ul>{ctx.requisition.requirements.map(x=><li key={x}>{x}</li>)}</ul>}</details>
       <div className="atsTrack"><div className="atsFill" style={{width:`${progress}%`}}/></div>
-      {error&&<div className="error">{error}</div>}
-      {notice&&<div className="success">{notice}</div>}
+      {error&&<div className="error">{error}</div>}{notice&&<div className="success">{notice}</div>}
     </section>
 
     <form className="stack" onSubmit={submit}>
       {step===1&&<section className="prehireCard stack">
-        <h2>1. Resume</h2>
-        <p className="muted">Upload PDF, DOCX, TXT, RTF or Markdown. OPSIQO parses it to prefill your application; you review and correct every section before submitting.</p>
+        <h2>1. Import Resume</h2>
+        <p className="muted">Upload PDF, DOCX, TXT, RTF or Markdown. OPSIQO uses governed AI plus deterministic evidence checks to extract the resume directly into editable application fields. It will not advance with an empty or unreliable parse.</p>
         <input className="input" type="file" accept=".pdf,.docx,.txt,.rtf,.md" required onChange={e=>{
           const f=e.target.files?.[0]||null;setParseNote('');
-          if(f&&/cover[ _-]*letter/i.test(f.name)&&!/(?:resume|\bcv\b)/i.test(f.name)){
-            setResume(null);setError('This file name looks like a cover letter. Please choose your resume.');e.currentTarget.value='';return;
-          }
+          if(f&&/cover[ _-]*letter/i.test(f.name)&&!/(?:resume|\bcv\b)/i.test(f.name)){setResume(null);setError('This file name looks like a cover letter. Please choose your resume.');e.currentTarget.value='';return}
           setResume(f);if(f)void parse(f);
         }}/>
         {resume&&<div className="notice">Attached: <strong>{resume.name}</strong></div>}
         {parseNote&&<div className="success">{parseNote}</div>}
-        {parseAssurance&&<div className="notice" data-h50-5h-parse-assurance="true"><strong>{parseAssurance.aiVerified?'AI-verified parse':'Deterministic draft'} · Machine trust {parseAssurance.machineTrust}%</strong><br/>{parseAssurance.unresolvedFields.length?`Needs review: ${parseAssurance.unresolvedFields.join(', ')}`:'No machine-detected unresolved fields.'}<br/><span className="muted">Machine parsing is never represented as 100% certain. The application becomes 100% candidate-verified only after you review and confirm the parsed information.</span></div>}
-        <button type="button" className="button" disabled={!resume||busy==='parse'} onClick={()=>resume&&void parse(resume)}>{busy==='parse'?'Parsing…':'Parse / refresh fields'}</button>
+        {parseAssurance&&<div className="notice" data-h50-5h-parse-assurance="true">
+          <strong>{parseAssurance.aiVerified?'AI-verified parse':'Deterministic draft'} · Machine Parse Trust {parseAssurance.machineTrust}%</strong><br/>
+          {parseAssurance.unresolvedFields.length?`Needs review: ${parseAssurance.unresolvedFields.join(', ')}`:'No machine-detected unresolved fields.'}<br/>
+          <span className="muted">Machine parse trust is an evidence-backed confidence indicator. Machine parsing is never represented as 100% certain. The application becomes 100% candidate-verified only after you review and confirm the parsed information.</span>
+        </div>}
+        <button type="button" className="button" disabled={!resume||busy==='parse'} onClick={()=>resume&&void parse(resume)}>{busy==='parse'?'AI parsing & verifying…':'AI parse / retry'}</button>
       </section>}
 
       {step===2&&<section className="prehireCard stack">
-        <h2>2. Your information</h2>
-        <p className="muted">Everything below is editable. Correct any parsing error before continuing.</p>
+        <h2>2. Personal Information</h2>
+        <p className="muted">These fields are extracted from the resume and remain fully editable.</p>
         <div className="formGrid">
           <F label="First name" value={p.firstName} onChange={v=>set('firstName',v)} required/>
           <F label="Last name" value={p.lastName} onChange={v=>set('lastName',v)} required/>
           <F label="Email" type="email" value={p.email} onChange={v=>set('email',v)} required/>
           <F label="Phone" value={p.phone} onChange={v=>set('phone',v)}/>
-          <F label="Location" value={p.location} onChange={v=>set('location',v)}/>
+          <F label="Location / address" value={p.location} onChange={v=>set('location',v)}/>
           <F label="Professional headline" value={p.headline} onChange={v=>set('headline',v)}/>
         </div>
         <TA label="Professional summary" value={p.summary} onChange={v=>set('summary',v)} rows={6}/>
       </section>}
 
-      {step===3&&<section className="prehireCard stack" data-h50-5g-resume-editor="true">
-        <div className="toolbar">
-          <div>
-            <h2>3. Resume review & edit</h2>
-            <p className="muted">Review and edit the parsed professional experience, skills, education, certifications and every other resume section. Add a custom section if your resume contains something not listed.</p>
-          </div>
-          <span className="badge">Candidate reviewed</span>
-        </div>
-
+      {step===3&&<section className="prehireCard stack" data-h50-5g-resume-editor="true" data-h50-5i-structured-resume="true">
+        <div className="toolbar"><div><h2>3. Resume review & edit</h2><p className="muted">OPSIQO extracted your resume into structured application records. Review every card; edit, add or remove records before submitting.</p></div><span className="badge">Structured resume</span></div>
         <F label="Estimated years of experience from resume · review" type="number" value={p.yearsOfExperience} onChange={v=>set('yearsOfExperience',v)}/>
-        <TA label="Professional experience" value={p.professionalExperience} onChange={v=>set('professionalExperience',v)} rows={14}/>
-        <TA label="Skills / technical skills / tools · one per line" value={p.skills} onChange={v=>set('skills',v)} rows={8}/>
-        <TA label="Education · one item per line" value={p.education} onChange={v=>set('education',v)} rows={8}/>
-        <TA label="Certifications / licences · one per line" value={p.certifications} onChange={v=>set('certifications',v)} rows={6}/>
-        <TA label="Languages" value={p.languages} onChange={v=>set('languages',v)} rows={5}/>
-        <TA label="Projects" value={p.projects} onChange={v=>set('projects',v)} rows={7}/>
-        <TA label="Volunteer / community experience" value={p.volunteerExperience} onChange={v=>set('volunteerExperience',v)} rows={7}/>
-        <TA label="Awards / honours" value={p.awards} onChange={v=>set('awards',v)} rows={5}/>
-        <TA label="Publications / presentations" value={p.publications} onChange={v=>set('publications',v)} rows={5}/>
-        <TA label="Additional information / affiliations / interests" value={p.additionalInformation} onChange={v=>set('additionalInformation',v)} rows={7}/>
 
-        <div className="toolbar">
-          <strong>Other resume sections</strong>
-          <button type="button" className="button secondary" onClick={()=>setP(v=>({...v,customResumeSections:[...v.customResumeSections,{id:crypto.randomUUID(),title:'',content:''}]}))}>Add another resume section</button>
-        </div>
+        <SectionTitle title="Professional experience" hint="Employment History"/>
+        <EmploymentEditor items={structured.employmentHistory} onChange={employmentHistory=>setStructured(x=>({...x,employmentHistory}))}/>
 
-        {p.customResumeSections.map((section,index)=><div className="card insetCard stack" key={section.id}>
-          <F label="Section title" value={section.title} onChange={value=>setP(v=>({...v,customResumeSections:v.customResumeSections.map((s,i)=>i===index?{...s,title:value}:s)}))}/>
-          <TA label="Section content" value={section.content} onChange={value=>setP(v=>({...v,customResumeSections:v.customResumeSections.map((s,i)=>i===index?{...s,content:value}:s)}))} rows={6}/>
-          <button type="button" className="button secondary" onClick={()=>setP(v=>({...v,customResumeSections:v.customResumeSections.filter((_,i)=>i!==index)}))}>Remove section</button>
+        <SectionTitle title="Skills / technical skills / tools" hint="Individual editable skills"/>
+        <StringList items={structured.skills} onChange={skills=>setStructured(x=>({...x,skills}))} addLabel="Add skill"/>
+
+        <SectionTitle title="Education · one item per line" hint="Structured Education History"/>
+        <EducationEditor items={structured.educationHistory} onChange={educationHistory=>setStructured(x=>({...x,educationHistory}))}/>
+
+        <SectionTitle title="Certifications / licences" hint="Structured certification records"/>
+        <CertificationEditor items={structured.certifications} onChange={certifications=>setStructured(x=>({...x,certifications}))}/>
+
+        <SectionTitle title="Languages" hint="Language and proficiency"/>
+        <LanguageEditor items={structured.languages} onChange={languages=>setStructured(x=>({...x,languages}))}/>
+
+        <SectionTitle title="Projects" hint="Structured project records"/>
+        <ProjectEditor items={structured.projects} onChange={projects=>setStructured(x=>({...x,projects}))}/>
+
+        <SectionTitle title="Volunteer / community experience" hint="Structured volunteer records"/>
+        <VolunteerEditor items={structured.volunteerExperience} onChange={volunteerExperience=>setStructured(x=>({...x,volunteerExperience}))}/>
+
+        <SectionTitle title="Awards / honours" hint="Structured award records"/>
+        <AwardEditor items={structured.awards} onChange={awards=>setStructured(x=>({...x,awards}))}/>
+
+        <SectionTitle title="Publications / presentations" hint="Structured publication records"/>
+        <PublicationEditor items={structured.publications} onChange={publications=>setStructured(x=>({...x,publications}))}/>
+
+        <TA label="Additional information / affiliations / interests" value={structured.additionalInformation||''} onChange={additionalInformation=>setStructured(x=>({...x,additionalInformation}))} rows={6}/>
+
+        <div className="toolbar"><strong>Other resume sections</strong><button type="button" className="button secondary" onClick={()=>setP(v=>({...v,customResumeSections:[...v.customResumeSections,{id:uid(),title:'',content:''}]}))}>Add another resume section</button></div>
+        {p.customResumeSections.map((s,i)=><div className="card insetCard stack" key={s.id}>
+          <F label="Section title" value={s.title} onChange={title=>setP(v=>({...v,customResumeSections:v.customResumeSections.map((x,j)=>j===i?{...x,title}:x)}))}/>
+          <TA label="Section content" value={s.content} onChange={content=>setP(v=>({...v,customResumeSections:v.customResumeSections.map((x,j)=>j===i?{...x,content}:x)}))} rows={6}/>
+          <button type="button" className="button secondary" onClick={()=>setP(v=>({...v,customResumeSections:v.customResumeSections.filter((_,j)=>j!==i)}))}>Remove section</button>
         </div>)}
 
-        <div className="notice">
-          <strong>Evidence boundary:</strong> your reviewed profile is saved for recruiter review, but the internal Fit % remains grounded in the original uploaded resume evidence. Your edits do not silently rewrite the source document used for automated evidence matching.
-        </div>
-        <label className="notice"><input type="checkbox" checked={resumeReviewed} onChange={e=>setResumeReviewed(e.target.checked)}/> <strong>I reviewed every parsed resume section and corrected any inaccurate or missing information.</strong><br/><span className="muted">Checking this makes the submitted profile candidate-verified; it does not claim that AI extraction itself is infallible.</span></label>
+        <div className="notice"><strong>Evidence boundary:</strong> your reviewed profile is saved for recruiter review, but the internal Fit % remains grounded in the original uploaded resume evidence. Your edits do not silently rewrite the source document used for automated evidence matching.</div>
+        <label className="notice"><input type="checkbox" checked={resumeReviewed} onChange={e=>setResumeReviewed(e.target.checked)}/> <strong>I reviewed every parsed resume section and corrected any inaccurate or missing information.</strong><br/><span className="muted">Checking this makes the submitted profile 100% candidate-verified; it does not claim that AI extraction itself is infallible.</span></label>
       </section>}
 
-      {step===4&&<section className="prehireCard stack">
-        <h2>4. Screening questions</h2>
-        {ctx.application.screeningQuestions.map(q=><Question key={q.id} q={q} value={answers[q.id]||''} onChange={v=>setAnswers(x=>({...x,[q.id]:v}))}/>)}
-        {!ctx.application.screeningQuestions.length&&<div className="notice">No additional screening questions.</div>}
-      </section>}
+      {step===4&&<section className="prehireCard stack"><h2>4. Screening questions</h2>{ctx.application.screeningQuestions.map(q=><Question key={q.id} q={q} value={answers[q.id]||''} onChange={v=>setAnswers(x=>({...x,[q.id]:v}))}/>)}{!ctx.application.screeningQuestions.length&&<div className="notice">No additional screening questions.</div>}</section>}
 
       {step===5&&<section className="prehireCard stack">
         <h2>5. Cover letter & professional/social links</h2>
-        <label className="field"><span>Cover letter file {ctx.application.coverLetterRequired?'· required':'· optional'}</span>
-          <input className="input" type="file" accept=".pdf,.docx,.txt,.rtf,.md" onChange={e=>{
-            const f=e.target.files?.[0]||null;
-            if(f&&/(?:resume|\bcv\b)/i.test(f.name)&&!/cover[ _-]*letter/i.test(f.name)){
-              setCover(null);setError('This file name looks like a resume. Please choose your cover letter.');e.currentTarget.value='';return;
-            }
-            setError('');setCover(f);
-          }}/>
-        </label>
+        <label className="field"><span>Cover letter file {ctx.application.coverLetterRequired?'· required':'· optional'}</span><input className="input" type="file" accept=".pdf,.docx,.txt,.rtf,.md" onChange={e=>setCover(e.target.files?.[0]||null)}/></label>
         <label className="field"><span>Or paste / write cover letter</span><textarea className="input" rows={9} value={coverText} onChange={e=>setCoverText(e.target.value)}/></label>
         <div className="formGrid">
           <F label="LinkedIn" type="url" value={p.linkedinUrl} onChange={v=>set('linkedinUrl',v)}/>
@@ -330,25 +302,18 @@ export function CandidateApplicationPortal({token}:{token:string}){
           <F label="Other social/professional profile" type="url" value={p.socialMediaUrl} onChange={v=>set('socialMediaUrl',v)}/>
         </div>
         <TA label="Optional note to recruiter" value={p.candidateStatement} onChange={v=>set('candidateStatement',v)} rows={5}/>
-        <div className="notice">Professional/social links are optional and excluded from automated job-fit scoring.</div>
+        <div className="notice">Professional/social links are optional and are not used by the ATS fit score.</div>
       </section>}
 
       {step===6&&<section className="prehireCard stack">
         <h2>6. Review & submit</h2>
         <div className="grid2">
-          <Review l="Candidate" v={`${p.firstName} ${p.lastName}`}/>
-          <Review l="Email" v={p.email}/>
-          <Review l="Resume" v={resume?.name||'Not attached'}/>
-          <Review l="Cover letter" v={cover?.name||(coverText.trim()?'Pasted text':'Not provided')}/>
-          <Review l="Professional experience" v={p.professionalExperience.trim()?'Reviewed':'Not provided'}/>
-          <Review l="Resume sections" v={`${5+p.customResumeSections.filter(x=>x.title.trim()&&x.content.trim()).length}+ reviewed/editable sections`}/>
-          <Review l="Machine parse trust" v={parseAssurance?`${parseAssurance.machineTrust}% · ${parseAssurance.aiVerified?'AI verified':'deterministic draft'}`:'Not available'}/>
+          <Review l="Candidate" v={`${p.firstName} ${p.lastName}`}/><Review l="Email" v={p.email}/><Review l="Resume" v={resume?.name||'Not attached'}/>
+          <Review l="Employment records" v={String(structured.employmentHistory.length)}/><Review l="Education records" v={String(structured.educationHistory.length)}/><Review l="Skills" v={String(structured.skills.length)}/>
+          <Review l="Machine Parse Trust" v={parseAssurance?`${parseAssurance.machineTrust}% · ${parseAssurance.aiVerified?'AI verified':'deterministic draft'}`:'Not available'}/>
           <Review l="Candidate verification" v={resumeReviewed?'100% candidate-verified':'Review required'}/>
         </div>
-        <div className="row wrap">
-          <button type="button" className="button secondary" onClick={()=>setStep(2)}>Edit personal information</button>
-          <button type="button" className="button secondary" onClick={()=>setStep(3)}>Edit resume sections</button>
-        </div>
+        <div className="row wrap"><button type="button" className="button secondary" onClick={()=>setStep(2)}>Edit personal information</button><button type="button" className="button secondary" onClick={()=>setStep(3)}>Edit resume sections</button></div>
         <label><input type="checkbox" checked={accuracy} onChange={e=>setAccuracy(e.target.checked)} required/> I confirm this application and supporting documents are accurate to the best of my knowledge.</label>
         <label><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} required/> I consent to processing my application information for recruitment purposes and acknowledge the privacy notice.</label>
         {ctx.application.allowTalentPoolConsent&&<label><input type="checkbox" checked={talent} onChange={e=>setTalent(e.target.checked)}/> I agree that my application may be considered for other suitable opportunities. Optional.</label>}
@@ -356,16 +321,8 @@ export function CandidateApplicationPortal({token}:{token:string}){
         <button className="button" disabled={busy==='submit'}>{busy==='submit'?'Submitting…':'Submit application'}</button>
       </section>}
 
-      <section className="prehireCard">
-        <div className="row wrap">
-          <button type="button" className="button secondary" disabled={step<=1} onClick={()=>setStep(x=>Math.max(1,x-1))}>Back</button>
-          {step<6&&<button type="button" className="button" disabled={step===1&&(!resume||busy==='parse'||!parseNote)} onClick={()=>setStep(x=>Math.min(6,x+1))}>Continue</button>}
-          <button type="button" className="button secondary" disabled={busy==='draft'} onClick={()=>void saveDraft()}>{busy==='draft'?'Saving…':'Save & continue later'}</button>
-        </div>
-        <p className="muted">Draft fields are retained securely for 14 days. File attachments are retained only after final submission.</p>
-      </section>
+      <section className="prehireCard"><div className="row wrap"><button type="button" className="button secondary" disabled={step<=1} onClick={()=>setStep(x=>Math.max(1,x-1))}>Back</button>{step<6&&<button type="button" className="button" disabled={step===1&&(!resume||busy==='parse'||!parseNote)} onClick={()=>setStep(x=>Math.min(6,x+1))}>Continue</button>}<button type="button" className="button secondary" disabled={busy==='draft'} onClick={()=>void saveDraft()}>{busy==='draft'?'Saving…':'Save & continue later'}</button></div><p className="muted">Draft fields are retained securely for 14 days. File attachments are retained only after final submission.</p></section>
     </form>
-
     <div className="notice">Powered by OPSIQO · Evidence-first recruiting · Human review required</div>
   </Shell>;
 }
@@ -375,4 +332,23 @@ function Brand({ctx}:{ctx:Context}){return <div className="prehireBrand"><img cl
 function F({label,value,onChange,type='text',required}:{label:string;value:string;onChange:(v:string)=>void;type?:string;required?:boolean}){return <label className="field"><span>{label}</span><input className="input" type={type} value={value} required={required} onChange={e=>onChange(e.target.value)}/></label>}
 function TA({label,value,onChange,rows=5}:{label:string;value:string;onChange:(v:string)=>void;rows?:number}){return <label className="field"><span>{label}</span><textarea className="input" rows={rows} value={value} onChange={e=>onChange(e.target.value)}/></label>}
 function Review({l,v}:{l:string;v:string}){return <div className="notice"><span className="muted">{l}</span><br/><strong>{v||'—'}</strong></div>}
+function SectionTitle({title,hint}:{title:string;hint:string}){return <div><h3>{title}</h3><p className="muted">{hint}</p></div>}
 function Question({q,value,onChange}:{q:Q;value:string;onChange:(v:string)=>void}){return <label className="field"><span>{q.label}{q.required?' · required':''}</span>{q.type==='yes_no'?<select className="input" required={q.required} value={value} onChange={e=>onChange(e.target.value)}><option value="">Select</option><option value="Yes">Yes</option><option value="No">No</option></select>:q.type==='select'?<select className="input" required={q.required} value={value} onChange={e=>onChange(e.target.value)}><option value="">Select</option>{(q.options||[]).map(o=><option key={o}>{o}</option>)}</select>:<input className="input" required={q.required} type={q.type==='number'?'number':'text'} value={value} onChange={e=>onChange(e.target.value)}/>}</label>}
+
+function StringList({items,onChange,addLabel}:{items:string[];onChange:(x:string[])=>void;addLabel:string}){return <div className="stack">{items.map((v,i)=><div className="row" key={`${i}-${v}`}><input className="input" value={v} onChange={e=>onChange(items.map((x,j)=>j===i?e.target.value:x))}/><button type="button" className="button secondary" onClick={()=>onChange(items.filter((_,j)=>j!==i))}>Remove</button></div>)}<button type="button" className="button secondary" onClick={()=>onChange([...items,''])}>+ {addLabel}</button></div>}
+
+function EmploymentEditor({items,onChange}:{items:ResumeEmploymentEntry[];onChange:(x:ResumeEmploymentEntry[])=>void}){const set=(i:number,p:Partial<ResumeEmploymentEntry>)=>onChange(items.map((x,j)=>j===i?{...x,...p}:x));return <div className="stack">{items.map((x,i)=><details className="card insetCard" open key={x.id||i}><summary><strong>{x.positionTitle||'Employment'}{x.employer?` · ${x.employer}`:''}</strong></summary><div className="stack"><div className="formGrid"><F label="Position Title" value={x.positionTitle} onChange={v=>set(i,{positionTitle:v})}/><F label="Employer" value={x.employer} onChange={v=>set(i,{employer:v})}/><F label="Start Date" value={x.startDate||''} onChange={v=>set(i,{startDate:v})}/><F label="End Date" value={x.endDate||''} onChange={v=>set(i,{endDate:v})}/><F label="Location" value={x.location||''} onChange={v=>set(i,{location:v})}/><F label="Country" value={x.country||''} onChange={v=>set(i,{country:v})}/></div><label><input type="checkbox" checked={Boolean(x.current)} onChange={e=>set(i,{current:e.target.checked,endDate:e.target.checked?'':x.endDate})}/> Current job</label><TA label="Duties and Responsibilities" value={(x.responsibilities||[]).join('\n')} onChange={v=>set(i,{responsibilities:v.split('\n').map(s=>s.trim()).filter(Boolean)})} rows={8}/><F label="Reason for leaving · optional candidate-entered" value={x.reasonForLeaving||''} onChange={v=>set(i,{reasonForLeaving:v})}/><button type="button" className="button secondary" onClick={()=>onChange(items.filter((_,j)=>j!==i))}>Remove Employment History</button></div></details>)}<button type="button" className="button secondary" onClick={()=>onChange([...items,{id:uid(),positionTitle:'',employer:'',responsibilities:[]}])}>+ Add Employment History</button></div>}
+
+function EducationEditor({items,onChange}:{items:ResumeEducationEntry[];onChange:(x:ResumeEducationEntry[])=>void}){const set=(i:number,p:Partial<ResumeEducationEntry>)=>onChange(items.map((x,j)=>j===i?{...x,...p}:x));return <div className="stack">{items.map((x,i)=><details className="card insetCard" open key={x.id||i}><summary><strong>{x.degree||'Education'}{x.institution?` · ${x.institution}`:''}</strong></summary><div className="formGrid"><F label="Degree" value={x.degree} onChange={v=>set(i,{degree:v})}/><F label="Major / Field of Study" value={x.fieldOfStudy||''} onChange={v=>set(i,{fieldOfStudy:v})}/><F label="School / Institution" value={x.institution} onChange={v=>set(i,{institution:v})}/><F label="Location" value={x.location||''} onChange={v=>set(i,{location:v})}/><F label="Start Date" value={x.startDate||''} onChange={v=>set(i,{startDate:v})}/><F label="End / Graduation Date" value={x.graduationDate||x.endDate||''} onChange={v=>set(i,{graduationDate:v})}/></div><label><input type="checkbox" checked={Boolean(x.completed)} onChange={e=>set(i,{completed:e.target.checked})}/> Completed</label><button type="button" className="button secondary" onClick={()=>onChange(items.filter((_,j)=>j!==i))}>Remove Education History</button></details>)}<button type="button" className="button secondary" onClick={()=>onChange([...items,{id:uid(),degree:'',institution:''}])}>+ Add Education History</button></div>}
+
+function CertificationEditor({items,onChange}:{items:ResumeCertificationEntry[];onChange:(x:ResumeCertificationEntry[])=>void}){const set=(i:number,p:Partial<ResumeCertificationEntry>)=>onChange(items.map((x,j)=>j===i?{...x,...p}:x));return <div className="stack">{items.map((x,i)=><div className="card insetCard stack" key={x.id||i}><div className="formGrid"><F label="Certification / Licence" value={x.name} onChange={v=>set(i,{name:v})}/><F label="Issuer" value={x.issuer||''} onChange={v=>set(i,{issuer:v})}/><F label="Issued Date" value={x.issuedAt||''} onChange={v=>set(i,{issuedAt:v})}/><F label="Expiry Date" value={x.expiresAt||''} onChange={v=>set(i,{expiresAt:v})}/><F label="Credential ID" value={x.credentialId||''} onChange={v=>set(i,{credentialId:v})}/></div><button type="button" className="button secondary" onClick={()=>onChange(items.filter((_,j)=>j!==i))}>Remove</button></div>)}<button type="button" className="button secondary" onClick={()=>onChange([...items,{id:uid(),name:''}])}>+ Add Certification</button></div>}
+
+function LanguageEditor({items,onChange}:{items:ResumeLanguageEntry[];onChange:(x:ResumeLanguageEntry[])=>void}){const set=(i:number,p:Partial<ResumeLanguageEntry>)=>onChange(items.map((x,j)=>j===i?{...x,...p}:x));return <div className="stack">{items.map((x,i)=><div className="row wrap" key={x.id||i}><input className="input" placeholder="Language" value={x.language} onChange={e=>set(i,{language:e.target.value})}/><input className="input" placeholder="Proficiency" value={x.proficiency||''} onChange={e=>set(i,{proficiency:e.target.value})}/><button type="button" className="button secondary" onClick={()=>onChange(items.filter((_,j)=>j!==i))}>Remove</button></div>)}<button type="button" className="button secondary" onClick={()=>onChange([...items,{id:uid(),language:''}])}>+ Add Language</button></div>}
+
+function ProjectEditor({items,onChange}:{items:ResumeProjectEntry[];onChange:(x:ResumeProjectEntry[])=>void}){const set=(i:number,p:Partial<ResumeProjectEntry>)=>onChange(items.map((x,j)=>j===i?{...x,...p}:x));return <div className="stack">{items.map((x,i)=><div className="card insetCard stack" key={x.id||i}><div className="formGrid"><F label="Project" value={x.name} onChange={v=>set(i,{name:v})}/><F label="Role" value={x.role||''} onChange={v=>set(i,{role:v})}/><F label="Start Date" value={x.startDate||''} onChange={v=>set(i,{startDate:v})}/><F label="End Date" value={x.endDate||''} onChange={v=>set(i,{endDate:v})}/></div><TA label="Description" value={x.description||''} onChange={v=>set(i,{description:v})}/><button type="button" className="button secondary" onClick={()=>onChange(items.filter((_,j)=>j!==i))}>Remove</button></div>)}<button type="button" className="button secondary" onClick={()=>onChange([...items,{id:uid(),name:''}])}>+ Add Project</button></div>}
+
+function VolunteerEditor({items,onChange}:{items:ResumeVolunteerEntry[];onChange:(x:ResumeVolunteerEntry[])=>void}){const set=(i:number,p:Partial<ResumeVolunteerEntry>)=>onChange(items.map((x,j)=>j===i?{...x,...p}:x));return <div className="stack">{items.map((x,i)=><div className="card insetCard stack" key={x.id||i}><div className="formGrid"><F label="Organization" value={x.organization} onChange={v=>set(i,{organization:v})}/><F label="Role" value={x.role||''} onChange={v=>set(i,{role:v})}/><F label="Start Date" value={x.startDate||''} onChange={v=>set(i,{startDate:v})}/><F label="End Date" value={x.endDate||''} onChange={v=>set(i,{endDate:v})}/></div><TA label="Description" value={x.description||''} onChange={v=>set(i,{description:v})}/><button type="button" className="button secondary" onClick={()=>onChange(items.filter((_,j)=>j!==i))}>Remove</button></div>)}<button type="button" className="button secondary" onClick={()=>onChange([...items,{id:uid(),organization:''}])}>+ Add Volunteer Experience</button></div>}
+
+function AwardEditor({items,onChange}:{items:ResumeAwardEntry[];onChange:(x:ResumeAwardEntry[])=>void}){const set=(i:number,p:Partial<ResumeAwardEntry>)=>onChange(items.map((x,j)=>j===i?{...x,...p}:x));return <div className="stack">{items.map((x,i)=><div className="card insetCard stack" key={x.id||i}><div className="formGrid"><F label="Award / Honour" value={x.title} onChange={v=>set(i,{title:v})}/><F label="Issuer" value={x.issuer||''} onChange={v=>set(i,{issuer:v})}/><F label="Date" value={x.date||''} onChange={v=>set(i,{date:v})}/></div><TA label="Description" value={x.description||''} onChange={v=>set(i,{description:v})}/><button type="button" className="button secondary" onClick={()=>onChange(items.filter((_,j)=>j!==i))}>Remove</button></div>)}<button type="button" className="button secondary" onClick={()=>onChange([...items,{id:uid(),title:''}])}>+ Add Award / Honour</button></div>}
+
+function PublicationEditor({items,onChange}:{items:ResumePublicationEntry[];onChange:(x:ResumePublicationEntry[])=>void}){const set=(i:number,p:Partial<ResumePublicationEntry>)=>onChange(items.map((x,j)=>j===i?{...x,...p}:x));return <div className="stack">{items.map((x,i)=><div className="card insetCard stack" key={x.id||i}><div className="formGrid"><F label="Publication / Presentation" value={x.title} onChange={v=>set(i,{title:v})}/><F label="Publisher / Venue" value={x.publisher||''} onChange={v=>set(i,{publisher:v})}/><F label="Date" value={x.date||''} onChange={v=>set(i,{date:v})}/><F label="URL" type="url" value={x.url||''} onChange={v=>set(i,{url:v})}/></div><TA label="Description" value={x.description||''} onChange={v=>set(i,{description:v})}/><button type="button" className="button secondary" onClick={()=>onChange(items.filter((_,j)=>j!==i))}>Remove</button></div>)}<button type="button" className="button secondary" onClick={()=>onChange([...items,{id:uid(),title:''}])}>+ Add Publication / Presentation</button></div>}

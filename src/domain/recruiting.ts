@@ -1,3 +1,4 @@
+import type { StructuredResumeProfile } from './structured-resume';
 export type RequisitionStatus = 'draft' | 'pending_approval' | 'approved' | 'open' | 'on_hold' | 'filled' | 'closed' | 'cancelled';
 export type ApplicationStage = 'applied' | 'screening' | 'interview' | 'assessment' | 'offer' | 'hired' | 'rejected' | 'withdrawn';
 export type InterviewStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
@@ -39,6 +40,8 @@ export interface CandidateReviewedResume {
   publications?: string;
   additionalInformation?: string;
   customSections?: Array<{ title: string; content: string }>;
+  structuredResume?: StructuredResumeProfile;
+  structuredEditorVersion?: string;
   reviewedAt?: string;
   editorVersion?: string;
 }

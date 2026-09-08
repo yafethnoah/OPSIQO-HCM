@@ -16,6 +16,14 @@ function filenameNameHint(fileName:string,sourceText:string){
  return{firstName:pool[0]!,lastName:pool[1]!,displayName:`${pool[0]} ${pool[1]}`};
 }
 
+export function resumeParseCoverage(profile:ParsedResumeProfile){
+ const sr=profile.structuredResume;
+ const identity=[profile.firstName&&profile.lastName?1:0,profile.email?1:0,profile.phone?1:0,profile.location?1:0,profile.headline?1:0].reduce((a,b)=>a+b,0);
+ const structuredCount=(sr?.employmentHistory?.length||0)+(sr?.educationHistory?.length||0)+(sr?.skills?.length||0)+(sr?.certifications?.length||0)+(sr?.languages?.length||0)+(sr?.projects?.length||0)+(sr?.volunteerExperience?.length||0)+(sr?.awards?.length||0)+(sr?.publications?.length||0);
+ const legacyCount=[profile.summary,profile.skills?.length,profile.certifications?.length,profile.education?.length,profile.employers?.length,profile.jobTitles?.length].filter(Boolean).length;
+ return{identitySignals:identity,sectionSignals:structuredCount+legacyCount,meaningful:Boolean((identity>=1&&(structuredCount+legacyCount)>=1)||(structuredCount+legacyCount)>=3)};
+}
+
 export function applyResumeAssurance(profile:ParsedResumeProfile,input:{fileName:string;sourceText:string;aiUsed:boolean}){
  const warnings=[...(profile.warnings||[])];
  const unresolved=new Set(profile.unresolvedFields||[]);

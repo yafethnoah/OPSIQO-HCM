@@ -21,7 +21,7 @@ import {
   reviewCoverLetter,
 } from "./ats-engine";
 import { classifyRecruitingDocument, isPlausibleProfessionalHeadline } from "./document-classifier";
-import { applyResumeAssurance } from "./resume-assurance";
+import { applyResumeAssurance, resumeParseCoverage } from "./resume-assurance";
 import { governedCoverLetterDraft, governedResumeParse } from "./ats-provider";
 import { listRequisitions } from "./service";
 
@@ -171,6 +171,7 @@ export async function parseResumeFile(actor: ActorContext, file: File) {
   const pdfLayerState = pdfTextLayerState(file.name, bytes);
   let profile: ParsedResumeProfile;
   let ai: Awaited<ReturnType<typeof governedResumeParse>> = null;
+  let aiFailure: unknown = null;
   try {
     ai = await governedResumeParse(actor, {
       name: file.name,
@@ -179,6 +180,7 @@ export async function parseResumeFile(actor: ActorContext, file: File) {
       text,
     });
   } catch (e) {
+    aiFailure = e;
     if (!text) {
       if (pdfLayerState === "unsafe") {
         throw new ApiError(
@@ -213,6 +215,12 @@ export async function parseResumeFile(actor: ActorContext, file: File) {
       "recruiting_ai_setup_required",
     );
   profile = applyResumeAssurance(profile,{fileName:file.name,sourceText:profile.sourceText||text,aiUsed:Boolean(ai?.profile)});
+  const coverage=resumeParseCoverage(profile);
+  if(!coverage.meaningful){
+    const aiCode=aiFailure instanceof ApiError?aiFailure.code:'';
+    if(aiFailure||!ai?.profile)throw new ApiError(503,aiCode==='ai_governance_required'?'Recruiting AI is not ready for this organization. The resume was not accepted because deterministic parsing did not produce reliable structured fields.':'Recruiting AI could not produce a reliable structured profile from this resume. OPSIQO will not continue with blank candidate fields. Retry parsing, or upload a clean text-based PDF or DOCX.',aiCode==='ai_governance_required'?'recruiting_ai_setup_required':'resume_ai_parse_failed');
+    throw new ApiError(422,'OPSIQO could not extract enough reliable candidate information from this resume. The application was not advanced with blank fields. Please retry or upload a cleaner text-based resume.','resume_parse_insufficient');
+  }
   if (profile.headline && !isPlausibleProfessionalHeadline(profile.headline))
     profile = {
       ...profile,
