@@ -17,7 +17,7 @@ const ALL_HEADINGS = new Set([
   'professional summary','summary','profile','professional profile',
   'professional experience','work experience','experience','employment history','career history',
   'skills','technical skills','core competencies','competencies','expertise',
-  'education','academic background','academic qualifications','qualifications',
+  'education','education & credentials','education and credentials','education & training','education and training','academic credentials','academic background','academic qualifications','qualifications',
   'certifications','certificates','licences','licenses',
   'languages','language skills','projects','selected projects','key projects',
   'volunteer experience','volunteering','community experience','community involvement',
@@ -26,12 +26,12 @@ const ALL_HEADINGS = new Set([
 ]);
 
 const EXPERIENCE_HEADINGS = ['professional experience','work experience','experience','employment history','career history'];
-const EDUCATION_HEADINGS = ['education','academic background','academic qualifications','qualifications'];
+const EDUCATION_HEADINGS = ['education','education & credentials','education and credentials','education & training','education and training','academic credentials','academic background','academic qualifications','qualifications'];
 const SKILLS_HEADINGS = ['skills','technical skills','core competencies','competencies','expertise'];
 const CERTIFICATION_HEADINGS = ['certifications','certificates','licences','licenses'];
 const LANGUAGE_HEADINGS = ['languages','language skills'];
 
-const DEGREE_HINT = /\b(?:bachelor(?:'s)?|master(?:'s)?|doctor(?:ate|al)?|ph\.?d\.?|mba|m\.?sc\.?|b\.?sc\.?|b\.?a\.?|b\.?s\.?|m\.?a\.?|m\.?s\.?|diploma|degree|post[- ]?graduate|graduate certificate)\b/i;
+const DEGREE_HINT = /\b(?:bachelor(?:'s)?|bachelor\s+of\s+pharmacy|b\.?\s*pharm\.?|bpharm|master(?:'s)?|doctor(?:ate|al)?|doctor\s+of\s+pharmacy|pharm\.?\s*d\.?|pharmd|ph\.?d\.?|mba|m\.?sc\.?|b\.?sc\.?|b\.?a\.?|b\.?s\.?|m\.?a\.?|m\.?s\.?|diploma|degree|post[- ]?graduate|graduate certificate)\b/i;
 const INSTITUTION_HINT = /\b(?:university|college|institute|school|academy|polytechnic|faculty|conservatory)\b/i;
 const TITLE_HINT = /\b(?:chief|ceo|president|vice president|vp|director|manager|specialist|officer|coordinator|advisor|adviser|consultant|partner|lead|head|supervisor|analyst|generalist|pharmacist|engineer|developer|administrator|executive|founder|co-founder)\b/i;
 const ROLE_DESCRIPTOR = /^(?:founding leader|founder|co-founder|team leader|project leader|executive leader|senior leader|department head|board member|consultant|advisor|adviser)$/i;
@@ -51,6 +51,10 @@ function clean(v: unknown, max = 5000): string {
 
 function cleanHeading(v: string) {
   return clean(v, 160).toLowerCase().replace(/[:|]+$/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function stripBullet(v: string) {
+  return clean(v, 1200).replace(/^[•·▪◦‣●○►▸*\-]+\s*/u, '').trim();
 }
 
 function sectionBody(source: string, aliases: string[]): string {
@@ -122,7 +126,7 @@ function parseEducation(source: string): ResumeEducationEntry[] {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
-    if (ACTION_SENTENCE.test(line) && !DEGREE_HINT.test(line)) continue;
+    if (ACTION_SENTENCE.test(stripBullet(line)) && !DEGREE_HINT.test(stripBullet(line))) continue;
 
     const parts = splitParts(line);
     let degree = '';
@@ -196,10 +200,11 @@ function dedupeEducation(items: ResumeEducationEntry[]) {
 
 function employerCandidate(line: string) {
   const value = clean(line, 260);
-  if (!value || DATE_TOKEN.test(value) || LOCATION_HINT.test(value) || ACTION_SENTENCE.test(value)) return false;
-  if (ROLE_DESCRIPTOR.test(value)) return false;
-  if (TITLE_HINT.test(value) && value.split(/\s+/).length <= 8) return false;
-  return value.length <= 140;
+  const lexical = stripBullet(value);
+  if (!lexical || DATE_TOKEN.test(lexical) || LOCATION_HINT.test(lexical) || ACTION_SENTENCE.test(lexical)) return false;
+  if (ROLE_DESCRIPTOR.test(lexical)) return false;
+  if (TITLE_HINT.test(lexical) && lexical.split(/\s+/).length <= 8) return false;
+  return lexical.length <= 140;
 }
 
 function titleCandidate(line: string) {
@@ -233,13 +238,13 @@ function parseEmploymentBlock(lines: string[]): ResumeEmploymentEntry | null {
   positionTitle = metadata.find(titleCandidate) || '';
   const titleIndex = metadata.indexOf(positionTitle);
   const employerPool = metadata.filter((v, idx) => idx !== titleIndex);
-  employer = employerPool.find(employerCandidate) || '';
+  employer = stripBullet(employerPool.find(employerCandidate) || '');
 
   if (!positionTitle && values[0] && titleCandidate(values[0])) positionTitle = values[0];
   if (!employer && positionTitle) {
     const idx = values.indexOf(positionTitle);
     const nearby = [values[idx + 1], values[idx - 1]].filter((v): v is string => Boolean(v));
-    employer = nearby.find(employerCandidate) || '';
+    employer = stripBullet(nearby.find(employerCandidate) || '');
   }
 
   const locationLine = values.find((v, idx) => idx !== dateIndex && LOCATION_HINT.test(v) && !ACTION_SENTENCE.test(v));
@@ -247,7 +252,7 @@ function parseEmploymentBlock(lines: string[]): ResumeEmploymentEntry | null {
 
   const responsibilities = values
     .slice(dateIndex >= 0 ? dateIndex + 1 : Math.min(metadata.length, 3))
-    .filter((v) => ACTION_SENTENCE.test(v) || /^[•·▪◦*-]/.test(v))
+    .filter((v) => ACTION_SENTENCE.test(stripBullet(v)) || /^[•·▪◦‣●○►▸*-]/u.test(v))
     .map((v) => v.replace(/^[•·▪◦*-]\s*/, '').trim())
     .filter(Boolean)
     .slice(0, 40);
@@ -271,7 +276,7 @@ function parseEmployment(source: string): ResumeEmploymentEntry[] {
         current.push(line);
         blocks.push(current);
         current = [];
-      } else if (blocks.length && current.length === 0 && ACTION_SENTENCE.test(line)) {
+      } else if (blocks.length && current.length === 0 && ACTION_SENTENCE.test(stripBullet(line))) {
         blocks[blocks.length - 1]!.push(line);
       } else {
         current.push(line);
@@ -293,7 +298,7 @@ function parseEmployment(source: string): ResumeEmploymentEntry[] {
 function sectionLines(source: string, headings: string[], max: number) {
   return uniqueStrings(
     sectionBody(source, headings)
-      .split(/\n|;/)
+      .split(/\n|;|,|\||•|·|▪|◦|‣|●|○|►|▸/u)
       .map((v) => v.replace(/^[•·▪◦*-]\s*/, '').trim())
       .filter((v) => v && !ACTION_SENTENCE.test(v)),
   ).slice(0, max);
@@ -328,7 +333,7 @@ function safeEmployment(items: StructuredResumeProfile['employmentHistory'], sou
   return (items || []).flatMap((raw) => {
     const positionTitle = supported(raw.positionTitle, source, 0.72) || '';
     let employer = supported(raw.employer, source, 0.72) || '';
-    if (ROLE_DESCRIPTOR.test(employer) || ACTION_SENTENCE.test(employer)) employer = '';
+    if (ROLE_DESCRIPTOR.test(stripBullet(employer)) || ACTION_SENTENCE.test(stripBullet(employer))) employer = '';
     if (positionTitle && employer && !coLocated(positionTitle, employer, source, 1300)) employer = '';
     const responsibilities = (raw.responsibilities || [])
       .flatMap((v) => {
@@ -358,8 +363,8 @@ function safeEducation(items: StructuredResumeProfile['educationHistory'], sourc
     let degree = supported(raw.degree, source, 0.72) || '';
     let institution = supported(raw.institution, source, 0.72) || '';
     let fieldOfStudy = supported(raw.fieldOfStudy, source, 0.72);
-    if (ACTION_SENTENCE.test(degree) && !DEGREE_HINT.test(degree)) degree = '';
-    if (ACTION_SENTENCE.test(institution)) institution = '';
+    if (ACTION_SENTENCE.test(stripBullet(degree)) && !DEGREE_HINT.test(stripBullet(degree))) degree = '';
+    if (ACTION_SENTENCE.test(stripBullet(institution))) institution = '';
     if (degree && institution && !coLocated(degree, institution, source, 1000)) institution = '';
     if (!degree && !institution) return [];
     return [{
@@ -474,6 +479,7 @@ export function assessStructuredResume(input: StructuredResumeProfile, source: s
 
   if (hints.employmentHistory && !sr.employmentHistory.length) criticalIssues.push('Experience section detected but no reliable employment records were built.');
   if (hints.educationHistory && !sr.educationHistory.length) criticalIssues.push('Education section detected but no reliable education records were built.');
+  if (hints.skills && !sr.skills.length) criticalIssues.push('Skills section detected but no reliable skills were built.');
 
   const recordCount =
     sr.employmentHistory.length + sr.educationHistory.length + sr.skills.length +
@@ -487,4 +493,10 @@ export function assessStructuredResume(input: StructuredResumeProfile, source: s
     issues: [...new Set(issues)].slice(0, 40),
     criticalIssues: [...new Set(criticalIssues)].slice(0, 40),
   };
+}
+
+
+export function candidateVerificationGate(input: StructuredResumeProfile, source: string) {
+  const assessment = assessStructuredResume(input, source);
+  return { ...assessment, canFinalize: assessment.criticalIssues.length === 0 };
 }

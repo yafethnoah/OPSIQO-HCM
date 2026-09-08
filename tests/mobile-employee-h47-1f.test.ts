@@ -1,16 +1,33 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 const read=(p:string)=>readFileSync(p,'utf8');
+const MINIMUM_PATCH = 'H47.1F';
+const releaseScore=(identity:string)=>{
+  const match=identity.match(/OPSIQO_PATCH_RELEASE = process\.env\.OPSIQO_PATCH_RELEASE \|\| 'H(\d+)\.(\d+)([A-Z]?)'/);
+  expect(match).not.toBeNull();
+  const major=Number(match?.[1]||0);
+  const minor=Number(match?.[2]||0);
+  const letter=match?.[3]?match[3].charCodeAt(0)-64:0;
+  return major*100000+minor*100+letter;
+};
+const featureMajor=(identity:string)=>{
+  const match=identity.match(/OPSIQO_FEATURE_RELEASE = process\.env\.OPSIQO_FEATURE_RELEASE \|\| 'H(\d+)(?:\.\d+[A-Z]?)?'/);
+  expect(match).not.toBeNull();
+  return Number(match?.[1]||0);
+};
+
 describe('H47.1F mobile reproducible build baseline',()=>{
-  it('publishes H47.1F release and app versions',()=>{
+  it('publishes H47.1F-or-later release lineage and certified app versions',()=>{
     const identity=read('src/lib/release/identity.ts');
     const pkg=JSON.parse(read('mobile/package.json'));
     const app=JSON.parse(read('mobile/app.json'));
-    expect(identity).toContain("OPSIQO_PATCH_RELEASE = process.env.OPSIQO_PATCH_RELEASE || 'H47.1F'");
+    expect(featureMajor(identity)).toBeGreaterThanOrEqual(47);
+    expect(releaseScore(identity)).toBeGreaterThanOrEqual(47*100000+1*100+6);
     expect(pkg.version).toBe('0.2.5');
     expect(app.expo.version).toBe('0.1.2');
     expect(app.expo.extra.h47Release).toBe('employee-mobile-v1.1f');
   });
+
   it('freezes mobile dependency resolution into package-lock v3',()=>{
     expect(existsSync('mobile/package-lock.json')).toBe(true);
     const pkg=JSON.parse(read('mobile/package.json'));
@@ -21,6 +38,7 @@ describe('H47.1F mobile reproducible build baseline',()=>{
     expect(lock.packages[''].dependencies).toEqual(pkg.dependencies);
     expect(lock.packages[''].devDependencies).toEqual(pkg.devDependencies);
   });
+
   it('separates UAT and production EAS runtime environments',()=>{
     const eas=JSON.parse(read('mobile/eas.json'));
     expect(eas.cli.appVersionSource).toBe('remote');
@@ -30,15 +48,17 @@ describe('H47.1F mobile reproducible build baseline',()=>{
     expect(eas.build.production.environment).toBe('production');
     expect(eas.build.production.env.EXPO_PUBLIC_OPSIQO_API_BASE_URL).toBeUndefined();
   });
+
   it('uses npm ci for final mobile certification',()=>{
     const runner=read('RUN_OPSIQO_H47_1F_VALIDATION.ps1');
-    expect(runner).toContain("Frozen mobile package-lock.json is missing");
+    expect(runner).toContain('Frozen mobile package-lock.json is missing');
     expect(runner).toContain('npm ci --no-audit --no-fund');
     expect(runner).toContain('npx expo install --check');
     expect(runner).toContain('npx expo-doctor');
   });
+
   it('keeps H47.1E historical checks successor-safe',()=>{
     expect(read('tests/mobile-employee-h47-1e.test.ts')).toContain('H47.1E-or-later');
-    expect(read('tests/mobile-employee-h47-1e.test.ts')).toContain('[E-Z]');
+    expect(read('tests/mobile-employee-h47-1e.test.ts')).toContain("MINIMUM_PATCH = 'H47.1E'");
   });
 });

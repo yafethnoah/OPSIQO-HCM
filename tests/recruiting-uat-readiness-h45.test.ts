@@ -24,7 +24,7 @@ describe('H45 recruiting UAT readiness and auth reliability', () => {
 
   it('publishes an explicit H45-or-later runtime marker', () => {
     const identity = read('src/lib/release/identity.ts');
-    const feature = identity.match(/OPSIQO_FEATURE_RELEASE = process\.env\.OPSIQO_FEATURE_RELEASE \|\| 'H(\d+)'/);
+    const feature = identity.match(/OPSIQO_FEATURE_RELEASE = process\.env\.OPSIQO_FEATURE_RELEASE \|\| 'H(\d+)(?:\.\d+[A-Z]?)?'/);
     const product = identity.match(/OPSIQO_PRODUCT_RELEASE = process\.env\.OPSIQO_PRODUCT_RELEASE \|\| '8\.5-v7\.32-H(\d+)'/);
     expect(feature).not.toBeNull();
     expect(product).not.toBeNull();
