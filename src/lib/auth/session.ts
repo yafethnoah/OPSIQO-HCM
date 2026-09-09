@@ -38,16 +38,15 @@ async function platformPolicyForOrg(orgId:string){
 function enforcePlatformIdentityPolicy(identity:IdentityContext,role:Role,platform:Record<string,unknown>|null){
   if(!platform||identity.demo) return;
   if(platform.allowPasswordSignIn===false&&identity.signInProvider==='password') throw new ApiError(403,'Email/password sign-in is disabled by organization policy.','password_signin_disabled');
-  const mfaPolicy=String(platform.mfaPolicy||'optional');
-  const privileged=['super_admin','org_admin','hr_admin'].includes(role);
-  if((mfaPolicy==='all_required'||(mfaPolicy==='privileged_required'&&privileged))&&!identity.mfaVerified) throw new ApiError(403,'Multi-factor authentication is required by organization policy.','mfa_required');
+  // MFA requirement removed. Organization MFA settings are retained only for backward-compatible data reads and are not enforced.
+
   const timeout=typeof platform.sessionTimeoutMinutes==='number'&&Number.isFinite(platform.sessionTimeoutMinutes)?Math.max(15,Math.min(1440,platform.sessionTimeoutMinutes)):null;
   if(timeout&&identity.authTime){const ageMs=Date.now()-Date.parse(identity.authTime);if(Number.isFinite(ageMs)&&ageMs>timeout*60_000)throw new ApiError(401,'Your organization session has expired. Sign in again.','session_expired');}
 }
 
 function enforcePrivilegedIdentityPolicy(identity:IdentityContext, role:Role){
   const privileged=['super_admin','org_admin','hr_admin'].includes(role); if(!privileged||identity.demo) return;
-  if(process.env.OPSIQO_REQUIRE_ADMIN_MFA==='true'&&!identity.mfaVerified) throw new ApiError(403,'Multi-factor authentication is required for privileged HR access.','mfa_required');
+  // MFA requirement removed. Privileged access remains protected by RBAC, provider policy, App Check and audit controls.
   const allowed=(process.env.OPSIQO_ALLOWED_ADMIN_PROVIDERS||'').split(',').map(v=>v.trim()).filter(Boolean);
   if(allowed.length&&(!identity.signInProvider||!allowed.includes(identity.signInProvider))) throw new ApiError(403,'This sign-in provider is not permitted for privileged HR access.','provider_not_allowed');
 }

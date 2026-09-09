@@ -68,7 +68,7 @@ env:
     secret: OPSIQO_FIREBASE_APP_CHECK_SITE_KEY
     availability: [BUILD, RUNTIME]
   - variable: OPSIQO_REQUIRE_ADMIN_MFA
-    value: 'true'
+    value: 'false'
   - variable: OPSIQO_REQUIRE_CLEAN_DOCUMENT_SCAN
     value: 'true'
   - variable: OPSIQO_ENABLE_PLATFORM_RELIABILITY
