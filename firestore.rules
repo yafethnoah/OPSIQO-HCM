@@ -198,6 +198,13 @@ service cloud.firestore {
       match /analyticsForecastModelCodeIndex/{docId} { allow read, write: if false; }
       match /analyticsForecastRuns/{docId} { allow read, write: if false; }
 
+      // H51.1 Agent System of Record: governed server APIs are the only client-facing boundary.
+      match /aiAgentDefinitions/{agentId} {
+        allow read, write: if false;
+        match /versions/{versionId} { allow read, write: if false; }
+        match /simulations/{simulationId} { allow read, write: if false; }
+        match /executions/{executionId} { allow read, write: if false; }
+      }
       match /aiPromptTemplates/{docId} { allow read, write: if false; }
       match /aiModelProfiles/{docId} { allow read, write: if false; }
       match /aiRuns/{docId} { allow read, write: if false; }

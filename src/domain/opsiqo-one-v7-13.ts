@@ -2,13 +2,57 @@ import type { OpsiQoActionLevel } from './opsiqo-one';
 import type { WorkflowTrigger, WorkflowStep } from './workflow';
 
 export type CustomAgentStatus='draft'|'in_review'|'active'|'retired';
+export type CustomAgentAutonomyLevel='assistive'|'supervised_prepare';
+export type CustomAgentTriggerMode='manual'|'event_detected'|'scheduled_review';
+export type CustomAgentSimulationStatus='not_run'|'passed'|'failed';
+export type CustomAgentSystemRecordState='versioned'|'legacy_unversioned';
+
 export interface CustomAgentDefinition {
   id:string; name:string; purpose:string; instructions:string; capabilities:string[]; keywords:string[];
   requiredAnyPermissions:string[]; maxActionLevel:Exclude<OpsiQoActionLevel,'execute'>; hardMaxActionLevel:'prepare';
   humanOversight:true; status:CustomAgentStatus; createdBy:string; createdAt:string; updatedBy:string; updatedAt:string;
+  ownerUid?:string; stewardUid?:string; autonomyLevel?:CustomAgentAutonomyLevel; allowedTools?:string[]; allowedActionTypes?:string[];
+  triggerModes?:CustomAgentTriggerMode[]; contextSources?:string[]; evidenceRequirements?:string[];
+  requiresHumanApprovalForConsequentialActions?:true; executionAuthority?:'none'; currentVersion?:number; currentVersionId?:string;
+  systemRecordState?:CustomAgentSystemRecordState; latestSimulationStatus?:CustomAgentSimulationStatus;
+  latestSimulationId?:string; latestSimulationAt?:string; latestSimulationBy?:string; latestSimulationVersion?:number;
   submittedAt?:string; activatedBy?:string; activatedAt?:string; retiredBy?:string; retiredAt?:string;
 }
-export interface AgentBuilderDashboard { agents:CustomAgentDefinition[]; canManage:boolean; canApprove:boolean; safetyNotice:string; }
+
+export type RegisteredCustomAgentDefinition = CustomAgentDefinition & {
+  ownerUid:string; stewardUid:string; autonomyLevel:CustomAgentAutonomyLevel; allowedTools:string[]; allowedActionTypes:string[];
+  triggerModes:CustomAgentTriggerMode[]; contextSources:string[]; evidenceRequirements:string[];
+  requiresHumanApprovalForConsequentialActions:true; executionAuthority:'none'; currentVersion:number; currentVersionId:string;
+  systemRecordState:CustomAgentSystemRecordState; latestSimulationStatus:CustomAgentSimulationStatus;
+};
+
+export interface CustomAgentVersion {
+  id:string; agentId:string; version:number; fingerprint:string; createdBy:string; createdAt:string;
+  name:string; purpose:string; instructions:string; capabilities:string[]; keywords:string[]; requiredAnyPermissions:string[];
+  maxActionLevel:Exclude<OpsiQoActionLevel,'execute'>; hardMaxActionLevel:'prepare'; autonomyLevel:CustomAgentAutonomyLevel;
+  allowedTools:string[]; allowedActionTypes:string[]; triggerModes:CustomAgentTriggerMode[]; contextSources:string[];
+  evidenceRequirements:string[]; requiresHumanApprovalForConsequentialActions:true; executionAuthority:'none';
+}
+
+export interface CustomAgentSimulationRecord {
+  id:string; agentId:string; version:number; versionId:string; status:'passed'|'failed'; createdBy:string; createdAt:string;
+  checks:Array<{id:string;passed:boolean;evidence:string}>; fingerprint:string; authoritativeWritesPerformed:false;
+}
+
+export interface CustomAgentExecutionRecord {
+  id:string; agentId:string; version:number; versionId:string; kind:'simulation'|'lifecycle'|'versioning';
+  event:string; outcome:'prepared'|'passed'|'blocked'|'approved'|'retired'; createdBy:string; createdAt:string;
+  humanApprovalRequired:boolean; authoritativeHrWritesPerformed:false; evidenceRefs:string[];
+}
+
+export interface AgentSystemRecordHistory {
+  agent:RegisteredCustomAgentDefinition; versions:CustomAgentVersion[]; simulations:CustomAgentSimulationRecord[]; executions:CustomAgentExecutionRecord[];
+  governanceNotice:string;
+}
+
+export interface AgentBuilderDashboard {
+  agents:RegisteredCustomAgentDefinition[]; canManage:boolean; canApprove:boolean; safetyNotice:string; systemOfRecordNotice:string;
+}
 
 export type MemorySourceType='policy'|'knowledge_article'|'workflow'|'learning_course';
 export interface OrganizationalMemoryCitation {

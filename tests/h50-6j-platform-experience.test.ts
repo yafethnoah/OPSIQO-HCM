@@ -16,23 +16,9 @@ describe('H50.6J platform-wide page experience', () => {
   it('covers all routes through categorized rules plus a general fallback', () => {
     const registry = read('src/lib/experience/page-experience.ts');
     for (const marker of [
-      "id: 'auth'",
-      "id: 'start'",
-      "id: 'people'",
-      "id: 'recruiting'",
-      "id: 'onboarding'",
-      "id: 'offboarding'",
-      "id: 'time'",
-      "id: 'talent'",
-      "id: 'rewards'",
-      "id: 'workflow'",
-      "id: 'insights'",
-      "id: 'governance'",
-      "id: 'casework'",
-      "id: 'imports'",
-      "id: 'ai'",
-      "id: 'admin'",
-      "id: 'general'",
+      "id: 'auth'", "id: 'start'", "id: 'people'", "id: 'recruiting'", "id: 'onboarding'", "id: 'offboarding'",
+      "id: 'time'", "id: 'talent'", "id: 'rewards'", "id: 'workflow'", "id: 'insights'", "id: 'governance'",
+      "id: 'casework'", "id: 'imports'", "id: 'ai'", "id: 'admin'", "id: 'general'",
     ]) expect(registry).toContain(marker);
   });
 
@@ -68,12 +54,12 @@ describe('H50.6J platform-wide page experience', () => {
     expect(ai).not.toContain("void ask(prompt); // opsiqo:ai-assist");
   });
 
-  it('preserves H50.6J release identity or certified predecessor lineage', () => {
+  it('preserves H50.6J release identity or a certified successor lineage', () => {
     const identity = read('src/lib/release/identity.ts');
     const activeJ = identity.includes("OPSIQO_PATCH_RELEASE || 'H50.6J'");
-    const successorWithJLineage =
-      identity.includes("OPSIQO_PATCH_RELEASE || 'H50.6K'") &&
+    const certifiedSuccessorWithJLineage =
+      (identity.includes("OPSIQO_PATCH_RELEASE || 'H50.6K'") || identity.includes("OPSIQO_PATCH_RELEASE || 'H51.1'")) &&
       identity.includes("'H50.6J'");
-    expect(activeJ || successorWithJLineage).toBe(true);
+    expect(activeJ || certifiedSuccessorWithJLineage).toBe(true);
   });
 });
