@@ -201,12 +201,22 @@ const configs: Array<{ prefixes: string[]; config: SectionAiAssistConfig }> = [
   },
 ];
 
+const NEXT_ACTION_PRESET = {
+  label: 'What should I do next?',
+  prompt: 'Using only governed OPSIQO evidence for the current page, identify the single most useful next operational action. Include: detected issue, why it matters, supporting evidence, responsible owner, deadline or timing, confidence, approval status, and an exact preview of what OPSIQO would prepare or change. Do not execute or recommend a consequential employment decision; route those to authorized human review.',
+};
+
 export function getSectionAiAssist(pathname: string): SectionAiAssistConfig | null {
   const path = String(pathname || '').toLowerCase();
   const match = configs.find(({ prefixes }) =>
     prefixes.some((prefix) => path === prefix || path.startsWith(`${prefix}/`)),
   );
-  return match?.config || null;
+  if (!match) return null;
+  const base = match.config;
+  const presets = base.presets.some((preset) => preset.label === NEXT_ACTION_PRESET.label)
+    ? base.presets
+    : [...base.presets, NEXT_ACTION_PRESET];
+  return { ...base, presets };
 }
 
 export function sectionAiAssistConfigs(): SectionAiAssistConfig[] {

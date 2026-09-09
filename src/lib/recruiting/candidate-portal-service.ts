@@ -125,7 +125,15 @@ export async function enforceCandidatePortalRateLimit(token:string,request:Reque
 export async function parsePublicCandidateResume(token:string,form:FormData){
  const x=await resolve(token),file=form.get('file');
  if(!(file instanceof File))throw new ApiError(400,'Resume file is required.','resume_required');
- const parsed=await parseResumeFile(actor(x.orgId,x.link.id),file,{requireStructuredPrefill:false});
+ let parsed:Awaited<ReturnType<typeof parseResumeFile>>;
+ try{
+  parsed=await parseResumeFile(actor(x.orgId,x.link.id),file);
+ }catch(e){
+  const code=e instanceof ApiError?e.code:'';
+  const humanReviewFallback=['recruiting_ai_setup_required','resume_ai_parse_failed','resume_parse_insufficient','resume_parser_unavailable','resume_text_unreadable'].includes(code);
+  if(!humanReviewFallback)throw e;
+  parsed=await parseResumeFile(actor(x.orgId,x.link.id),file,{requireStructuredPrefill:false});
+ }
  const structuredResume=structuredResumeFromProfile(parsed.profile);
  const {sourceText:_,...profile}=parsed.profile;
  const machineTrust=Number(parsed.profile.parseTrust??parsed.profile.parseQuality??0);
