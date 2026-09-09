@@ -184,6 +184,11 @@ export async function parseResumeFile(actor: ActorContext, file: File, options: 
     aiFailure = e;
     if (!text) {
       const code = e instanceof ApiError ? e.code : "";
+      const transientProviderFailure=["ai_credential_invalid","ai_model_unavailable","ai_rate_limited","ai_provider_unavailable","ai_provider_error","ai_document_probe_failed"].includes(code);
+
+      if(options.requireStructuredPrefill===false&&transientProviderFailure){
+        ai=null;
+      }else{
 
       // A real provider/runtime failure is operational evidence and must
       // remain visible even when the PDF text layer is unsafe.
@@ -231,10 +236,13 @@ export async function parseResumeFile(actor: ActorContext, file: File, options: 
       }
 
       throw e;
+      }
     }
   }
   if (ai?.profile?.sourceText) profile = ai.profile;
   else if (text) profile = parseResumeTextDeterministic(text, file.name);
+  else if (options.requireStructuredPrefill===false)
+    profile = parseResumeTextDeterministic("", file.name);
   else if (pdfLayerState === "unsafe")
     throw new ApiError(
       503,
@@ -268,7 +276,7 @@ export async function parseResumeFile(actor: ActorContext, file: File, options: 
         "Professional headline was omitted because the extracted text was not reliably human-readable.",
       ],
     };
-  if (extension(file.name) === ".pdf" && !assessHumanReadableText(profile.sourceText || "").readable)
+  if (options.requireStructuredPrefill!==false && extension(file.name) === ".pdf" && !assessHumanReadableText(profile.sourceText || "").readable)
     throw new ApiError(
       422,
       "This PDF does not contain a reliable readable text layer, and governed AI parsing was unavailable or returned unusable text. No candidate fields were accepted. Upload a text-based PDF/DOCX or enable the approved Recruiting ATS AI provider.",

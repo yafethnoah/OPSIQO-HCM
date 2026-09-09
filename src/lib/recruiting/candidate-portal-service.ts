@@ -125,7 +125,7 @@ export async function enforceCandidatePortalRateLimit(token:string,request:Reque
 export async function parsePublicCandidateResume(token:string,form:FormData){
  const x=await resolve(token),file=form.get('file');
  if(!(file instanceof File))throw new ApiError(400,'Resume file is required.','resume_required');
- const parsed=await parseResumeFile(actor(x.orgId,x.link.id),file);
+ const parsed=await parseResumeFile(actor(x.orgId,x.link.id),file,{requireStructuredPrefill:false});
  const structuredResume=structuredResumeFromProfile(parsed.profile);
  const {sourceText:_,...profile}=parsed.profile;
  const machineTrust=Number(parsed.profile.parseTrust??parsed.profile.parseQuality??0);
@@ -152,7 +152,7 @@ export async function parsePublicCandidateResume(token:string,form:FormData){
    structuredRecordCount,
    structuredIssues,
   },
-  note:'Resume was parsed into editable structured application fields. Employment and education relationships are evidence-checked. Final confirmation is blocked until critical structured resume issues are corrected.'
+  note:parsed.profile.sourceText?.trim()?'Resume was parsed into editable structured application fields. Review every section before final confirmation.':'Recruiting AI is temporarily unavailable or the file has no readable text layer. Continue in manual review mode, complete the application fields, and confirm accuracy before submission.'
  };
 }
 
@@ -166,10 +166,10 @@ export async function loadPublicApplicationDraft(token:string,draftToken:string)
 export async function submitPublicCandidateApplication(token:string,form:FormData){
  const x=await resolve(token);let raw:any;try{raw=JSON.parse(String(form.get('application')||''))}catch{throw new ApiError(400,'Application information could not be read.','invalid_application_payload')}const i=submission.parse(raw);answers(x.link,i.screeningAnswers);
  const rf=form.get('resume');if(!(rf instanceof File)||rf.size<=0)throw new ApiError(400,'Resume file is required.','resume_required');
- const a=actor(x.orgId,x.link.id),parsed=await parseResumeFile(a,rf),rd=await extractRecruitingDocumentFile(rf);if(parsed.sourceMeta.sha256!==rd.sourceMeta.sha256)throw new ApiError(409,'Resume changed during processing.','resume_changed_during_processing');
+ const a=actor(x.orgId,x.link.id),parsed=await parseResumeFile(a,rf,{requireStructuredPrefill:false}),rd=await extractRecruitingDocumentFile(rf);if(parsed.sourceMeta.sha256!==rd.sourceMeta.sha256)throw new ApiError(409,'Resume changed during processing.','resume_changed_during_processing');
  const verifiedStructuredResume=mergeStructuredResume(i.structuredResume,deterministicStructuredResume(parsed.profile),parsed.profile.sourceText);
  const verification=candidateVerificationGate(verifiedStructuredResume,parsed.profile.sourceText);
- if(!verification.canFinalize)throw new ApiError(422,'Resume verification cannot be finalized until critical structured resume issues are corrected. Review the employment, education and skills sections before confirming.','resume_structural_review_required');
+ if(parsed.profile.sourceText?.trim()&&!verification.canFinalize)throw new ApiError(422,'Resume verification cannot be finalized until critical structured resume issues are corrected. Review the employment, education and skills sections before confirming.','resume_structural_review_required');
  const cf=form.get('coverLetter'),coverText=String(i.coverLetterText||'').trim(),cd=cf instanceof File&&cf.size>0?await extractRecruitingDocumentFile(cf):null;
  if(cd?.documentClassification.kind==='resume'&&cd.documentClassification.confidence>=0.85)throw new ApiError(422,'This file looks like a resume, not a cover letter. Attach the cover letter in the Cover letter field.','cover_letter_document_mismatch');
  if(x.link.coverLetterRequired&&!cd&&!coverText)throw new ApiError(400,'A cover letter is required.','cover_letter_required');

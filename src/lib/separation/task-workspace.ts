@@ -28,5 +28,11 @@ export function buildTaskWorkspace(task:SeparationTask,c:SeparationCase,actorUid
 
 export function workspaceReady(task:SeparationTask){
   const steps=task.steps||[],documents=task.documents||[];
-  return steps.length>0&&steps.filter(x=>x.required).every(x=>x.completed)&&documents.filter(x=>x.required).every(x=>x.confirmed&&x.content.trim().length>0);
+  return steps.length>0&&steps.filter(x=>x.required).every(x=>x.completed)&&documents.filter(x=>x.required).every(x=>x.confirmed&&documentHasSubstantiveEvidence(x.content));
+}
+
+export function documentHasSubstantiveEvidence(content:string){
+  const lines=String(content||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const completedFields=lines.filter(line=>{const index=line.indexOf(':');return index>0&&line.slice(index+1).trim().length>=2;});
+  return completedFields.length>=2;
 }
