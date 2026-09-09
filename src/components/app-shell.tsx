@@ -8,6 +8,7 @@ import { ConnectivityBanner } from '@/components/connectivity-banner';
 import { MobileOutcomeNav } from '@/components/mobile-outcome-nav';
 import { RouteAnnouncer } from '@/components/route-announcer';
 import { ContextualAiAssist } from '@/components/contextual-ai-assist';
+import { PageExperienceLayer } from '@/components/page-experience-layer';
 import { useGlobalReviewedTranslation, useRouteReviewedTranslation } from '@/lib/opsiqo-one/legacy-surface-i18n';
 import { useRuntimeLocaleSync } from '@/lib/opsiqo-one/runtime-locale';
 import { useSessionExpiryRedirect } from '@/lib/auth/session-expiry-client';
@@ -45,7 +46,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
       <>
         <a className="skipLink" href="#main-content">Skip to main content</a>
         <main id="main-content" className="main authMain" data-opsiqo-shell="public-auth" tabIndex={-1}>
-          <div className="mainInner authMainInner">{children}</div>
+          <div className="mainInner authMainInner"><PageExperienceLayer publicMode />{children}</div>
         </main>
       </>
     );
@@ -59,7 +60,7 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
       <main id="main-content" className="main" tabIndex={-1}>
         <ConnectivityBanner />
         <div data-opsiqo-shell-i18n="true"><OpsiQoCommandBar /></div>
-        <div className="mainInner" data-opsiqo-route-surface-host="true">{children}</div>
+        <div className="mainInner" data-opsiqo-route-surface-host="true"><PageExperienceLayer />{children}</div>
       </main>
       <ContextualAiAssist />
       <div data-opsiqo-shell-i18n="true"><MobileOutcomeNav /></div>

@@ -63,6 +63,22 @@ export function ContextualAiAssist() {
     setCopied(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const onPageAssist = (event: Event) => {
+      if (!config) return;
+      const detail = (event as CustomEvent<{ prompt?: string }>).detail;
+      const prompt = String(detail?.prompt || '').trim();
+      setOpen(true);
+      setResult(null);
+      setError('');
+      setCopied(false);
+      if (prompt) setQuestion(prompt);
+    };
+
+    window.addEventListener('opsiqo:ai-assist', onPageAssist as EventListener);
+    return () => window.removeEventListener('opsiqo:ai-assist', onPageAssist as EventListener);
+  }, [config?.id]);
+
   async function load() {
     if (!config) return;
     try {
