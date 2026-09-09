@@ -5,7 +5,7 @@ import {
 
 export const OPSIQO_PRODUCT_RELEASE = process.env.OPSIQO_PRODUCT_RELEASE || '8.5-v7.32-H50';
 export const OPSIQO_FEATURE_RELEASE = process.env.OPSIQO_FEATURE_RELEASE || 'H50.6';
-export const OPSIQO_PATCH_RELEASE = process.env.OPSIQO_PATCH_RELEASE || 'H50.6F';
+export const OPSIQO_PATCH_RELEASE = process.env.OPSIQO_PATCH_RELEASE || 'H50.6G';
 export const OPSIQO_CERTIFICATION_BASELINE = process.env.OPSIQO_RELEASE_VERSION || '3.6.1';
 
 function clean(value: string | undefined): string | null {

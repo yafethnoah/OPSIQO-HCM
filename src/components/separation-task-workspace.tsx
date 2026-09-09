@@ -1,0 +1,18 @@
+'use client';
+import { useState } from 'react';
+import type { SeparationTask } from '@/domain/separation';
+
+type Action=(action:string,body?:Record<string,unknown>)=>Promise<void>;
+export function SeparationTaskWorkspace({task,onAction,onClose}:{task:SeparationTask;onAction:Action;onClose:()=>void}){
+  const requiredSteps=(task.steps||[]).filter(x=>x.required),requiredDocuments=(task.documents||[]).filter(x=>x.required);
+  const ready=requiredSteps.length>0&&requiredSteps.every(x=>x.completed)&&requiredDocuments.every(x=>x.confirmed&&x.content.trim());
+  const download=(title:string,content:string)=>{const blob=new Blob([content],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`${title.replace(/[^a-z0-9]+/gi,'_')}.txt`;link.click();URL.revokeObjectURL(url);};
+  return <section className="separationTaskWorkspace" aria-label={`${task.title} guided workspace`}><div className="runHeader"><div><h3>Guided task workspace</h3><p className="muted">Generated from governed H50.6G templates. Review and edit every record before confirmation.</p></div><button type="button" className="button secondary compact" onClick={onClose}>Close workspace</button></div><div className="taskWorkspaceGrid"><div className="taskWorkspacePanel"><h4>Steps to complete</h4><div className="taskStepList">{(task.steps||[]).map(step=><label className={`taskStep ${step.completed?'done':''}`} key={step.id}><input type="checkbox" checked={step.completed} onChange={e=>onAction('set_step',{stepId:step.id,completed:e.target.checked})}/><span><strong>{step.title}</strong><small>{step.instruction}</small></span></label>)}</div></div><div className="taskWorkspacePanel"><h4>Required documents</h4><div className="taskDocumentList">{(task.documents||[]).map(document=><DocumentEditor key={document.id} document={document} onAction={onAction} onDownload={download}/>)}</div></div></div><div className={ready?'success':'notice'}>{ready?'All required steps and documents are confirmed. This task can now be completed.':'Complete every required step and confirm each document before completing the task.'}</div></section>;
+}
+
+function DocumentEditor({document,onAction,onDownload}:{document:NonNullable<SeparationTask['documents']>[number];onAction:Action;onDownload:(title:string,content:string)=>void}){
+  const[content,setContent]=useState(document.content),[saving,setSaving]=useState(false);
+  const save=async()=>{setSaving(true);try{await onAction('save_document',{documentId:document.id,content});}finally{setSaving(false);}};
+  const confirm=async()=>{setSaving(true);try{await onAction('save_document',{documentId:document.id,content});await onAction('confirm_document',{documentId:document.id});}finally{setSaving(false);}};
+  return <article className="taskDocument"><div className="runHeader"><div><strong>{document.title}</strong><small>{document.description}</small></div><span className="badge">{document.confirmed?'confirmed':'draft'}</span></div><textarea className="input taskDocumentEditor" value={content} onChange={e=>setContent(e.target.value)}/><div className="stepActions"><button type="button" className="button secondary compact" onClick={()=>onDownload(document.title,content)}>Download</button><button type="button" className="button secondary compact" disabled={saving} onClick={save}>{saving?'Saving…':'Save draft'}</button><button type="button" className="button compact" disabled={saving||document.confirmed||!content.trim()} onClick={confirm}>{document.confirmed?'Confirmed':'Confirm document'}</button></div></article>;
+}

@@ -4,6 +4,27 @@ export type SeparationTaskStatus = 'pending' | 'in_progress' | 'completed' | 'wa
 export type SeparationTaskOwner = 'hr' | 'manager' | 'it' | 'payroll' | 'benefits' | 'employee' | 'facilities';
 export type SeparationTaskPhase = 'pre_exit' | 'effective_date' | 'post_exit';
 
+export interface SeparationTaskStep {
+  id: string;
+  title: string;
+  instruction: string;
+  required: boolean;
+  completed: boolean;
+  completedBy?: string;
+  completedAt?: string;
+}
+
+export interface SeparationTaskDocument {
+  id: string;
+  title: string;
+  description: string;
+  content: string;
+  required: boolean;
+  confirmed: boolean;
+  updatedBy?: string;
+  updatedAt?: string;
+}
+
 export interface SeparationCase {
   id: string;
   workerId: string;
@@ -69,6 +90,12 @@ export interface SeparationTask {
   completedAt?: string;
   waivedBy?: string;
   waivedAt?: string;
+  workspaceVersion?: 'H50.6G';
+  workspaceSource?: 'governed_template';
+  workspaceGeneratedBy?: string;
+  workspaceGeneratedAt?: string;
+  steps?: SeparationTaskStep[];
+  documents?: SeparationTaskDocument[];
   createdAt: string;
   updatedAt: string;
 }

@@ -17,7 +17,14 @@ export const separationActionSchema=z.object({
   replacementDecision:z.enum(['pending','replace','do_not_replace','redesign']).optional(), replacementNote:z.string().max(2000).optional(),
   payPeriodEndDate:isoDate.optional(), roeTargetDate:isoDate.optional(), finalPayTargetDate:isoDate.optional(), rehireEligible:z.boolean().optional(), regrettable:z.boolean().optional(), autoCloseOnEffectiveDate:z.boolean().optional(),
 });
-export const separationTaskActionSchema=z.object({ action:z.enum(['start','complete','waive','reopen']), note:z.string().max(1500).optional() });
+export const separationTaskActionSchema=z.object({
+  action:z.enum(['start','complete','waive','reopen','set_step','save_document','confirm_document']),
+  note:z.string().max(1500).optional(),
+  stepId:z.string().max(120).optional(),
+  completed:z.boolean().optional(),
+  documentId:z.string().max(120).optional(),
+  content:z.string().max(30000).optional(),
+});
 export const separationAssetSchema=z.object({ assetTag:z.string().max(100).optional(), name:z.string().min(2).max(200), category:z.string().max(100).optional(), returnDueAt:z.string().datetime().optional(), note:z.string().max(1000).optional() });
 export const separationAssetActionSchema=z.object({ action:z.enum(['returned','lost','damaged','written_off']), note:z.string().max(1000).optional() });
 export const exitInterviewSchema=z.object({

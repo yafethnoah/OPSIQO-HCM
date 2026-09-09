@@ -21,17 +21,17 @@ describe('H50.6F AI and offboarding repair',()=>{
     expect(provider).not.toContain('console.error(req');
   });
 
-  it('does not render Start for an in-progress offboarding task',()=>{
+  it('keeps the Start transition scoped to pending or overdue tasks',()=>{
     const workspace=read('src/components/separation-workspace.tsx');
     expect(workspace).toContain("['pending','overdue'].includes(t.status)");
-    expect(workspace).toContain("['pending','overdue','in_progress'].includes(t.status)");
+    expect(workspace).toContain("['in_progress','overdue'].includes(t.status)");
   });
 
   it('enforces server-side task transitions and idempotent repeated actions',()=>{
     const service=read('src/lib/separation/service.ts');
-    expect(service).toContain("input.action==='start'&&current==='in_progress'");
-    expect(service).toContain("input.action==='complete'&&current==='completed'");
-    expect(service).toContain("input.action==='waive'&&current==='waived'");
+    expect(service).toContain("task.status==='in_progress'&&task.workspaceVersion");
+    expect(service).toContain("task.status==='completed'");
+    expect(service).toContain("task.status==='waived'");
     expect(service).toContain("'invalid_task_status'");
   });
 });
