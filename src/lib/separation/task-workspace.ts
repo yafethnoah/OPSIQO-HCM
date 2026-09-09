@@ -1,38 +1,570 @@
 import type { SeparationCase, SeparationTask, SeparationTaskDocument, SeparationTaskStep } from '@/domain/separation';
 
-type Blueprint={steps:Array<[string,string]>;documents:Array<[string,string,string]>};
+type BlueprintDocument={
+  id:string;
+  title:string;
+  description:string;
+  build:(task:SeparationTask,c:SeparationCase)=>string;
+};
+type Blueprint={steps:Array<[string,string]>;documents:BlueprintDocument[]};
+
+const safe=(value:string|undefined)=>String(value||'').replace(/[<>]/g,'').trim();
+const field=(label:string,value?:string)=>`${label}: ${safe(value)}`;
+const title=(value:string)=>`# ${value}`;
+const section=(value:string)=>`## ${value}`;
+const intro=(value:string)=>value;
+
+function baseCase(task:SeparationTask,c:SeparationCase){
+  return[
+    section('Employee and case information'),
+    field('Employee / worker ID',task.workerId),
+    field('Case reference',c.id),
+    field('Separation type',c.separationType.replaceAll('_',' ')),
+    field('Effective date',c.effectiveDate),
+    field('Last working date',c.lastWorkingDate),
+  ];
+}
 
 const common={
-  hr_checklist:{steps:[['Confirm approved basis','Verify the approved separation basis, worker identity, dates and authorization.'],['Review applicable controls','Confirm required HR/legal review evidence is recorded without making an automated legal conclusion.'],['Confirm handoffs','Verify payroll, benefits, IT, manager and facilities owners received their actions.']],documents:[['hr-separation-checklist','HR separation checklist','Approved basis:\nEffective date:\nLast working date:\nRequired reviews:\nHandoff owners:\nOutstanding exceptions:\nReviewer and date:'],['final-hr-clearance','Final HR clearance and sign-off','Employee:\nEffective date:\nManager clearance:\nIT clearance:\nPayroll clearance:\nBenefits clearance:\nProperty clearance:\nOutstanding obligations:\nFinal HR reviewer and date:'],['post-employment-confidentiality','Post-employment confidentiality reminder','Employee:\nConfidentiality / IP obligations reviewed:\nRecords or materials returned:\nContinuing restrictions source:\nQuestions raised:\nCommunication date:\nHR contact:']]},
-  knowledge_transfer:{steps:[['Inventory responsibilities','List recurring duties, active work, key deadlines and decision rights.'],['Assign receiving owners','Name an accountable receiving owner for every responsibility and file location.'],['Confirm handover','Review the handover with the manager and record unresolved risks.']],documents:[['knowledge-transfer-plan','Knowledge transfer and handover plan','Responsibilities and recurring duties:\nActive projects and deadlines:\nKey contacts:\nFile and system locations:\nReceiving owners:\nOpen risks and follow-up dates:'],['manager-clearance','Manager offboarding clearance','Employee:\nKnowledge transfer complete:\nOutstanding work reassigned:\nCustomer / partner handoffs complete:\nFiles and records transferred:\nOpen business risks:\nManager name and date:']]},
-  it_deprovision:{steps:[['Inventory access','List email, devices, applications, SaaS, privileged access and shared credentials.'],['Schedule controls','Assign removal, preservation or transfer actions for the approved effective time.'],['Verify execution','Record evidence from the accountable system owners; never store passwords or secrets.']],documents:[['access-deprovision-plan','Access deprovisioning plan','System or access:\nAccount owner:\nAction required:\nExecution date/time:\nResponsible administrator:\nVerification evidence reference:\nExceptions:'],['it-clearance','IT access and device clearance','Employee:\nEmail action:\nIdentity / SSO action:\nPrivileged access action:\nShared access transferred:\nDevice action:\nData preservation reference:\nIT verifier and date:']]},
-  time_leave_review:{steps:[['Reconcile records','Review submitted time, approved leave, corrections and outstanding approvals.'],['Resolve exceptions','Assign unresolved entries to an authorized payroll or HR reviewer.'],['Confirm payroll handoff','Record the reviewed totals and evidence reference for payroll processing.']],documents:[['time-leave-review','Final time and leave review','Pay period:\nTime entries reviewed:\nLeave balance reviewed:\nCorrections required:\nApprovals outstanding:\nPayroll evidence reference:\nReviewer and date:']]},
-  asset_return:{steps:[['Inventory property','Confirm all assigned equipment, keys, cards, records and other property.'],['Arrange return','Record return method, location, responsible receiver and target date.'],['Document outcome','Record returned, missing, damaged or authorized write-off outcomes with evidence.']],documents:[['asset-return-record','Property and equipment return record','Asset / tag:\nCondition:\nReturn method and date:\nReceived by:\nMissing or damaged items:\nAuthorized exception / evidence:\nEmployee acknowledgement:'],['property-clearance','Property and facilities clearance','Employee:\nKeys / badges returned:\nEquipment returned:\nRecords / files returned:\nWorkspace / locker cleared:\nExceptions:\nReceiver and date:']]},
-  final_payroll:{steps:[['Collect payroll inputs','Gather approved time, leave, expenses and reviewed separation inputs.'],['Perform authorized review','Have qualified payroll/HR personnel determine applicable amounts under governing rules and agreements.'],['Record approval evidence','Document calculations, reviewer approval and processing reference without AI determining entitlement.']],documents:[['final-payroll-review','Final payroll review record','Final pay period:\nApproved time and leave inputs:\nExpenses / deductions reviewed:\nTermination or severance input source:\nQualified reviewer:\nApproval reference:\nPayment date and evidence:']]},
-  roe:{steps:[['Confirm interruption and filing method','Have payroll confirm whether an ROE is required and the applicable electronic or paper timing.'],['Prepare verified information','Review pay-period, interruption-of-earnings and reason-code information.'],['Record filing evidence','Record the official filing confirmation or reference; this document is not an ROE.']],documents:[['roe-preparation-checklist','ROE preparation and filing checklist','Interruption confirmed by payroll:\nFiling method:\nRequired filing date:\nPay-period information verified:\nReason information verified:\nAuthorized filer:\nOfficial filing reference and date:']]},
-  benefits:{steps:[['Identify plans','List applicable benefit, pension and savings plans.'],['Obtain administrator direction','Confirm continuation or termination actions with authorized plan administrators.'],['Record communication evidence','Document notices, effective dates and unresolved questions.']],documents:[['benefits-transition','Benefits and pension transition record','Plan / administrator:\nRequired action:\nEffective date:\nEmployee communication date:\nContinuation information supplied:\nEvidence reference:\nOutstanding questions:']]},
-  exit_interview:{steps:[['Offer participation','Invite voluntary participation and explain confidentiality and intended use.'],['Conduct structured interview','Use neutral questions and avoid collecting unnecessary sensitive information.'],['Record themes','Capture authorized themes and follow-up actions separately from confidential notes.']],documents:[['exit-interview-guide','Exit interview guide','Participation and confidentiality notice:\nPrimary reason for leaving:\nWhat worked well:\nWhat could improve:\nManager and workplace experience:\nWould consider returning:\nThemes and authorized follow-up:']]},
-  replacement:{steps:[['Review operational need','Assess workload, service requirements and position design.'],['Record human decision','Have the authorized leader decide replace, redesign or leave vacant.'],['Create recruiting handoff','If approved, document position and requisition requirements.']],documents:[['replacement-decision','Replacement / position decision record','Operational need:\nWorkload evidence:\nOptions considered:\nHuman decision:\nDecision maker and date:\nPosition changes:\nRecruiting handoff:']]},
-  retention:{steps:[['Classify records','Identify employment, payroll, benefits, safety and case records affected by closure.'],['Check holds and schedules','Have authorized personnel confirm retention schedules, litigation holds and access restrictions.'],['Record disposition controls','Document storage owner, retention trigger and approved disposition date.']],documents:[['records-retention-review','Records retention review','Record category:\nRetention authority / schedule:\nRetention trigger:\nLegal hold status:\nStorage and access owner:\nApproved disposition date:\nReviewer:']]},
+  hr_checklist:{steps:[
+    ['Confirm approved basis','Verify the approved separation basis, worker identity, dates and authorization.'],
+    ['Review applicable controls','Confirm required HR/legal review evidence is recorded without making an automated legal conclusion.'],
+    ['Confirm handoffs','Verify payroll, benefits, IT, manager and facilities owners received their actions.'],
+  ],documents:[
+    {
+      id:'hr-separation-checklist',
+      title:'HR separation checklist',
+      description:'Professional HR control record documenting the approved basis, reviews, cross-functional handoffs, exceptions and final HR sign-off.',
+      build:(task,c)=>[
+        title('HR separation checklist'),
+        intro('This controlled record documents the HR review and operational handoffs required for the employee separation. Complete every field using verified source information or enter N/A when a field is not applicable.'),
+        ...baseCase(task,c),
+        section('Approved basis and review controls'),
+        field('Approved separation basis / source',c.reasonCategory),
+        field('Approving authority'),
+        field('HR / legal review requirement',c.legalReviewRequired?'Required':'Not required by case configuration'),
+        field('HR / legal review evidence reference',c.legalReviewStatus==='completed'?'Review recorded':''),
+        field('Notice / agreement source'),
+        section('Operational handoffs'),
+        field('Manager handoff owner'),
+        field('Payroll handoff owner'),
+        field('Benefits handoff owner'),
+        field('IT handoff owner'),
+        field('Facilities / property handoff owner'),
+        field('Outstanding exceptions or blockers'),
+        section('Final HR confirmation'),
+        field('HR reviewer name'),
+        field('Review date'),
+        field('Final review notes'),
+      ].join('\n'),
+    },
+    {
+      id:'final-hr-clearance',
+      title:'Final HR clearance and sign-off',
+      description:'Formal cross-functional clearance record demonstrating that required exit controls and unresolved obligations were reviewed.',
+      build:(task,c)=>[
+        title('Final HR clearance and sign-off'),
+        intro('Use this record as the final HR control summary before the separation case is closed. It does not replace required statutory, contractual, payroll or legal records.'),
+        ...baseCase(task,c),
+        section('Department clearance'),
+        field('Manager clearance status'),
+        field('IT clearance status'),
+        field('Payroll clearance status'),
+        field('Benefits clearance status'),
+        field('Property / facilities clearance status'),
+        field('Records retention review status'),
+        section('Outstanding matters'),
+        field('Outstanding obligations'),
+        field('Employee communications completed'),
+        field('Evidence package reference'),
+        section('Authorization'),
+        field('Final HR reviewer'),
+        field('Final review date'),
+        field('Authorized close / hold decision'),
+        field('Closing comments'),
+      ].join('\n'),
+    },
+    {
+      id:'post-employment-confidentiality',
+      title:'Post-employment confidentiality reminder',
+      description:'Professional employee-facing working record summarizing continuing confidentiality, information-return and contact details from approved source obligations.',
+      build:(task,c)=>[
+        title('Post-employment confidentiality reminder'),
+        intro('This working document records the approved post-employment confidentiality and information-return communication. It must reflect the employee’s actual agreement and applicable policy; OPSIQO does not create new restrictions.'),
+        ...baseCase(task,c),
+        section('Continuing obligations'),
+        field('Confidentiality / IP obligation source'),
+        field('Summary of continuing obligations'),
+        field('Records, files or materials returned'),
+        field('Systems / information access reminder'),
+        field('Approved restrictive covenant source or N/A'),
+        section('Communication'),
+        field('Communication method'),
+        field('Communication date'),
+        field('Employee questions'),
+        field('HR response / follow-up'),
+        field('HR contact name'),
+        field('HR contact details'),
+        section('Acknowledgement record'),
+        field('Prepared by'),
+        field('Reviewed by'),
+        field('Evidence reference'),
+      ].join('\n'),
+    },
+  ]},
+  knowledge_transfer:{steps:[
+    ['Inventory responsibilities','List recurring duties, active work, key deadlines and decision rights.'],
+    ['Assign receiving owners','Name an accountable receiving owner for every responsibility and file location.'],
+    ['Confirm handover','Review the handover with the manager and record unresolved risks.'],
+  ],documents:[
+    {
+      id:'knowledge-transfer-plan',
+      title:'Knowledge transfer and handover plan',
+      description:'Structured handover plan covering responsibilities, active work, records, key relationships, decision rights and receiving owners.',
+      build:(task,c)=>[
+        title('Knowledge transfer and handover plan'),
+        intro('This plan provides a controlled transfer of operational knowledge before the employee’s departure. Record enough detail for the receiving owner to continue work without relying on undocumented assumptions.'),
+        ...baseCase(task,c),
+        section('Role and responsibility transfer'),
+        field('Primary responsibilities and recurring duties'),
+        field('Critical deadlines and calendar commitments'),
+        field('Decision rights / approvals transferred'),
+        field('Key customer / partner / stakeholder contacts'),
+        section('Active work'),
+        field('Active projects and current status'),
+        field('Open commitments and dependencies'),
+        field('Known operational risks'),
+        field('Required follow-up dates'),
+        section('Records and ownership'),
+        field('File / record locations'),
+        field('Systems / repositories used'),
+        field('Receiving owner(s)'),
+        field('Manager review notes'),
+        field('Handover completion date'),
+        field('Evidence reference'),
+      ].join('\n'),
+    },
+    {
+      id:'manager-clearance',
+      title:'Manager offboarding clearance',
+      description:'Manager attestation that business continuity, handover and outstanding obligations were reviewed.',
+      build:(task,c)=>[
+        title('Manager offboarding clearance'),
+        intro('The manager completes this record after reviewing operational continuity and the employee’s outstanding work. Enter N/A where an item does not apply.'),
+        ...baseCase(task,c),
+        section('Business continuity'),
+        field('Knowledge transfer completed'),
+        field('Outstanding work reassigned'),
+        field('Customer / partner handoffs completed'),
+        field('Files and records transferred'),
+        field('Open deadlines / commitments'),
+        field('Open business risks'),
+        section('Manager confirmation'),
+        field('Receiving owner(s) confirmed'),
+        field('Exceptions requiring HR follow-up'),
+        field('Manager name'),
+        field('Manager review date'),
+        field('Evidence reference'),
+      ].join('\n'),
+    },
+  ]},
+  it_deprovision:{steps:[
+    ['Inventory access','List email, devices, applications, SaaS, privileged access and shared credentials.'],
+    ['Schedule controls','Assign removal, preservation or transfer actions for the approved effective time.'],
+    ['Verify execution','Record evidence from the accountable system owners; never store passwords or secrets.'],
+  ],documents:[
+    {
+      id:'access-deprovision-plan',
+      title:'Access deprovisioning plan',
+      description:'Security-focused plan documenting accounts, access actions, timing, accountable administrators, preservation requirements and verification evidence.',
+      build:(task,c)=>[
+        title('Access deprovisioning plan'),
+        intro('Use this plan to coordinate authorized access removal, transfer and preservation. Never place passwords, secrets, access tokens or recovery codes in this document.'),
+        ...baseCase(task,c),
+        section('Identity and account controls'),
+        field('Primary identity / SSO account'),
+        field('Email / collaboration account action'),
+        field('Privileged access action'),
+        field('Shared mailbox / shared resource action'),
+        field('Business application / SaaS action'),
+        section('Execution controls'),
+        field('Required execution date / time'),
+        field('Responsible administrator'),
+        field('Data preservation / legal hold requirement'),
+        field('Delegation or transfer owner'),
+        field('Exception / deferred access'),
+        section('Verification'),
+        field('Verification method'),
+        field('Verification evidence reference'),
+        field('IT reviewer'),
+        field('Review date'),
+      ].join('\n'),
+    },
+    {
+      id:'it-clearance',
+      title:'IT access and device clearance',
+      description:'Final IT clearance confirming account, device, data-preservation and access-transfer actions.',
+      build:(task,c)=>[
+        title('IT access and device clearance'),
+        intro('Complete this record after the planned deprovisioning actions are executed or formally deferred by an authorized owner.'),
+        ...baseCase(task,c),
+        section('Access clearance'),
+        field('Email action completed'),
+        field('Identity / SSO action completed'),
+        field('Privileged access action completed'),
+        field('Shared access transferred'),
+        field('Application access reviewed'),
+        section('Device and data clearance'),
+        field('Corporate device action'),
+        field('Mobile / token / peripheral action'),
+        field('Data preservation reference'),
+        field('Open technical exceptions'),
+        section('IT sign-off'),
+        field('IT verifier'),
+        field('Verification date / time'),
+        field('Evidence reference'),
+      ].join('\n'),
+    },
+  ]},
+  time_leave_review:{steps:[
+    ['Reconcile records','Review submitted time, approved leave, corrections and outstanding approvals.'],
+    ['Resolve exceptions','Assign unresolved entries to an authorized payroll or HR reviewer.'],
+    ['Confirm payroll handoff','Record the reviewed totals and evidence reference for payroll processing.'],
+  ],documents:[
+    {
+      id:'time-leave-review',
+      title:'Final time and leave review',
+      description:'Professional reconciliation record for final time, leave balances, corrections, approvals and payroll handoff.',
+      build:(task,c)=>[
+        title('Final time and leave review'),
+        intro('This record documents the final reconciliation of time and leave inputs before payroll processing. It does not itself calculate statutory or contractual entitlements.'),
+        ...baseCase(task,c),
+        section('Reconciliation'),
+        field('Final pay period'),
+        field('Time entries reviewed'),
+        field('Approved leave reviewed'),
+        field('Leave balance source'),
+        field('Corrections required'),
+        field('Approvals outstanding'),
+        section('Payroll handoff'),
+        field('Reviewed totals / summary'),
+        field('Payroll owner'),
+        field('Payroll evidence reference'),
+        field('Reviewer name'),
+        field('Review date'),
+        field('Outstanding questions or exceptions'),
+      ].join('\n'),
+    },
+  ]},
+  asset_return:{steps:[
+    ['Inventory property','Confirm all assigned equipment, keys, cards, records and other property.'],
+    ['Arrange return','Record return method, location, responsible receiver and target date.'],
+    ['Document outcome','Record returned, missing, damaged or authorized write-off outcomes with evidence.'],
+  ],documents:[
+    {
+      id:'asset-return-record',
+      title:'Property and equipment return record',
+      description:'Detailed property return record covering asset identity, condition, return logistics, exceptions and acknowledgement evidence.',
+      build:(task,c)=>[
+        title('Property and equipment return record'),
+        intro('Use this record to document company property returned, transferred, missing, damaged or otherwise resolved through an authorized exception.'),
+        ...baseCase(task,c),
+        section('Property details'),
+        field('Asset / property description'),
+        field('Asset tag / serial number'),
+        field('Assigned location / custodian'),
+        field('Condition before return'),
+        section('Return outcome'),
+        field('Return method'),
+        field('Return date'),
+        field('Received by'),
+        field('Condition on receipt'),
+        field('Missing / damaged item details or N/A'),
+        field('Authorized exception / write-off reference or N/A'),
+        section('Evidence and acknowledgement'),
+        field('Photo / receipt / ticket evidence reference'),
+        field('Employee acknowledgement'),
+        field('Facilities / property reviewer'),
+        field('Review date'),
+      ].join('\n'),
+    },
+    {
+      id:'property-clearance',
+      title:'Property and facilities clearance',
+      description:'Final facilities clearance confirming keys, badges, equipment, physical records and workspace items.',
+      build:(task,c)=>[
+        title('Property and facilities clearance'),
+        intro('Complete this clearance after physical access and company-property obligations have been reviewed. Enter N/A for items not issued to the employee.'),
+        ...baseCase(task,c),
+        section('Facilities clearance'),
+        field('Keys returned'),
+        field('Badges / access cards returned'),
+        field('Equipment returned'),
+        field('Physical records / files returned'),
+        field('Workspace / locker cleared'),
+        field('Parking / access credential action'),
+        field('Other company property'),
+        section('Exceptions and sign-off'),
+        field('Open exceptions'),
+        field('Authorized exception evidence'),
+        field('Receiver / facilities contact'),
+        field('Clearance date'),
+        field('Evidence reference'),
+      ].join('\n'),
+    },
+  ]},
+  final_payroll:{steps:[
+    ['Collect payroll inputs','Gather approved time, leave, expenses and reviewed separation inputs.'],
+    ['Perform authorized review','Have qualified payroll/HR personnel determine applicable amounts under governing rules and agreements.'],
+    ['Record approval evidence','Document calculations, reviewer approval and processing reference without AI determining entitlement.'],
+  ],documents:[
+    {
+      id:'final-payroll-review',
+      title:'Final payroll review record',
+      description:'Governed payroll review summary documenting source inputs, qualified review, approval and payment evidence without automated entitlement decisions.',
+      build:(task,c)=>[
+        title('Final payroll review record'),
+        intro('This record documents the inputs and human review supporting final payroll. OPSIQO does not determine statutory, contractual, termination or severance entitlement and does not replace the payroll system of record.'),
+        ...baseCase(task,c),
+        section('Source inputs'),
+        field('Final pay period'),
+        field('Approved time input reference'),
+        field('Leave / vacation input reference'),
+        field('Approved expenses / reimbursements'),
+        field('Deductions / recoveries reviewed'),
+        field('Termination / severance input source or N/A'),
+        section('Qualified payroll review'),
+        field('Qualified payroll / HR reviewer'),
+        field('Calculation / payroll system reference'),
+        field('Approval authority'),
+        field('Approval reference'),
+        field('Payment date'),
+        field('Payment / remittance evidence'),
+        field('Outstanding payroll questions'),
+      ].join('\n'),
+    },
+  ]},
+  roe:{steps:[
+    ['Confirm interruption and filing method','Have payroll confirm whether an ROE is required and the applicable electronic or paper timing.'],
+    ['Prepare verified information','Review pay-period, interruption-of-earnings and reason-code information.'],
+    ['Record filing evidence','Record the official filing confirmation or reference; this document is not an ROE.'],
+  ],documents:[
+    {
+      id:'roe-preparation-checklist',
+      title:'ROE preparation and filing checklist',
+      description:'Internal preparation and evidence checklist for an authorized Record of Employment filing; this document is not the official ROE.',
+      build:(task,c)=>[
+        title('ROE preparation and filing checklist'),
+        intro('This internal checklist supports an authorized ROE filing. It is not an official Record of Employment and must not be represented as one.'),
+        ...baseCase(task,c),
+        section('Filing determination and source data'),
+        field('Interruption of earnings confirmed by payroll'),
+        field('ROE required / not required decision owner'),
+        field('Filing method'),
+        field('Required filing date'),
+        field('Pay-period information verified'),
+        field('Reason information verified'),
+        field('Other required source records checked'),
+        section('Authorized filing'),
+        field('Authorized filer'),
+        field('Official filing date'),
+        field('Official filing / confirmation reference'),
+        field('Employee copy / communication status'),
+        field('Outstanding exceptions or corrections'),
+        field('Reviewer name and date'),
+      ].join('\n'),
+    },
+  ]},
+  benefits:{steps:[
+    ['Identify plans','List applicable benefit, pension and savings plans.'],
+    ['Obtain administrator direction','Confirm continuation or termination actions with authorized plan administrators.'],
+    ['Record communication evidence','Document notices, effective dates and unresolved questions.'],
+  ],documents:[
+    {
+      id:'benefits-transition',
+      title:'Benefits and pension transition record',
+      description:'Professional transition record documenting plan coverage, administrator direction, effective dates, employee communications and unresolved items.',
+      build:(task,c)=>[
+        title('Benefits and pension transition record'),
+        intro('This record coordinates the employee’s benefits, pension and savings-plan transition using verified plan-administrator direction. It does not create or interpret plan entitlement.'),
+        ...baseCase(task,c),
+        section('Plan and administrator information'),
+        field('Benefit / pension / savings plan'),
+        field('Plan administrator / provider'),
+        field('Administrator contact / reference'),
+        field('Current coverage / membership status'),
+        section('Required transition action'),
+        field('Required action'),
+        field('Action authority / source'),
+        field('Effective date'),
+        field('Continuation / conversion information'),
+        field('Premium / contribution handling reference'),
+        section('Employee communication'),
+        field('Employee communication method'),
+        field('Employee communication date'),
+        field('Information / documents supplied'),
+        field('Employee questions'),
+        field('Outstanding follow-up'),
+        section('Evidence and review'),
+        field('Evidence reference'),
+        field('Benefits reviewer'),
+        field('Review date'),
+      ].join('\n'),
+    },
+  ]},
+  exit_interview:{steps:[
+    ['Offer participation','Invite voluntary participation and explain confidentiality and intended use.'],
+    ['Conduct structured interview','Use neutral questions and avoid collecting unnecessary sensitive information.'],
+    ['Record themes','Capture authorized themes and follow-up actions separately from confidential notes.'],
+  ],documents:[
+    {
+      id:'exit-interview-guide',
+      title:'Exit interview guide and record',
+      description:'Structured interview record with participation notice, neutral questions, workplace themes and authorized follow-up.',
+      build:(task,c)=>[
+        title('Exit interview guide and record'),
+        intro('Participation is voluntary. Explain confidentiality, intended use and any limits before the interview. Record themes objectively and avoid unnecessary sensitive personal information.'),
+        ...baseCase(task,c),
+        section('Participation and context'),
+        field('Invitation date'),
+        field('Participation accepted / declined'),
+        field('Confidentiality / use notice provided'),
+        field('Interview date'),
+        field('Interviewer'),
+        section('Structured discussion'),
+        field('Primary reason for leaving'),
+        field('What worked well'),
+        field('What could improve'),
+        field('Manager / leadership experience'),
+        field('Role / workload / resources experience'),
+        field('Workplace culture / inclusion experience'),
+        field('Learning / career experience'),
+        field('Would consider returning'),
+        section('Themes and follow-up'),
+        field('Key themes'),
+        field('Authorized follow-up actions'),
+        field('Owner and due date'),
+        field('Evidence / case reference'),
+      ].join('\n'),
+    },
+  ]},
+  replacement:{steps:[
+    ['Review operational need','Assess workload, service requirements and position design.'],
+    ['Record human decision','Have the authorized leader decide replace, redesign or leave vacant.'],
+    ['Create recruiting handoff','If approved, document position and requisition requirements.'],
+  ],documents:[
+    {
+      id:'replacement-decision',
+      title:'Replacement / position decision record',
+      description:'Human decision record documenting operational evidence, options, position-design considerations and the approved recruiting handoff.',
+      build:(task,c)=>[
+        title('Replacement / position decision record'),
+        intro('This record supports an authorized human decision about whether to replace, redesign or leave a position vacant. OPSIQO may organize evidence but does not make the staffing decision.'),
+        ...baseCase(task,c),
+        section('Operational evidence'),
+        field('Current workload / service need'),
+        field('Capacity evidence'),
+        field('Budget / funding evidence'),
+        field('Critical skill / coverage need'),
+        field('Operational risks if unfilled'),
+        section('Options reviewed'),
+        field('Replace as-is option'),
+        field('Redesign option'),
+        field('Redistribute / leave vacant option'),
+        field('Other option or N/A'),
+        section('Human decision and handoff'),
+        field('Human decision'),
+        field('Decision maker'),
+        field('Decision date'),
+        field('Approved position changes'),
+        field('Recruiting / requisition handoff'),
+        field('Evidence reference'),
+      ].join('\n'),
+    },
+  ]},
+  retention:{steps:[
+    ['Classify records','Identify employment, payroll, benefits, safety and case records affected by closure.'],
+    ['Check holds and schedules','Have authorized personnel confirm retention schedules, litigation holds and access restrictions.'],
+    ['Record disposition controls','Document storage owner, retention trigger and approved disposition date.'],
+  ],documents:[
+    {
+      id:'records-retention-review',
+      title:'Records retention review',
+      description:'Governed records-retention control record documenting categories, authority, holds, access, ownership and approved disposition timing.',
+      build:(task,c)=>[
+        title('Records retention review'),
+        intro('Complete this review using the organization’s approved retention schedule and any applicable hold instructions. Do not delete or dispose of records solely because this checklist is complete.'),
+        ...baseCase(task,c),
+        section('Records classification'),
+        field('Employment record category'),
+        field('Payroll / tax record category'),
+        field('Benefits record category'),
+        field('Safety / incident record category or N/A'),
+        field('Employee-relations / investigation record category or N/A'),
+        field('Other separation record category or N/A'),
+        section('Retention controls'),
+        field('Retention authority / schedule'),
+        field('Retention trigger'),
+        field('Legal / litigation hold status'),
+        field('Privacy / access restriction'),
+        field('Storage location / repository'),
+        field('Storage and access owner'),
+        section('Disposition and review'),
+        field('Approved disposition date or review date'),
+        field('Disposition authorization owner'),
+        field('Reviewer'),
+        field('Review date'),
+        field('Evidence reference'),
+      ].join('\n'),
+    },
+  ]},
 } satisfies Record<SeparationTask['code'],Blueprint>;
-
-const safe=(value:string|undefined)=>String(value||'Not recorded').replace(/[<>]/g,'');
 
 export function buildTaskWorkspace(task:SeparationTask,c:SeparationCase,actorUid:string,generatedAt:string){
   const plan=common[task.code];
-  const context=`Case ${safe(c.id)} | effective ${safe(c.effectiveDate)} | last working date ${safe(c.lastWorkingDate)}`;
-  const steps:SeparationTaskStep[]=plan.steps.map(([title,instruction],index)=>({id:`step-${index+1}`,title,instruction,required:true,completed:false}));
-  const documents:SeparationTaskDocument[]=plan.documents.map(([id,title,body])=>({id,title,description:`Governed editable working record for ${task.title}. Human review is required.`,content:`${title}\n${context}\n\n${body}`,required:true,confirmed:false}));
-  return{workspaceVersion:'H50.6G' as const,workspaceSource:'governed_template' as const,workspaceGeneratedBy:actorUid,workspaceGeneratedAt:generatedAt,steps,documents};
+  const steps:SeparationTaskStep[]=plan.steps.map(([stepTitle,instruction],index)=>({
+    id:`step-${index+1}`,
+    title:stepTitle,
+    instruction,
+    required:true,
+    completed:false,
+  }));
+  const documents:SeparationTaskDocument[]=plan.documents.map((document)=>({
+    id:document.id,
+    title:document.title,
+    description:`${document.description} Human review is required.`,
+    content:document.build(task,c),
+    required:true,
+    confirmed:false,
+  }));
+  return{
+    workspaceVersion:'H50.6G' as const,
+    workspaceSource:'governed_template' as const,
+    workspaceGeneratedBy:actorUid,
+    workspaceGeneratedAt:generatedAt,
+    steps,
+    documents,
+  };
 }
 
 export function workspaceReady(task:SeparationTask){
   const steps=task.steps||[],documents=task.documents||[];
-  return steps.length>0&&steps.filter(x=>x.required).every(x=>x.completed)&&documents.filter(x=>x.required).every(x=>x.confirmed&&documentHasSubstantiveEvidence(x.content));
+  return steps.length>0
+    &&steps.filter(x=>x.required).every(x=>x.completed)
+    &&documents.filter(x=>x.required).every(x=>x.confirmed&&documentHasCompleteFields(x.content));
 }
 
 export function documentHasSubstantiveEvidence(content:string){
   const lines=String(content||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-  const completedFields=lines.filter(line=>{const index=line.indexOf(':');return index>0&&line.slice(index+1).trim().length>=2;});
+  const completedFields=lines.filter(line=>{
+    const index=line.indexOf(':');
+    return index>0&&line.slice(index+1).trim().length>=2;
+  });
   return completedFields.length>=2;
+}
+
+export function documentHasCompleteFields(content:string){
+  const lines=String(content||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const fields=lines.filter(line=>line.indexOf(':')>0);
+  return fields.length>=4&&fields.every(line=>line.slice(line.indexOf(':')+1).trim().length>=1);
 }

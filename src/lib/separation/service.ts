@@ -9,7 +9,7 @@ import { buildDomainEvent } from '@/lib/events/build';
 import { createEmployeeChange, isDirectReport } from '@/lib/hr/service';
 import { systemActor } from '@/lib/automation/system-actor';
 import { separationActionSchema, separationAssetActionSchema, separationAssetSchema, separationCreateSchema, separationTaskActionSchema, exitInterviewSchema } from './schemas';
-import { buildTaskWorkspace, documentHasSubstantiveEvidence, workspaceReady } from './task-workspace';
+import { buildTaskWorkspace, documentHasSubstantiveEvidence, documentHasCompleteFields, workspaceReady } from './task-workspace';
 
 const now=()=>new Date().toISOString();
 const today=()=>now().slice(0,10);
@@ -91,7 +91,7 @@ export async function actSeparationTask(actor:ActorContext,caseId:string,taskId:
     if(!input.documentId)throw new ApiError(400,'documentId is required.','invalid_task_document');
     const document=task.documents.find(x=>x.id===input.documentId);
     if(!document)throw new ApiError(404,'Task document not found.','task_document_not_found');
-    if(!documentHasSubstantiveEvidence(document.content))throw new ApiError(409,'Complete at least two document fields with substantive evidence before confirming it.','task_document_incomplete');
+    if(!documentHasSubstantiveEvidence(document.content))throw new ApiError(409,'Complete at least two document fields with substantive evidence before confirming it.','task_document_incomplete');if(!documentHasCompleteFields(document.content))throw new ApiError(409,'Resolve every labelled document field before confirmation. Enter N/A when a field is not applicable.','task_document_fields_incomplete');
     update.documents=task.documents.map(x=>x.id===input.documentId?{...x,confirmed:true,updatedBy:actor.uid,updatedAt:timestamp}:x);
   }else if(input.action==='complete'){
     if(task.status==='completed')return task;

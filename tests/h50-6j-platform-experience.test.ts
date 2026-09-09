@@ -68,8 +68,12 @@ describe('H50.6J platform-wide page experience', () => {
     expect(ai).not.toContain("void ask(prompt); // opsiqo:ai-assist");
   });
 
-  it('advances release identity to H50.6J', () => {
+  it('preserves H50.6J release identity or certified predecessor lineage', () => {
     const identity = read('src/lib/release/identity.ts');
-    expect(identity).toContain("OPSIQO_PATCH_RELEASE || 'H50.6J'");
+    const activeJ = identity.includes("OPSIQO_PATCH_RELEASE || 'H50.6J'");
+    const successorWithJLineage =
+      identity.includes("OPSIQO_PATCH_RELEASE || 'H50.6K'") &&
+      identity.includes("'H50.6J'");
+    expect(activeJ || successorWithJLineage).toBe(true);
   });
 });
