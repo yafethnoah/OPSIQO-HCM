@@ -1,23 +1,9 @@
+import { randomUUID } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public code = 'api_error') {
-    super(message);
-  }
+  constructor(public status:number,message:string,public code='api_error',public details?:unknown){super(message);}
 }
-
-export function apiErrorResponse(error: unknown) {
-  if (error instanceof ApiError) {
-    return NextResponse.json({ error: error.code, message: error.message }, { status: error.status });
-  }
-  if (error instanceof ZodError) {
-    return NextResponse.json({
-      error: 'validation_error',
-      message: 'Request validation failed.',
-      issues: error.issues.map(i => ({ path: i.path.join('.'), message: i.message })),
-    }, { status: 400 });
-  }
-  console.error(error);
-  return NextResponse.json({ error: 'internal_error', message: 'Unexpected server error.' }, { status: 500 });
-}
+function recoveryFor(status:number,code:string){if(code==='mfa_required')return{action:'reauthenticate',message:'Complete the required identity assurance step, then retry.'};if(status===401)return{action:'sign_in',message:'Sign in again, then retry the operation.'};if(status===403)return{action:'request_access',message:'Your role does not have permission for this action.'};if(status===409)return{action:'review_conflict',message:'Refresh the record and review the conflicting state before retrying.'};if(status===429)return{action:'retry_later',message:'The request was rate-limited. Retry after the indicated interval.'};if(status>=500)return{action:'retry_or_reconcile',message:'Retry only when the operation is known to be safe; consequential writes may require reconciliation.'};return{action:'correct_input',message:'Review the request details and correct the highlighted issue.'};}
+export function apiErrorResponse(error:unknown){const correlationId=randomUUID();if(error instanceof ApiError){return NextResponse.json({error:error.code,message:error.message,details:error.details,correlationId,recovery:recoveryFor(error.status,error.code)},{status:error.status,headers:{'x-correlation-id':correlationId}});}if(error instanceof ZodError){return NextResponse.json({error:'validation_error',message:'Request validation failed.',issues:error.issues.map(i=>({path:i.path.join('.'),message:i.message})),correlationId,recovery:recoveryFor(400,'validation_error')},{status:400,headers:{'x-correlation-id':correlationId}});}const kind=error instanceof Error?error.name:'unknown';console.error({event:'api_unexpected_error',correlationId,kind});return NextResponse.json({error:'internal_error',message:'Unexpected server error.',correlationId,recovery:recoveryFor(500,'internal_error')},{status:500,headers:{'x-correlation-id':correlationId}});}

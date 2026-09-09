@@ -55,6 +55,7 @@ export function ContextualAiAssist() {
   const [setupBusy, setSetupBusy] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [nextAction, setNextAction] = useState<{title:string;why:string;confidence:number;urgency:string;approvalRequired:boolean}|null>(null);
 
   useEffect(() => {
     setQuestion('');
@@ -86,6 +87,9 @@ export function ContextualAiAssist() {
       setMe(identity);
       if (!identity.actor.permissions.includes('ai.use')) return;
       const orgId = activeOrgId();
+      void apiFetch<{data:Array<{title:string;why:string;confidence:number;urgency:string;approvalRequired:boolean}>}>(`/api/organizations/${orgId}/intelligence/next-actions?limit=1`)
+        .then((r)=>setNextAction(r.data[0]||null))
+        .catch(()=>setNextAction(null));
       const response = await apiFetch<{ data: Readiness }>(
         `/api/organizations/${orgId}/ai-copilot/readiness`,
       );
@@ -244,6 +248,16 @@ export function ContextualAiAssist() {
               <Link href="/ai-copilot?tab=governance">
                 Open AI governance
               </Link>
+            </div>
+          )}
+
+          {nextAction && (
+            <div className="notice stack" data-h51-next-action="true">
+              <div className="row wrap"><strong>Recommended next action</strong><span className="badge">{nextAction.urgency}</span><span className="badge">{nextAction.confidence}% confidence</span></div>
+              <strong>{nextAction.title}</strong>
+              <div>{nextAction.why}</div>
+              {nextAction.approvalRequired && <small>Human approval/checkpoint required before execution.</small>}
+              <Link href="/ai-control-tower">Review evidence in AI Control Tower</Link>
             </div>
           )}
 

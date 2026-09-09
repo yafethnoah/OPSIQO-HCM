@@ -7,3 +7,5 @@ export * from "./serviceBindings";
 export * from "./receipts";
 export * from "./engine";
 export * from "./onboardingReferencePlan";
+export * from "./offboardingReferencePlan";
+export * from "./durable-saga";

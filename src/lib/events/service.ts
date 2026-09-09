@@ -7,6 +7,7 @@ import { systemActor } from '@/lib/automation/system-actor';
 import { buildAudit } from '@/lib/audit/service';
 import { getNotificationSettingsForOrg } from '@/lib/notifications/service';
 import { workflowMatchesEvent } from '@/lib/workflow/conditions';
+import { recordNextBestActionsForEvent } from '@/lib/intelligence-control-plane/next-best-action';
 
 const now = () => new Date().toISOString();
 
@@ -44,6 +45,7 @@ export async function processPendingDomainEvents(orgId: string, limit = 50) {
         if (started.deduplicated) summary.deduplicated += 1;
         else summary.workflowRunsStarted += 1;
       }
+      await recordNextBestActionsForEvent(actor,event);
       await doc.ref.set({ status: 'processed', attempts, processedAt: now(), updatedAt: now(), lastError: null }, { merge: true });
       summary.processed += 1;
     } catch (error) {

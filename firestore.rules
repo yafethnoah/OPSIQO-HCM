@@ -380,6 +380,18 @@ service cloud.firestore {
       match /platformServiceObjectiveCodeIndex/{docId} { allow read, write: if false; }
       match /platformReliabilitySnapshots/{docId} { allow read, write: if false; }
 
+      // H51 Intelligence Control Plane internals are server-owned. APIs enforce tenant scope, RBAC, autonomy and audit controls.
+      match /workGraphRelationships/{docId} { allow read, write: if false; }
+      match /nextBestActions/{docId} { allow read, write: if false; }
+      match /orchestrationSagas/{docId} { allow read, write: if false; }
+      match /learningMemoryMappings/{docId} { allow read, write: if false; }
+      match /aiActivities/{docId} { allow read, write: if false; }
+      match /aiEvaluationRuns/{docId} { allow read, write: if false; }
+      match /agentSecurityEvents/{docId} { allow read, write: if false; }
+      match /complianceIntelligenceCases/{docId} { allow read, write: if false; }
+      match /analyticsActionPlans/{docId} { allow read, write: if false; }
+      match /digitalTwinScenarios/{docId} { allow read, write: if false; }
+
       match /approvals/{docId} { allow read: if activeMember(orgId); allow write: if false; }
       match /auditLogs/{docId} { allow read: if isHR(orgId); allow write: if false; }
     }

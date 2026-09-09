@@ -92,6 +92,7 @@ const allItems: Item[] = [
   { label:'Admin Data & Maintenance',href:'/admin-maintenance',permission:'platform.manage',icon:'⌘',keywords:['maintenance','cleanup','cache','storage','health','reset','edit','data quality'],area:'admin',priority:98 },
   { label:'Import Center',href:'/import-center',permission:'documents.manage',icon:'⇩',keywords:['import','bulk upload','migration'],area:'admin',priority:95 },
   { label:'Automation',href:'/automation',permission:'automation.read',icon:'⚙',keywords:['automation','jobs'],area:'admin',priority:90 },
+  { label:'AI Control Tower',href:'/ai-control-tower',permission:'ai.audit',icon:'◉',keywords:['ai control tower','intelligence control plane','autonomy','tevv','next best action'],area:'admin',priority:95 },
   { label:'Agent Builder',href:'/agent-builder',permission:'ai.manage',icon:'✦',keywords:['agent builder','custom agent','cortex agent'],area:'admin',priority:94 },
   { label:'Automation Marketplace',href:'/automation-marketplace',permission:'workflow.read',icon:'▦',keywords:['automation marketplace','workflow pack','automation pack'],area:'admin',priority:93 },
   { label:'AI Governance Center',href:'/ai-governance',permission:'ai.use',icon:'⬡',keywords:['ai governance','agents','shadow mode','cortex control'],area:'admin',priority:92 },

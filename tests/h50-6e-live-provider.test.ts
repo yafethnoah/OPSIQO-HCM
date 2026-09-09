@@ -92,10 +92,11 @@ describe("H50.6E Recruiting AI live provider verification", () => {
     const laterLetteredH50 = Boolean(
       match && match[1]!.charCodeAt(0) >= "E".charCodeAt(0),
     );
+    const activePatch = identity.match(/OPSIQO_PATCH_RELEASE\s*=\s*process\.env\.OPSIQO_PATCH_RELEASE\s*\|\|\s*'([^']+)'/)?.[1] || null;
     const certifiedH51Successor =
-      identity.includes("OPSIQO_PATCH_RELEASE = process.env.OPSIQO_PATCH_RELEASE || 'H51.1'") &&
-      identity.includes("OPSIQO_UPGRADE_PARENT_PATCH = 'H50.6K'") &&
-      identity.includes("'H50.6K'");
+      Boolean(activePatch && /^H51\.\d+$/.test(activePatch)) &&
+      identity.includes("'H50.6K'") &&
+      identity.includes("'H51.1'");
     expect(laterLetteredH50 || certifiedH51Successor).toBe(true);
   });
 });

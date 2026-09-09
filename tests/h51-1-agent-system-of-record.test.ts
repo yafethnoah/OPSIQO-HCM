@@ -74,8 +74,12 @@ describe('H51.1 agent system of record',()=>{
     expect(rules).toContain('match /versions/{versionId} { allow read, write: if false; }');
     expect(rules).toContain('match /simulations/{simulationId} { allow read, write: if false; }');
     expect(rules).toContain('match /executions/{executionId} { allow read, write: if false; }');
-    expect(identity).toContain("OPSIQO_PATCH_RELEASE || 'H51.1'");
-    expect(identity).toContain("OPSIQO_UPGRADE_PARENT_PATCH = 'H50.6K'");
-    for(const marker of ["'H50.6I'","'H50.6J'","'H50.6K'"])expect(identity).toContain(marker);
+    const activePatch = identity.match(/OPSIQO_PATCH_RELEASE\s*=\s*process\.env\.OPSIQO_PATCH_RELEASE\s*\|\|\s*'([^']+)'/)?.[1] || null;
+    const activeH511 = activePatch === 'H51.1';
+    const certifiedSuccessorWithH511Lineage =
+      Boolean(activePatch && /^H51\.(?:[2-9]|[1-9]\d+)$/.test(activePatch)) &&
+      identity.includes("'H51.1'");
+    expect(activeH511 || certifiedSuccessorWithH511Lineage).toBe(true);
+    for(const marker of ["'H50.6I'","'H50.6J'","'H50.6K'","'H50.6L'","'H51.1'"])expect(identity).toContain(marker);
   });
 });

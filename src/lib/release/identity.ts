@@ -3,11 +3,11 @@ import {
   runtimeMode,
 } from '@/lib/runtime/deployment-environment';
 
-export const OPSIQO_PRODUCT_RELEASE = process.env.OPSIQO_PRODUCT_RELEASE || '8.5-v7.32-H50';
-export const OPSIQO_FEATURE_RELEASE = process.env.OPSIQO_FEATURE_RELEASE || 'H50.6';
-export const OPSIQO_PATCH_RELEASE = process.env.OPSIQO_PATCH_RELEASE || 'H51.1';
-export const OPSIQO_UPGRADE_PARENT_PATCH = 'H50.6K';
-export const OPSIQO_CERTIFIED_PATCH_LINEAGE = ['H50.6I','H50.6J','H50.6K'] as const;
+export const OPSIQO_PRODUCT_RELEASE = process.env.OPSIQO_PRODUCT_RELEASE || '8.5-v7.32-H51';
+export const OPSIQO_FEATURE_RELEASE = process.env.OPSIQO_FEATURE_RELEASE || 'H51';
+export const OPSIQO_PATCH_RELEASE = process.env.OPSIQO_PATCH_RELEASE || 'H51.18';
+export const OPSIQO_UPGRADE_PARENT_PATCH = 'H51.1';
+export const OPSIQO_CERTIFIED_PATCH_LINEAGE = ['H50.6I', 'H50.6J', 'H50.6K', 'H50.6L', 'H51.1'] as const;
 export const OPSIQO_CERTIFICATION_BASELINE = process.env.OPSIQO_RELEASE_VERSION || '3.6.1';
 
 function clean(value: string | undefined): string | null {

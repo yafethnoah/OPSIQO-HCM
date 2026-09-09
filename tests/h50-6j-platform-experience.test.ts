@@ -56,9 +56,10 @@ describe('H50.6J platform-wide page experience', () => {
 
   it('preserves H50.6J release identity or a certified successor lineage', () => {
     const identity = read('src/lib/release/identity.ts');
-    const activeJ = identity.includes("OPSIQO_PATCH_RELEASE || 'H50.6J'");
+    const activePatch = identity.match(/OPSIQO_PATCH_RELEASE\s*=\s*process\.env\.OPSIQO_PATCH_RELEASE\s*\|\|\s*'([^']+)'/)?.[1] || null;
+    const activeJ = activePatch === 'H50.6J';
     const certifiedSuccessorWithJLineage =
-      (identity.includes("OPSIQO_PATCH_RELEASE || 'H50.6K'") || identity.includes("OPSIQO_PATCH_RELEASE || 'H51.1'")) &&
+      Boolean(activePatch && /^(?:H50\.6(?:K|L)|H51\.\d+)$/.test(activePatch)) &&
       identity.includes("'H50.6J'");
     expect(activeJ || certifiedSuccessorWithJLineage).toBe(true);
   });
