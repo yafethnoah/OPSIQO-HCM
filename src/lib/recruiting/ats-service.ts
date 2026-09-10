@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+﻿import { createHash, randomUUID } from "node:crypto";
 import type { ActorContext } from "@/domain/security";
 import type { Application, Candidate, Requisition } from "@/domain/recruiting";
 import type {
@@ -12,7 +12,7 @@ import { ApiError } from "@/lib/http/errors";
 import { buildAudit } from "@/lib/audit/service";
 import { buildDomainEvent } from "@/lib/events/build";
 import { extractDocxText, extractRtfText } from "@/lib/contract-import/docx";
-import { assessHumanReadableText, extractPdfTextLayer } from "@/lib/data-import/pdf-text";
+import { assessPdfTextQuality, extractPdfDocument } from "@/lib/data-import/pdf-engine";
 import {
   analyzeJobDescription,
   buildAtsReview,
@@ -72,33 +72,63 @@ function validateResumeFile(file: File, bytes: Buffer) {
       "file_signature_mismatch",
     );
 }
-function textFromResume(name: string, bytes: Buffer) {
+async function textFromResume(name: string, bytes: Buffer): Promise<string> {
   const ext = extension(name);
+
   if (ext === ".pdf") {
     try {
-      const extracted = extractPdfTextLayer(bytes).slice(0, 500_000);
-      return assessHumanReadableText(extracted).readable ? extracted : "";
+      const pdf = await extractPdfDocument(bytes, {
+        maxBytes: 10 * 1024 * 1024,
+        maxText: 500_000,
+      });
+
+      /*
+       * Deterministic Recruiting logic receives only reliable PDF.js text.
+       * The governed AI provider still receives the ORIGINAL PDF regardless
+       * of whether a machine-readable text layer exists.
+       */
+      return pdf.hasUsableText
+        ? pdf.text.slice(0, 500_000)
+        : "";
     } catch {
       return "";
     }
   }
-  if (ext === ".docx") return extractDocxText(bytes).slice(0, 500_000);
-  if (ext === ".rtf") return extractRtfText(bytes).slice(0, 500_000);
+
+  if (ext === ".docx")
+    return extractDocxText(bytes).slice(0, 500_000);
+
+  if (ext === ".rtf")
+    return extractRtfText(bytes).slice(0, 500_000);
+
   if (ext === ".txt" || ext === ".md")
     return bytes
       .toString("utf8")
       .replace(/\u0000/g, "")
       .trim()
       .slice(0, 500_000);
+
   return "";
 }
 
-function pdfTextLayerState(name: string, bytes: Buffer): "not_pdf" | "readable" | "absent" | "unsafe" {
+async function pdfTextLayerState(
+  name: string,
+  bytes: Buffer,
+): Promise<"not_pdf" | "readable" | "absent" | "unsafe"> {
   if (extension(name) !== ".pdf") return "not_pdf";
+
   try {
-    const extracted = extractPdfTextLayer(bytes).slice(0, 500_000);
-    if (!extracted.trim()) return "absent";
-    return assessHumanReadableText(extracted).readable ? "readable" : "unsafe";
+    const pdf = await extractPdfDocument(bytes, {
+      maxBytes: 10 * 1024 * 1024,
+      maxText: 500_000,
+    });
+
+    if (!pdf.text.trim())
+      return "absent";
+
+    return pdf.hasUsableText
+      ? "readable"
+      : "unsafe";
   } catch {
     return "unsafe";
   }
@@ -158,7 +188,7 @@ async function bundle(actor: ActorContext, applicationId: string) {
 export async function parseResumeFile(actor: ActorContext, file: File, options: { requireStructuredPrefill?: boolean } = {}) {
   const bytes = Buffer.from(await file.arrayBuffer());
   validateResumeFile(file, bytes);
-  const text = textFromResume(file.name, bytes);
+  const text = await textFromResume(file.name, bytes);
   const documentClassification = classifyRecruitingDocument(file.name, text);
   if (
     documentClassification.kind === "cover_letter" &&
@@ -169,7 +199,7 @@ export async function parseResumeFile(actor: ActorContext, file: File, options: 
       "This file looks like a cover letter, not a resume. Upload your resume in the Resume field.",
       "resume_document_mismatch",
     );
-  const pdfLayerState = pdfTextLayerState(file.name, bytes);
+  const pdfLayerState = await pdfTextLayerState(file.name, bytes);
   let profile: ParsedResumeProfile;
   let ai: Awaited<ReturnType<typeof governedResumeParse>> = null;
   let aiFailure: unknown = null;
@@ -276,7 +306,7 @@ export async function parseResumeFile(actor: ActorContext, file: File, options: 
         "Professional headline was omitted because the extracted text was not reliably human-readable.",
       ],
     };
-  if (options.requireStructuredPrefill!==false && extension(file.name) === ".pdf" && !assessHumanReadableText(profile.sourceText || "").readable)
+  if (options.requireStructuredPrefill!==false && extension(file.name) === ".pdf" && !assessPdfTextQuality(profile.sourceText || "").readable)
     throw new ApiError(
       422,
       "This PDF does not contain a reliable readable text layer, and governed AI parsing was unavailable or returned unusable text. No candidate fields were accepted. Upload a text-based PDF/DOCX or enable the approved Recruiting ATS AI provider.",
@@ -294,7 +324,7 @@ export async function parseResumeFile(actor: ActorContext, file: File, options: 
 export async function extractRecruitingDocumentFile(file: File) {
   const bytes = Buffer.from(await file.arrayBuffer());
   validateResumeFile(file, bytes);
-  const text = textFromResume(file.name, bytes);
+  const text = await textFromResume(file.name, bytes);
   const sourceMeta: ResumeSourceMeta = {
     fileName: file.name.replace(/[^A-Za-z0-9._ -]/g, "_").slice(-180),
     contentType: mimeFor(file),
@@ -341,7 +371,7 @@ export async function parseResumeIntake(actor: ActorContext, form: FormData) {
 function jobTitleFromText(text: string) {
   const lines = text
     .split(/\r?\n/)
-    .map((x) => x.replace(/^\s*[-•*]+\s*/, "").trim())
+    .map((x) => x.replace(/^\s*[-â€¢*]+\s*/, "").trim())
     .filter(Boolean)
     .slice(0, 20);
   const labeled = lines
@@ -432,7 +462,7 @@ export async function parseJobDescriptionIntake(
     );
   const bytes = Buffer.from(await file.arrayBuffer());
   validateResumeFile(file, bytes);
-  const text = textFromResume(file.name, bytes);
+  const text = await textFromResume(file.name, bytes);
 
   let ai: Awaited<ReturnType<typeof governedJobDescriptionParse>> = null;
   let aiFailure: unknown = null;

@@ -1,11 +1,11 @@
-import { createHash, randomUUID } from 'node:crypto';
+﻿import { createHash, randomUUID } from 'node:crypto';
 import type { ActorContext } from '@/domain/security';
 import { adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
 import { buildAudit } from '@/lib/audit/service';
 import { createEmployee, listOrgUnits, listPositions } from '@/lib/hr/service';
 import { parseTabularFile, MAX_IMPORT_ROWS } from './tabular';
-import { extractPdfTextLayer } from './pdf-text';
+import { extractPdfDocument } from './pdf-engine';
 import { parseEmployeeRosterText } from './employee-roster-text';
 import { governedEmployeeRosterRows } from './universal-provider';
 
@@ -90,18 +90,70 @@ async function parseEmployeeSource(actor:ActorContext,file:File,bytes:Buffer){
   if(lower.endsWith('.pdf')||file.type==='application/pdf'){
     let text='';
     const warnings:string[]=[];
-    try{text=extractPdfTextLayer(bytes)}catch(e){warnings.push(e instanceof Error?e.message:'PDF text extraction failed.')}
-    const deterministic=parseEmployeeRosterText(text);
-    warnings.push(...deterministic.warnings);
-    if(deterministic.rows.length)return{headers:deterministic.headers,rows:deterministic.rows,parser:deterministic.parser,warnings,sourceType:'PDF'};
+    let reliableText=false;
+
     try{
-      const ai=await governedEmployeeRosterRows(actor,{name:file.name,mimeType:'application/pdf',bytes,text:text.length>=40?text:undefined});
+      const pdf=await extractPdfDocument(bytes);
+      text=pdf.text;
+      reliableText=pdf.hasUsableText;
+      warnings.push(...pdf.warnings);
+    }catch(e){
+      warnings.push(e instanceof Error?e.message:'PDF.js extraction failed.');
+    }
+
+    /*
+     * Deterministic extraction is useful evidence, but PDF AI analysis is
+     * allowed to inspect the ORIGINAL PDF even when text was recovered.
+     */
+    const deterministic=parseEmployeeRosterText(reliableText?text:'');
+    warnings.push(...deterministic.warnings);
+
+    try{
+      const ai=await governedEmployeeRosterRows(actor,{
+        name:file.name,
+        mimeType:'application/pdf',
+        bytes,
+        text:text||undefined,
+      });
+
       if(ai?.rows.length){
-        const parsed=canonicalAiRows(ai.rows as Array<Record<string,unknown>>);
-        return{...parsed,parser:`governed_ai_${ai.provider}`,warnings:[...warnings,...ai.warnings],sourceType:'PDF'};
+        const parsed=canonicalAiRows(
+          ai.rows as Array<Record<string,unknown>>
+        );
+
+        return{
+          ...parsed,
+          parser:`governed_ai_${ai.provider}`,
+          warnings:[...new Set([...warnings,...ai.warnings])],
+          sourceType:'PDF',
+        };
       }
-    }catch(e){warnings.push(e instanceof Error?e.message:'Governed AI PDF roster parsing failed.')}
-    throw new ApiError(400,`The PDF could not be mapped to employee rows. ${warnings.filter(Boolean).join(' ')||'Use a text-based roster PDF, CSV or XLSX, or configure an approved AI parser for scanned PDFs.'}`,'pdf_roster_unmapped');
+    }catch(e){
+      warnings.push(
+        e instanceof Error
+          ? e.message
+          : 'Governed AI PDF roster parsing failed.'
+      );
+    }
+
+    if(deterministic.rows.length){
+      return{
+        headers:deterministic.headers,
+        rows:deterministic.rows,
+        parser:deterministic.parser,
+        warnings,
+        sourceType:'PDF',
+      };
+    }
+
+    throw new ApiError(
+      400,
+      `The PDF could not be mapped to employee rows. ${
+        warnings.filter(Boolean).join(' ') ||
+        'Use a readable PDF, CSV or XLSX, or activate the approved AI document parser.'
+      }`,
+      'pdf_roster_unmapped'
+    );
   }
   throw new ApiError(400,'Employee import supports CSV, XLSX and PDF files.','unsupported_employee_import_type');
 }

@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   ImportFieldProposal,
   ImportedFormField,
   ImportLibraryKind,
@@ -8,7 +8,7 @@ import type {
 import { extractDocxText, extractRtfText } from '@/lib/contract-import/docx';
 import { parseTabularFile } from './tabular';
 import { listSafeZipEntries, readSafeZipEntry } from './zip';
-import { extractPdfTextLayer } from './pdf-text';
+import { extractPdfDocument } from './pdf-engine';
 
 const VERSION = 'UNIVERSAL_IMPORT_V2' as const;
 const MAX_TEXT = 600_000;
@@ -173,7 +173,7 @@ function formFields(text: string): ImportedFormField[] {
     let required = /\*\s*$/.test(line) || /\brequired\b/i.test(line);
     const colon = /^([A-Za-z][A-Za-z0-9 /&()'-]{2,70})\s*:\s*(?:_+|\s*)$/.exec(line);
     const blank = /^([A-Za-z][A-Za-z0-9 /&()'-]{2,70})\s+_{3,}$/.exec(line);
-    const check = /^(?:☐|□|\[\s?\])\s*(.{2,70})$/.exec(line);
+    const check = /^(?:â˜|â–¡|\[\s?\])\s*(.{2,70})$/.exec(line);
     if (colon) label = colon[1]!.trim();
     else if (blank) label = blank[1]!.trim();
     else if (check) label = check[1]!.trim();
@@ -195,7 +195,7 @@ function textFromFile(name: string, bytes: Buffer): string {
   if (e === '.docx') return clean(extractDocxText(bytes));
   if (e === '.rtf') return clean(extractRtfText(bytes));
   if (['.txt', '.md', '.json', '.csv'].includes(e)) return clean(bytes.toString('utf8'));
-  if (e === '.pdf') return clean(extractPdfTextLayer(bytes));
+  if (e === '.pdf') return '';
   if (e === '.xlsx') {
     const parsed = parseTabularFile(name, bytes);
     const text = [parsed.headers.join(' | '), ...parsed.rows.slice(0, 500).map(r => parsed.headers.map(h => r[h] || '').join(' | '))].join('\n');
@@ -204,6 +204,25 @@ function textFromFile(name: string, bytes: Buffer): string {
   return '';
 }
 
+async function textFromFileAsync(name: string, bytes: Buffer): Promise<string> {
+  const e = ext(name);
+
+  if (e === '.pdf') {
+    try {
+      const pdf = await extractPdfDocument(bytes);
+
+      /*
+       * Only reliable machine-readable text is passed into deterministic
+       * mapping. The ORIGINAL PDF remains available to governed AI.
+       */
+      return pdf.hasUsableText ? clean(pdf.text) : '';
+    } catch {
+      return '';
+    }
+  }
+
+  return textFromFile(name, bytes);
+}
 function analyzeZip(name: string, bytes: Buffer): UniversalImportAnalysis {
   const entries = listSafeZipEntries(bytes).filter(e => !e.name.endsWith('/'));
   const zipEntries: ZipImportEntryAnalysis[] = [];
@@ -224,9 +243,104 @@ function analyzeZip(name: string, bytes: Buffer): UniversalImportAnalysis {
   return { version: VERSION, detectedKind: 'zip_library', classificationConfidence: 1, language: 'unknown', title: humanTitle(name), summary: `${zipEntries.length} governed source file(s) inventoried${summary ? `: ${summary}` : ''}.`, targetModule: TARGET_MODULE.zip_library, fields: [], sections: [], steps: [], formFields: [], zipEntries, warnings: entries.length > 300 ? ['Only the first 300 ZIP entries are shown in the review preview.'] : [], parser: 'deterministic', analyzedAt: now(), humanReviewRequired: true };
 }
 
-export function deterministicUniversalImportAnalysis(input: { name: string; bytes: Buffer; declaredKind?: ImportLibraryKind }): UniversalImportAnalysis {
+async function analyzeZipAsync(
+  name: string,
+  bytes: Buffer,
+): Promise<UniversalImportAnalysis> {
+  const entries = listSafeZipEntries(bytes)
+    .filter(e => !e.name.endsWith('/'));
+
+  const zipEntries: ZipImportEntryAnalysis[] = [];
+
+  for (const e of entries.slice(0, 300)) {
+    let text = '';
+    const warnings: string[] = [];
+    const extension = ext(e.name);
+
+    const parseable = [
+      '.docx',
+      '.rtf',
+      '.txt',
+      '.md',
+      '.json',
+      '.csv',
+      '.xlsx',
+      '.pdf',
+    ].includes(extension);
+
+    if (parseable) {
+      try {
+        text = await textFromFileAsync(
+          e.name,
+          readSafeZipEntry(bytes, e),
+        );
+      } catch (err) {
+        warnings.push(
+          err instanceof Error
+            ? err.message
+            : 'Entry could not be parsed.',
+        );
+      }
+    } else if (extension === '.zip') {
+      warnings.push(
+        'Nested ZIP archives are inventoried but not recursively expanded.',
+      );
+    }
+
+    const detected = classifyImport(e.name, text);
+
+    zipEntries.push({
+      path: e.name,
+      size: e.uncompressedSize,
+      detectedKind: detected.kind,
+      confidence: detected.confidence,
+      title: titleFromText(text, e.name),
+      parseable: Boolean(text),
+      warnings,
+    });
+  }
+
+  const grouped = new Map<string, number>();
+
+  for (const e of zipEntries) {
+    grouped.set(
+      e.detectedKind,
+      (grouped.get(e.detectedKind) || 0) + 1,
+    );
+  }
+
+  const summary = [...grouped.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${v} ${k.replaceAll('_', ' ')}`)
+    .join('; ');
+
+  return {
+    version: VERSION,
+    detectedKind: 'zip_library',
+    classificationConfidence: 1,
+    language: 'unknown',
+    title: humanTitle(name),
+    summary:
+      `${zipEntries.length} governed source file(s) inventoried` +
+      `${summary ? `: ${summary}` : ''}.`,
+    targetModule: TARGET_MODULE.zip_library,
+    fields: [],
+    sections: [],
+    steps: [],
+    formFields: [],
+    zipEntries,
+    warnings:
+      entries.length > 300
+        ? ['Only the first 300 ZIP entries are shown in the review preview.']
+        : [],
+    parser: 'deterministic',
+    analyzedAt: now(),
+    humanReviewRequired: true,
+  };
+}
+export function deterministicUniversalImportAnalysis(input: { name: string; bytes: Buffer; declaredKind?: ImportLibraryKind }, textOverride?: string): UniversalImportAnalysis {
   if (ext(input.name) === '.zip') return analyzeZip(input.name, input.bytes);
-  const text = textFromFile(input.name, input.bytes);
+  const text = textOverride ?? textFromFile(input.name, input.bytes);
   const detected = classifyImport(input.name, text);
   const kind = detected.kind === 'other' && input.declaredKind && input.declaredKind !== 'other' ? input.declaredKind : detected.kind;
   const warnings: string[] = [];
@@ -265,6 +379,27 @@ export function deterministicUniversalImportAnalysis(input: { name: string; byte
   };
 }
 
+export async function deterministicUniversalImportAnalysisAsync(
+  input: {
+    name: string;
+    bytes: Buffer;
+    declaredKind?: ImportLibraryKind;
+  },
+): Promise<UniversalImportAnalysis> {
+  if (ext(input.name) === '.zip') {
+    return analyzeZipAsync(input.name, input.bytes);
+  }
+
+  const text = await textFromFileAsync(
+    input.name,
+    input.bytes,
+  );
+
+  return deterministicUniversalImportAnalysis(
+    input,
+    text,
+  );
+}
 export function mergeUniversalAnalyses(base: UniversalImportAnalysis, ai: UniversalImportAnalysis): UniversalImportAnalysis {
   const key = (f: ImportFieldProposal) => `${f.targetModule}:${f.targetField}`;
   const fields = new Map(base.fields.map(f => [key(f), f]));
@@ -277,5 +412,14 @@ export function mergeUniversalAnalyses(base: UniversalImportAnalysis, ai: Univer
   return { ...base, ...ai, fields: [...fields.values()], formFields: [...forms.values()], sections: ai.sections.length ? ai.sections : base.sections, steps: ai.steps.length ? ai.steps : base.steps, zipEntries: base.zipEntries.length ? base.zipEntries : ai.zipEntries, warnings: [...new Set([...base.warnings, ...ai.warnings])], parser: 'hybrid', humanReviewRequired: true };
 }
 
-export function extractUniversalText(name: string, bytes: Buffer) { return textFromFile(name, bytes); }
+export function extractUniversalText(name: string, bytes: Buffer) {
+  return textFromFile(name, bytes);
+}
+
+export async function extractUniversalTextAsync(
+  name: string,
+  bytes: Buffer,
+) {
+  return textFromFileAsync(name, bytes);
+}
 export const UNIVERSAL_IMPORT_VERSION = VERSION;

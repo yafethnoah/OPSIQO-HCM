@@ -20,8 +20,8 @@ describe('OPSIQO V7.32 H26 UAT runtime closure',()=>{
 
   it('provides deterministic text-based PDF fallback without weakening scanned-PDF governance',()=>{
     const service=read('src/lib/contract-import/service.ts');
-    expect(service).toContain('extractPdfTextLayer');
-    expect(service).toContain('text&&text.trim().length>=40');
+    expect(service).toContain('extractPdfDocument');
+    expect(service).not.toContain('text&&text.trim().length>=40');
     expect(service).toContain("new ApiError(422,'Scanned PDF contract parsing requires");
   });
 

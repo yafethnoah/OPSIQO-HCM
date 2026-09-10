@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
+﻿import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { ActorContext } from "@/domain/security";
-import { assessHumanReadableText } from "@/lib/data-import/pdf-text";
+import { assessPdfTextQuality } from "@/lib/data-import/pdf-engine";
 import { parseResumeIntake } from "@/lib/recruiting/ats-service";
 
 const actor = {
@@ -14,11 +14,11 @@ const actor = {
 describe("H41 resume PDF safety", () => {
   it("recognizes normal resume text", () => {
     const text = "Professional Summary Experienced human resources manager with ten years of recruitment and employee relations experience. Skills include workforce planning, performance management, policy development, coaching, and organizational change. Education Bachelor of Business Administration. Email jane@example.com Phone 416 555 0101.";
-    expect(assessHumanReadableText(text).readable).toBe(true);
+    expect(assessPdfTextQuality(text).readable).toBe(true);
   });
 
   it("rejects mojibake and binary-like PDF extraction", async () => {
-    const corrupt = "%PDF-1.7\nstream\n(XD Ã¢ QÎnlëö À X dñiëQ»Ör¹<UtBCFæ3ÕÌJ) Tj\nendstream";
+    const corrupt = "%PDF-1.7\nstream\n(XD ÃƒÂ¢ QÃŽnlÃ«Ã¶ Ã€ X dÃ±iÃ«QÂ»Ã–rÂ¹<UtBCFÃ¦3Ã•ÃŒJ) Tj\nendstream";
     const form = new FormData();
     form.set("file", new File([corrupt], "corrupt-resume.pdf", { type: "application/pdf" }));
     await expect(parseResumeIntake(actor, form)).rejects.toMatchObject({
