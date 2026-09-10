@@ -48,7 +48,8 @@ describe('H48.2 time-clock preflight closure', () => {
   it('allows governed offline clocking without forcing location when the policy does not require it', () => {
     expect(offline()).toContain('location?:{');
     const backend = service();
-    expect(backend).toContain('const offlineSync=Boolean(input.offlineEventId||input.clientCapturedAt)');
+    expect(backend).toContain("const offlineSync=Boolean(input.offlineEventId||input.location?.source==='offline_sync')");
+    expect(backend).not.toContain('const offlineSync=Boolean(input.offlineEventId||input.clientCapturedAt)');
     expect(backend).toContain("source:offlineSync?'offline_sync':'web_clock'");
     expect(backend).toContain('offline_event_metadata_required');
   });

@@ -71,7 +71,7 @@ export async function assignTimeProfile(actor:ActorContext,raw:unknown){if(!hrRo
 export async function clock(actor:ActorContext,raw:unknown){
   if(!actor.workerId)throw new ApiError(409,'Membership is not linked to an employee.','worker_link_required');
   const input=clockSchema.parse(raw),db=adminDb(),workerId=actor.workerId,profile=await timeProfile(actor.orgId,workerId),policy=await policyForProfile(actor.orgId,profile);
-  const offlineSync=Boolean(input.offlineEventId||input.clientCapturedAt);
+  const offlineSync=Boolean(input.offlineEventId||input.location?.source==='offline_sync');
   if(offlineSync&&(!input.offlineEventId||!input.clientCapturedAt))throw new ApiError(400,'Offline synchronized clock events require both a unique event identifier and the client capture time.','offline_event_metadata_required');
   if(offlineSync&&input.location&&input.location.source!=='offline_sync')throw new ApiError(400,'Offline synchronized location evidence must use the offline_sync source.','offline_location_source_invalid');
   const location=await validateClockLocation(actor,workerId,policy,input.location as any);
@@ -94,7 +94,6 @@ export async function clock(actor:ActorContext,raw:unknown){
     const audit=buildAudit(actor,{action:'time.clock_in',entityType:'timeEntry',entityId:id,after:row}),b=db.batch();
     b.create(db.doc(`organizations/${actor.orgId}/timeEntries/${id}`),row);b.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
     b.set(db.doc(`organizations/${actor.orgId}/attendanceLocationStatus/${workerId}`),buildAttendanceLocationStatus({workerId,event:'clock_in',eventAt:row.startAt,evidence:row.startEvidence,updatedAt:timestamp}),{merge:false});
-    b.set(db.doc(`organizations/${actor.orgId}/attendanceLocationStatus/${workerId}`),buildAttendanceLocationStatus({workerId,event:'clock_in',eventAt:row.startAt,evidence:row.startEvidence,updatedAt:timestamp}),{merge:false});
     if(input.offlineEventId)b.create(db.doc(`organizations/${actor.orgId}/attendanceOfflineEventIndex/${input.offlineEventId}`),{id:input.offlineEventId,workerId,action:input.action,timeEntryId:id,syncedAt:timestamp});
     await b.commit();return row;
   }
@@ -104,7 +103,6 @@ export async function clock(actor:ActorContext,raw:unknown){
   const photoEvidenceId=await consumeAttendancePhoto(actor,workerId,photoRequired);
   const endAt=eventAt,breakMinutes=input.breakMinutes??before.breakMinutes,workedMinutes=exactWorkedMinutes(before.startAt,endAt,breakMinutes),timestamp=now(),after={...before,endAt,breakMinutes,workedMinutes,status:'complete' as const,note:input.note||before.note,endEvidence:location,endPhotoEvidenceId:photoEvidenceId,updatedAt:timestamp},audit=buildAudit(actor,{action:'time.clock_out',entityType:'timeEntry',entityId:before.id,before,after}),b=db.batch();
   b.set(s.ref,after,{merge:false});b.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
-  b.set(db.doc(`organizations/${actor.orgId}/attendanceLocationStatus/${workerId}`),buildAttendanceLocationStatus({workerId,event:'clock_out',eventAt:endAt,evidence:after.endEvidence,updatedAt:timestamp}),{merge:false});
   b.set(db.doc(`organizations/${actor.orgId}/attendanceLocationStatus/${workerId}`),buildAttendanceLocationStatus({workerId,event:'clock_out',eventAt:endAt,evidence:after.endEvidence,updatedAt:timestamp}),{merge:false});
   if(input.offlineEventId)b.create(db.doc(`organizations/${actor.orgId}/attendanceOfflineEventIndex/${input.offlineEventId}`),{id:input.offlineEventId,workerId,action:input.action,timeEntryId:before.id,syncedAt:timestamp});
   await b.commit();await evaluateWorkerTime(actor.orgId,workerId,startOfWeek(dateInZone(endAt,policy.timezone),policy.weekStartsOn));return after;
