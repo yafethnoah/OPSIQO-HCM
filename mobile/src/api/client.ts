@@ -14,6 +14,19 @@ export class ApiError extends Error {
   }
 }
 
+export class ApiTransportError extends Error {
+  readonly code = "network_unavailable";
+
+  constructor(message = "OPSIQO could not reach the server. Your session is still active.") {
+    super(message);
+    this.name = "ApiTransportError";
+  }
+}
+
+export function isApiTransportError(error: unknown): error is ApiTransportError {
+  return error instanceof ApiTransportError;
+}
+
 function responseErrorMessage(payload: unknown, status: number) {
   if (typeof payload !== 'object' || !payload) {
     return `Request failed (${status})`;
@@ -66,51 +79,82 @@ function responseErrorCode(payload: unknown) {
   return undefined;
 }
 
-export async function apiFetch<T>(
+async function performRequest(
   path: string,
-  init: RequestInit & { orgId?: string | null } = {}
-): Promise<T> {
+  init: RequestInit & { orgId?: string | null },
+  forceIdTokenRefresh = false,
+  forceAppCheckRefresh = false,
+) {
   const [token, appCheckToken] = await Promise.all([
-    getValidIdToken(),
-    getValidAppCheckToken(),
+    getValidIdToken({ forceRefresh: forceIdTokenRefresh }),
+    getValidAppCheckToken(forceAppCheckRefresh),
   ]);
 
   if (!token) {
-    throw new ApiError('Authentication required.', 401, 'unauthenticated');
+    throw new ApiError("Authentication required.", 401, "unauthenticated");
   }
 
   const headers = new Headers(init.headers || {});
-  headers.set('Authorization', `Bearer ${token}`);
-  headers.set('X-Firebase-AppCheck', appCheckToken);
+  headers.set("Authorization", `Bearer ${token}`);
+  headers.set("X-Firebase-AppCheck", appCheckToken);
 
-  if (!(init.body instanceof FormData) && init.body && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
+  if (!(init.body instanceof FormData) && init.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
 
   const orgId =
     init.orgId === null ? null : init.orgId || (await getActiveOrg());
 
-  if (orgId) {
-    headers.set('x-org-id', orgId);
+  if (orgId) headers.set("x-org-id", orgId);
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl()}${path}`, { ...init, headers });
+  } catch {
+    throw new ApiTransportError();
   }
 
-  const response = await fetch(`${baseUrl()}${path}`, {
-    ...init,
-    headers,
-  });
+  const contentType = response.headers.get("content-type") || "";
+  let payload: unknown;
 
-  const contentType = response.headers.get('content-type') || '';
-  const payload = contentType.includes('application/json')
-    ? await response.json()
-    : await response.text();
+  try {
+    payload = contentType.includes("application/json")
+      ? await response.json()
+      : await response.text();
+  } catch {
+    payload = null;
+  }
 
-  if (!response.ok) {
+  return { response, payload };
+}
+
+function isAppCheckFailure(code: string | undefined) {
+  return code === "app_check_required" || code === "invalid_app_check";
+}
+
+export async function apiFetch<T>(
+  path: string,
+  init: RequestInit & { orgId?: string | null } = {},
+): Promise<T> {
+  let attempt = await performRequest(path, init);
+  let code = responseErrorCode(attempt.payload);
+
+  // An explicit HTTP 401 means the server rejected the request before the
+  // protected operation ran. Retry once with the appropriate fresh token.
+  if (!attempt.response.ok && attempt.response.status === 401) {
+    attempt = isAppCheckFailure(code)
+      ? await performRequest(path, init, false, true)
+      : await performRequest(path, init, true, false);
+    code = responseErrorCode(attempt.payload);
+  }
+
+  if (!attempt.response.ok) {
     throw new ApiError(
-      responseErrorMessage(payload, response.status),
-      response.status,
-      responseErrorCode(payload),
+      responseErrorMessage(attempt.payload, attempt.response.status),
+      attempt.response.status,
+      code,
     );
   }
 
-  return payload as T;
+  return attempt.payload as T;
 }

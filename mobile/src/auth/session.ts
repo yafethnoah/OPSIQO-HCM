@@ -230,7 +230,7 @@ async function refreshSession(
   return next;
 }
 
-export async function getValidIdToken(): Promise<string | null> {
+export async function getValidIdToken(options: { forceRefresh?: boolean } = {}): Promise<string | null> {
   const raw = await SecureStore.getItemAsync(SESSION_KEY);
 
   if (!raw) {
@@ -244,7 +244,7 @@ export async function getValidIdToken(): Promise<string | null> {
       return null;
     }
 
-    if (Date.now() >= session.expiresAt) {
+    if (options.forceRefresh || Date.now() >= session.expiresAt) {
       session = await refreshSession(session);
     }
 
@@ -259,7 +259,30 @@ export async function getValidIdToken(): Promise<string | null> {
 }
 
 export async function hasSession() {
-  return Boolean(await getValidIdToken());
+  let raw: string | null;
+
+  try {
+    raw = await SecureStore.getItemAsync(SESSION_KEY);
+  } catch {
+    throw new NativeAuthStageError(
+      "secure_session",
+      "PULSE-AUTH-A05",
+      "Secure session storage could not be read on this device.",
+    );
+  }
+
+  if (!raw) return false;
+
+  try {
+    const session = JSON.parse(raw) as FirebaseSession;
+    return Boolean(session.idToken && session.refreshToken);
+  } catch {
+    return false;
+  }
+}
+
+export async function forceRefreshIdToken() {
+  return getValidIdToken({ forceRefresh: true });
 }
 
 export async function signOut() {

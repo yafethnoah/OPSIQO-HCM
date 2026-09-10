@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
-import { ApiError, apiFetch } from "@/api/client";
+import { apiFetch, isApiTransportError } from "@/api/client";
 import { deviceVerification } from "@/mobile/device";
 import {
   listOfflineClockEvents,
@@ -50,6 +50,7 @@ export function AttendanceHero({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [pendingOffline, setPendingOffline] = useState(0);
+  const [syncHealth, setSyncHealth] = useState<"synced" | "pending" | "attention">("synced");
   const [nowMs, setNowMs] = useState(Date.now());
 
   const active = useMemo(
@@ -69,9 +70,11 @@ export function AttendanceHero({
       setPendingOffline(0);
       return;
     }
-    void listOfflineClockEvents().then((rows) =>
-      setPendingOffline(rows.filter((x) => x.orgId === activeOrgId).length),
-    );
+    void listOfflineClockEvents().then((rows) => {
+      const count = rows.filter((x) => x.orgId === activeOrgId).length;
+      setPendingOffline(count);
+      setSyncHealth(count ? "pending" : "synced");
+    });
   }, [activeOrgId]);
 
   async function collectAttendanceEvidence() {
@@ -112,6 +115,7 @@ export function AttendanceHero({
     try {
       const nativeLocation = await collectAttendanceEvidence();
       const capturedAt = new Date().toISOString();
+      const eventId = uuid();
 
       try {
         await apiFetch(`/api/organizations/${activeOrgId}/time/clock`, {
@@ -125,6 +129,7 @@ export function AttendanceHero({
         });
 
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setSyncHealth("synced");
         setMessage(
           action === "clock_in"
             ? "Clocked in successfully."
@@ -132,11 +137,13 @@ export function AttendanceHero({
         );
         await onReload();
       } catch (error) {
-        if (error instanceof ApiError) throw error;
+        if (!isApiTransportError(error)) {
+          setSyncHealth("attention");
+          throw error;
+        }
 
-        const id = uuid();
         await queueOfflineClockEvent({
-          id,
+          id: eventId,
           orgId: activeOrgId,
           action,
           capturedAt,
@@ -146,11 +153,13 @@ export function AttendanceHero({
 
         const pending = await listOfflineClockEvents();
         setPendingOffline(pending.filter((x) => x.orgId === activeOrgId).length);
+        setSyncHealth("pending");
         setMessage(
           "No network connection. The attendance event is encrypted on this device and is pending governed synchronization.",
         );
       }
     } catch (error) {
+      setSyncHealth("attention");
       setMessage(
         error instanceof Error ? error.message : "Attendance action failed.",
       );
@@ -168,6 +177,9 @@ export function AttendanceHero({
     try {
       const result = await syncOfflineClockEvents(activeOrgId);
       setPendingOffline(result.remaining);
+      setSyncHealth(
+        result.failures.length ? "attention" : result.remaining ? "pending" : "synced",
+      );
 
       if (result.failures.length) {
         setMessage(
@@ -181,6 +193,7 @@ export function AttendanceHero({
 
       await onReload();
     } catch (error) {
+      setSyncHealth("attention");
       setMessage(
         error instanceof Error
           ? error.message
@@ -238,7 +251,7 @@ export function AttendanceHero({
           <Muted>{statusDetail}</Muted>
         </View>
         <View style={s.liveBadge}>
-          <Text style={s.liveBadgeText}>{pendingOffline ? "PENDING" : "SYNCED"}</Text>
+          <Text style={s.liveBadgeText}>{pendingOffline ? "PENDING" : syncHealth === "attention" ? "NEEDS ATTENTION" : "SYNCED"}</Text>
         </View>
       </View>
 

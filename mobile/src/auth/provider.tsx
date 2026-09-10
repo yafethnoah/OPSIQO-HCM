@@ -63,6 +63,14 @@ function organizationLoadMessage(error: unknown) {
       );
 }
 
+function isTerminalSessionRejection(error: unknown) {
+  return (
+    error instanceof ApiError &&
+    error.status === 401 &&
+    ["unauthenticated", "session_expired", "invalid_token"].includes(error.code || "")
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -107,15 +115,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void (async () => {
       try {
         const ok = await hasSession();
+        setAuthenticated(ok);
 
         if (ok) {
+          const storedOrg = await getActiveOrg();
+          if (storedOrg) setActiveOrgId(storedOrg);
+
           try {
             await reloadOrganizations();
-            setAuthenticated(true);
           } catch {
-            setAuthenticated(false);
-            setOrganizations([]);
-            setActiveOrgId(null);
+            // A valid encrypted session remains authenticated when organization
+            // bootstrap is temporarily unavailable. Screen-level API errors can
+            // be retried without bouncing the user back to Sign In.
           }
         }
       } finally {
@@ -127,15 +138,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(
     async (email: string, password: string) => {
       await signInWithPassword(email, password);
+      setAuthenticated(true);
 
       try {
         await reloadOrganizations();
-        setAuthenticated(true);
       } catch (error) {
-        await clearSession();
-        setAuthenticated(false);
-        setOrganizations([]);
-        setActiveOrgId(null);
+        if (isTerminalSessionRejection(error)) {
+          await clearSession();
+          setAuthenticated(false);
+          setOrganizations([]);
+          setActiveOrgId(null);
+        }
+
         throw organizationLoadMessage(error);
       }
     },
