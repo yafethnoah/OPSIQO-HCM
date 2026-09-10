@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { useAuth } from "@/auth/provider";
 import { useBootstrap } from "@/hooks/use-bootstrap";
 import { AttendanceHero } from "@/components/attendance-hero";
+import { OpsiqoBannerAd } from "@/components/ad-banner";
 import { Card, H1, H2, Loading, Muted, Screen } from "@/components/ui";
 import { colors } from "@/theme/tokens";
 
@@ -142,6 +143,8 @@ export default function Home() {
           <Muted>You have no urgent employee actions right now.</Muted>
         )}
       </Card>
+
+      <OpsiqoBannerAd />
 
       <Card>
         <H2>Private by design</H2>
