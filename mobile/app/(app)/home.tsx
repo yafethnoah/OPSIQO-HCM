@@ -1,9 +1,10 @@
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "@/auth/provider";
 import { useBootstrap } from "@/hooks/use-bootstrap";
 import { AttendanceHero } from "@/components/attendance-hero";
 import { OpsiqoBannerAd } from "@/components/ad-banner";
+import { useAttendanceReminders } from "@/notifications/attendance-reminders";
 import { Card, H1, H2, Loading, Muted, Screen } from "@/components/ui";
 import { colors } from "@/theme/tokens";
 
@@ -24,6 +25,7 @@ const fmt = (iso: string) => {
 export default function Home() {
   const { activeOrgId } = useAuth();
   const { data, loading, error, reload } = useBootstrap();
+  const reminders = useAttendanceReminders(data?.shifts || []);
 
   if (loading && !data) {
     return (
@@ -95,6 +97,19 @@ export default function Home() {
         ) : (
           <Muted>No upcoming published shift is available.</Muted>
         )}
+      </Card>
+
+      <Card>
+        <H2>Clock reminders</H2>
+        <Muted>{reminders.message}</Muted>
+        {reminders.status === "denied" ? (
+          <Text
+            onPress={() => void Linking.openSettings()}
+            style={s.quickItem}
+          >
+            Open notification settings
+          </Text>
+        ) : null}
       </Card>
 
       <Card>
