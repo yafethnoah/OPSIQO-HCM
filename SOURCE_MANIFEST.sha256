@@ -1705,7 +1705,7 @@ b9e41e4310de3536c9dac562a1d26617631ee731225017ab1e2598b8a713c700  src/lib/produc
 a7a83e2d8bee894c4a2be444cdd2aaf5af914dcd5d8b889bfaba65b2584668cc  src/lib/product-analytics/workflowTelemetry.ts
 60bf6ba2736826bcaa88d921b4a36c5fc1537621c14259c1ed75e05d3e771f92  src/lib/recruiting/ai-readiness.ts
 061278a7c1e19bd766f8d2c278d53070a326f275dec62dd6b9e09ca4c482837a  src/lib/recruiting/ats-engine.ts
-1e06322d8491c8de353f1c704bd82dc955aebbae38b8243bddd084e605ff4ea2  src/lib/recruiting/ats-provider.ts
+437321b9a7531f6fabc84021d8b5734c1ed0dfd66cb72faf7fc3c5357a120474  src/lib/recruiting/ats-provider.ts
 8aa1f05120588ff385cd38b4e3d794cd034f2b768066bc0dc5bd3ae372dc8a3b  src/lib/recruiting/ats-service.ts
 3b79ec334e0b209b8d22f3e62c56bd53477f378ae4f41155e6327203393cfb1d  src/lib/recruiting/candidate-documents.ts
 e306f68aa094eeafd8076bd01ccea7acc966fb4f5de843322d977fcb97a8729a  src/lib/recruiting/candidate-fit-service.ts
@@ -1888,7 +1888,7 @@ ee5222ba7dd6ed4725c82721aef99da3afad1bab7dae5f53db5366e39f1fb5bd  tests/h50-5j-r
 f8b3a91e864197c9e687358bed64a02e68c9289323d9dc5ba7e51ae52f015301  tests/h50-6b-attendance-log.test.ts
 e20710b977495ba5de20bbba00bccad8ccba2c8b35674d8d27660adc2a4c3406  tests/h50-6c-recruiting-new-position.test.ts
 d8b0b9bed2fc29e5c2564b5e358717fb347908b3f0adcbf496b1994a952352a1  tests/h50-6d-recruiting-parser-assurance.test.ts
-ae15a70b483b60d6821d2812b3c2bf28c50ec5ce84af61fe62fbb8eb7f82a8b6  tests/h50-6e-live-provider.test.ts
+cbc04d0fc0b9690f251bd90a7c9a8061ba676bc55ee8aeaca22decab528d3e1c  tests/h50-6e-live-provider.test.ts
 ebe4a801e34c56a847775fb11642e0ce1eb8b1d9fa47dace618610dc88f8773e  tests/h50-6f-ai-offboarding-repair.test.ts
 7b6397b5febb297d7877750c9e66ea1a3dc921f98584946ca8d8ba2e83d68d27  tests/h50-6g-guided-offboarding-workspace.test.ts
 f623ae76588eb97c38877778b4768d9fafd92a70bec29a032fd2b2bcd99a2a07  tests/h50-6h-workflow-resilience.test.ts
@@ -1900,6 +1900,7 @@ e2ce006927eb14248023d41df894d8fdf76665d9506f377fe024e79d75a22186  tests/h51-20-p
 bcb8becb3102527d7cb1d80d79aed21043e8ccd1e37437b4858a7445bc453eeb  tests/h51-20-recruiting-pdf.test.ts
 e908fdd6fd5d2dedfd91bdbede54762f0b1491afba0d710fc93512ea450325c5  tests/h51-20-universal-pdf.test.ts
 bd324213a6fb9bb8efdfefd6d4a232733302bc19efc5ac058a434ba797745753  tests/h51-21-resume-semantic-reconstruction.test.ts
+8cceb362a11874f213520e1d67a028e025f185cacf52dd9d86082e119cf84c2e  tests/h51-22-recruiting-ai-resilience.test.ts
 fb1711839c8e379c323940163b09511d204e7bd8fd71fb6d273c38e14df0dda9  tests/h51-control-plane.test.ts
 ba667d484c279c58f50bd531f554b9e938372fe84886795901b059844d84d9db  tests/h51-fix.test.ts
 6414f01681558206149d7fb7c058bbf3ff11855c6f6ba494fb158accadf0e9f9  tests/hr-diagnostic.schemas.test.ts

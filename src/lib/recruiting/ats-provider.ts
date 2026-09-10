@@ -40,14 +40,28 @@ function recruitingProviderError(provider:string,status:number){
  if(status>=500)return new ApiError(503,`${name} Recruiting ATS provider is temporarily unavailable (${status}). Retry shortly.`,'ai_provider_unavailable');
  return new ApiError(502,`${name} Recruiting ATS request was rejected (${status}).`,'ai_provider_error');
 }
-async function recruitingProviderFetch(provider:string,url:string,init:RequestInit){
- let response=await fetch(url,init);
- if(response.status===429||response.status>=500){
-   await new Promise(resolve=>setTimeout(resolve,750));
-   response=await fetch(url,init);
+function recruitingRetryDelayMs(response:Response,attempt:number){
+ const raw=response.headers.get('retry-after');
+ if(raw){
+   const seconds=Number(raw);
+   if(Number.isFinite(seconds)&&seconds>=0)return Math.max(250,Math.min(8000,Math.round(seconds*1000)));
+   const at=Date.parse(raw);
+   if(Number.isFinite(at))return Math.max(250,Math.min(8000,at-Date.now()));
  }
- if(!response.ok)throw recruitingProviderError(provider,response.status);
- return response;
+ return Math.min(5000,750*(2**attempt));
+}
+async function recruitingProviderFetch(provider:string,url:string,init:RequestInit){
+ const maxAttempts=4;
+ let response:Response|null=null;
+ for(let attempt=0;attempt<maxAttempts;attempt+=1){
+   response=await fetch(url,init);
+   if(response.ok)return response;
+   const retryable=response.status===429||response.status>=500;
+   if(!retryable||attempt===maxAttempts-1)throw recruitingProviderError(provider,response.status);
+   const delayMs=recruitingRetryDelayMs(response,attempt);
+   await new Promise(resolve=>setTimeout(resolve,delayMs));
+ }
+ throw recruitingProviderError(provider,response?.status||503);
 }
 
 function outputText(j:any){if(typeof j?.output_text==='string')return j.output_text;let x='';for(const i of j?.output||[])for(const c of i?.content||[])if(c?.type==='output_text')x+=c.text||'';return x}

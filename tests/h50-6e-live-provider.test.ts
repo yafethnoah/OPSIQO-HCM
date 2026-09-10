@@ -26,10 +26,20 @@ describe("H50.6E Recruiting AI live provider verification", () => {
     expect(provider).not.toContain("console.error(key)");
   });
 
-  it("retries transient provider failures once", () => {
+  it("retries transient provider failures with a bounded successor-safe policy", () => {
     const provider = read("src/lib/recruiting/ats-provider.ts");
     expect(provider).toContain("response.status===429||response.status>=500");
-    expect(provider).toContain("setTimeout(resolve,750)");
+
+    const h506eLegacyRetry =
+      provider.includes("setTimeout(resolve,750)");
+
+    const h5122BoundedBackoff =
+      provider.includes("const maxAttempts=4") &&
+      provider.includes("recruitingRetryDelayMs(response,attempt)") &&
+      provider.includes("setTimeout(resolve,delayMs)") &&
+      provider.includes("response.headers.get('retry-after')");
+
+    expect(h506eLegacyRetry || h5122BoundedBackoff).toBe(true);
   });
 
   it("uses three-way precedence: provider failure, unsafe PDF, then setup guidance", () => {
