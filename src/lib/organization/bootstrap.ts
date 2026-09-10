@@ -13,6 +13,8 @@ export const firstOrganizationSetupSchema = z.object({
   lastName: z.string().trim().min(1).max(80),
 });
 
+export const FIRST_ORGANIZATION_BOOTSTRAP_ROLE = 'super_admin' as const;
+
 export function organizationIdFromName(name: string, entropy: string = randomUUID()) {
   const slug = name
     .normalize('NFKD')
@@ -85,12 +87,12 @@ export async function bootstrapFirstOrganization(identity: IdentityContext, raw:
   const actor: ActorContext = {
     uid: identity.uid,
     orgId,
-    role: 'org_admin',
+    role: FIRST_ORGANIZATION_BOOTSTRAP_ROLE,
     workerId,
-    permissions: permissionsForRole('org_admin'),
+    permissions: permissionsForRole(FIRST_ORGANIZATION_BOOTSTRAP_ROLE),
   };
   const organization = { id: orgId, name: input.organizationName, status: 'active' as const, createdAt: now, updatedAt: now };
-  const membership = { uid: identity.uid, workerId, role: 'org_admin' as const, status: 'active' as const, createdAt: now, updatedAt: now };
+  const membership = { uid: identity.uid, workerId, role: FIRST_ORGANIZATION_BOOTSTRAP_ROLE, status: 'active' as const, createdAt: now, updatedAt: now };
   const audit = buildAudit(actor, {
     action: 'organization.bootstrap',
     entityType: 'organization',
