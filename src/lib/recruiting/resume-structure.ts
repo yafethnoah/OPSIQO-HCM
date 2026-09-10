@@ -4,6 +4,7 @@ import type {
   ResumeEmploymentEntry,
   ResumeEducationEntry,
 } from '@/domain/structured-resume';
+import { normalizeResumeLanguages, normalizeResumeSkills } from './resume-semantic-reconstruction';
 
 export interface StructuredResumeAssessment {
   quality: number;
@@ -78,7 +79,7 @@ function sectionBody(source: string, aliases: string[]): string {
 }
 
 function normalizeEvidence(v: string) {
-  return clean(v, 500000).toLowerCase().replace(/[^a-z0-9+#.]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return clean(v, 500000).toLocaleLowerCase().replace(/[^\p{L}\p{N}+#.]+/gu, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function supported(value: unknown, source: string, threshold = 0.68): string | undefined {
@@ -87,7 +88,7 @@ function supported(value: unknown, source: string, threshold = 0.68): string | u
   const src = normalizeEvidence(source);
   const exact = normalizeEvidence(text);
   if (exact.length >= 3 && src.includes(exact)) return text;
-  const words = exact.match(/[a-z0-9+#.]{2,}/g) || [];
+  const words = exact.match(/[\p{L}\p{N}+#.]{2,}/gu) || [];
   if (!words.length) return undefined;
   const unique = [...new Set(words)];
   const hit = unique.filter((w) => src.includes(w)).length;
@@ -308,15 +309,15 @@ export function deterministicStructuredResume(profile: Pick<ParsedResumeProfile,
   const source = String(profile.sourceText || '');
   const skillsFromSection = sectionLines(source, SKILLS_HEADINGS, 200);
   const certificationsFromSection = sectionLines(source, CERTIFICATION_HEADINGS, 60);
-  const languages = sectionLines(source, LANGUAGE_HEADINGS, 40).map((language) => {
-    const parts = splitParts(language);
-    return { language: parts[0] || language, proficiency: parts[1] };
-  });
+  const languages = normalizeResumeLanguages(
+    sectionLines(source, LANGUAGE_HEADINGS, 40),
+    source,
+  );
 
   return {
     employmentHistory: parseEmployment(source),
     educationHistory: parseEducation(source),
-    skills: uniqueStrings([...(skillsFromSection.length ? skillsFromSection : profile.skills || [])]).slice(0, 200),
+    skills: normalizeResumeSkills([...(skillsFromSection.length ? skillsFromSection : profile.skills || [])], source),
     certifications: uniqueStrings([...(certificationsFromSection.length ? certificationsFromSection : profile.certifications || [])])
       .map((name) => ({ name }))
       .slice(0, 60),
@@ -387,9 +388,24 @@ export function sanitizeStructuredResume(input: StructuredResumeProfile, source:
   return {
     employmentHistory: safeEmployment(input.employmentHistory || [], source),
     educationHistory: safeEducation(input.educationHistory || [], source),
-    skills: uniqueStrings((input.skills || []).flatMap((v) => supported(v, source, 0.65) ? [v] : [])).slice(0, 200),
+    skills: normalizeResumeSkills(
+      (input.skills || []).flatMap((v) => supported(v, source, 0.65) ? [v] : []),
+      source,
+    ),
     certifications: safeSimple(input.certifications || [], 'name', 60),
-    languages: safeSimple(input.languages || [], 'language', 40),
+    languages: normalizeResumeLanguages(
+      (input.languages || []).flatMap((raw) => {
+        const normalized = normalizeResumeLanguages([raw], source)[0];
+        if (!normalized) return [];
+        const language = supported(normalized.language, source, 0.68);
+        if (!language) return [];
+        const proficiency = normalized.proficiency
+          ? supported(normalized.proficiency, source, 0.55)
+          : undefined;
+        return [{ ...normalized, language, proficiency }];
+      }),
+      source,
+    ),
     projects: safeSimple(input.projects || [], 'name', 50),
     volunteerExperience: safeSimple(input.volunteerExperience || [], 'organization', 50),
     awards: safeSimple(input.awards || [], 'title', 50),
@@ -408,9 +424,9 @@ export function mergeStructuredResume(
   return sanitizeStructuredResume({
     employmentHistory: choose(p?.employmentHistory, fallback.employmentHistory),
     educationHistory: choose(p?.educationHistory, fallback.educationHistory),
-    skills: choose(p?.skills, fallback.skills),
+    skills: normalizeResumeSkills([...(p?.skills || []), ...fallback.skills], source),
     certifications: choose(p?.certifications, fallback.certifications),
-    languages: choose(p?.languages, fallback.languages),
+    languages: normalizeResumeLanguages([...(p?.languages || []), ...fallback.languages], source),
     projects: choose(p?.projects, fallback.projects),
     volunteerExperience: choose(p?.volunteerExperience, fallback.volunteerExperience),
     awards: choose(p?.awards, fallback.awards),

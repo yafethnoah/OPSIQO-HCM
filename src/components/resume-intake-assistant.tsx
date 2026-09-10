@@ -195,8 +195,9 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
           <strong>1. Attach resume to prefill candidate</strong>
           <div className="muted">
             PDF, DOCX, TXT, RTF or Markdown. Governed Recruiting AI analyzes the
-            original document when available, while deterministic evidence checks
-            independently reconcile the extracted fields. Data remains transient
+            original document when available, independently verifies the extraction,
+            and reconstructs fragmented skills and structured resume relationships
+            before deterministic evidence checks reconcile the extracted fields. Data remains transient
             until the recruiter reviews the fields and confirms recorded candidate consent.
           </div>
         </div>
@@ -220,7 +221,7 @@ export function ResumeIntakeAssistant({ formId }: { formId: string }) {
           disabled={busy || !file}
           onClick={() => void parse()}
         >
-          {busy ? "Parsing…" : "Parse again"}
+          {busy ? "AI improving..." : parsedProfile ? "Improve with AI" : "Parse with AI"}
         </button>
       </div>
       {error && (

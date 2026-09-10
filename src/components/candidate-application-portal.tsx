@@ -215,7 +215,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
     <form className="stack" onSubmit={submit}>
       {step===1&&<section className="prehireCard stack">
         <h2>1. Import Resume</h2>
-        <p className="muted">Upload PDF, DOCX, TXT, RTF or Markdown. OPSIQO uses governed AI plus deterministic evidence checks to extract the resume directly into editable application fields. It will not advance with an empty or unreliable parse.</p>
+        <p className="muted">Upload PDF, DOCX, TXT, RTF or Markdown. OPSIQO uses governed AI extraction, independent verification, and semantic reconstruction to recover complete skills, language proficiency, education, certifications, and employment relationships before presenting editable fields. It will not advance with an empty or unreliable parse.</p>
         <input className="input" type="file" accept=".pdf,.docx,.txt,.rtf,.md" required onChange={e=>{
           const f=e.target.files?.[0]||null;setParseNote('');
           if(f&&/cover[ _-]*letter/i.test(f.name)&&!/(?:resume|\bcv\b)/i.test(f.name)){setResume(null);setError('This file name looks like a cover letter. Please choose your resume.');e.currentTarget.value='';return}
@@ -230,7 +230,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
           {parseAssurance.structuredIssues.length?<span className="muted">Structured review: {parseAssurance.structuredIssues.slice(0,4).join(' · ')}</span>:null}<br/>
           <span className="muted">Machine parse trust is an evidence-backed confidence indicator. Machine parsing is never represented as 100% certain. The application becomes 100% candidate-verified only after you review and confirm the parsed information.</span>
         </div>}
-        <button type="button" className="button" disabled={!resume||busy==='parse'} onClick={()=>resume&&void parse(resume)}>{busy==='parse'?'AI parsing & verifying…':'AI parse / retry'}</button>
+        <button type="button" className="button" disabled={!resume||busy==='parse'} onClick={()=>resume&&void parse(resume)}>{busy==='parse'?'AI parsing, reconstructing & verifying...':parseNote?'Improve parsing with AI':'AI parse & enhance'}</button>
       </section>}
 
       {step===2&&<section className="prehireCard stack">
@@ -254,8 +254,8 @@ export function CandidateApplicationPortal({token}:{token:string}){
         <SectionTitle title="Professional experience" hint="Employment History"/>
         <EmploymentEditor items={structured.employmentHistory} onChange={employmentHistory=>setStructured(x=>({...x,employmentHistory}))}/>
 
-        <SectionTitle title="Skills / technical skills / tools" hint="Individual editable skills"/>
-        <StringList items={structured.skills} onChange={skills=>setStructured(x=>({...x,skills}))} addLabel="Add skill"/>
+        <SectionTitle title="Skills / technical skills / tools" hint="AI-normalized competency phrases / compact editable skills"/>
+        <SkillEditor items={structured.skills} onChange={skills=>setStructured(x=>({...x,skills}))}/>
 
         <SectionTitle title="Education · one item per line" hint="Structured Education History"/>
         <EducationEditor items={structured.educationHistory} onChange={educationHistory=>setStructured(x=>({...x,educationHistory}))}/>
@@ -337,7 +337,42 @@ function Review({l,v}:{l:string;v:string}){return <div className="notice"><span 
 function SectionTitle({title,hint}:{title:string;hint:string}){return <div><h3>{title}</h3><p className="muted">{hint}</p></div>}
 function Question({q,value,onChange}:{q:Q;value:string;onChange:(v:string)=>void}){return <label className="field"><span>{q.label}{q.required?' · required':''}</span>{q.type==='yes_no'?<select className="input" required={q.required} value={value} onChange={e=>onChange(e.target.value)}><option value="">Select</option><option value="Yes">Yes</option><option value="No">No</option></select>:q.type==='select'?<select className="input" required={q.required} value={value} onChange={e=>onChange(e.target.value)}><option value="">Select</option>{(q.options||[]).map(o=><option key={o}>{o}</option>)}</select>:<input className="input" required={q.required} type={q.type==='number'?'number':'text'} value={value} onChange={e=>onChange(e.target.value)}/>}</label>}
 
-function StringList({items,onChange,addLabel}:{items:string[];onChange:(x:string[])=>void;addLabel:string}){return <div className="stack">{items.map((v,i)=><div className="row" key={`${i}-${v}`}><input className="input" value={v} onChange={e=>onChange(items.map((x,j)=>j===i?e.target.value:x))}/><button type="button" className="button secondary" onClick={()=>onChange(items.filter((_,j)=>j!==i))}>Remove</button></div>)}<button type="button" className="button secondary" onClick={()=>onChange([...items,''])}>+ {addLabel}</button></div>}
+function SkillEditor({items,onChange}:{items:string[];onChange:(x:string[])=>void}){
+  const[draft,setDraft]=useState('');
+  const add=()=>{
+    const value=draft.replace(/\s+/g,' ').trim();
+    if(!value)return;
+    const key=value.toLocaleLowerCase();
+    if(!items.some(x=>x.trim().toLocaleLowerCase()===key))onChange([...items,value]);
+    setDraft('');
+  };
+  return <div className="stack" data-h51-21-skill-editor="true">
+    <div className="row wrap">
+      {items.map((v,i)=><div className="row" key={`${i}-${v}`} style={{flex:'0 1 auto',gap:'.35rem',alignItems:'center',maxWidth:'100%'}}>
+        <input
+          aria-label={`Skill ${i+1}`}
+          className="input"
+          style={{width:`${Math.max(14,Math.min(38,(v||'').length+3))}ch`,maxWidth:'72vw'}}
+          value={v}
+          onChange={e=>onChange(items.map((x,j)=>j===i?e.target.value:x))}
+        />
+        <button type="button" className="button secondary" style={{padding:'.4rem .55rem'}} aria-label={`Remove ${v||`skill ${i+1}`}`} title="Remove skill" onClick={()=>onChange(items.filter((_,j)=>j!==i))}>x</button>
+      </div>)}
+    </div>
+    <div className="row wrap">
+      <input
+        className="input"
+        style={{maxWidth:'32rem'}}
+        placeholder="Add another complete skill or competency"
+        value={draft}
+        onChange={e=>setDraft(e.target.value)}
+        onKeyDown={e=>{if(e.key==='Enter'){e.preventDefault();add()}}}
+      />
+      <button type="button" className="button secondary" onClick={add}>+ Add skill</button>
+    </div>
+    <div className="muted">OPSIQO AI preserves complete multi-word competencies and shows skills compactly instead of one full-width row per skill.</div>
+  </div>
+}
 
 function EmploymentEditor({items,onChange}:{items:ResumeEmploymentEntry[];onChange:(x:ResumeEmploymentEntry[])=>void}){const set=(i:number,p:Partial<ResumeEmploymentEntry>)=>onChange(items.map((x,j)=>j===i?{...x,...p}:x));return <div className="stack">{items.map((x,i)=><details className="card insetCard" open key={x.id||i}><summary><strong>{x.positionTitle||'Employment'}{x.employer?` · ${x.employer}`:''}</strong></summary><div className="stack"><div className="formGrid"><F label="Position Title" value={x.positionTitle} onChange={v=>set(i,{positionTitle:v})}/><F label="Employer" value={x.employer} onChange={v=>set(i,{employer:v})}/><F label="Start Date" value={x.startDate||''} onChange={v=>set(i,{startDate:v})}/><F label="End Date" value={x.endDate||''} onChange={v=>set(i,{endDate:v})}/><F label="Location" value={x.location||''} onChange={v=>set(i,{location:v})}/><F label="Country" value={x.country||''} onChange={v=>set(i,{country:v})}/></div><label><input type="checkbox" checked={Boolean(x.current)} onChange={e=>set(i,{current:e.target.checked,endDate:e.target.checked?'':x.endDate})}/> Current job</label><TA label="Duties and Responsibilities" value={(x.responsibilities||[]).join('\n')} onChange={v=>set(i,{responsibilities:v.split('\n').map(s=>s.trim()).filter(Boolean)})} rows={8}/><F label="Reason for leaving · optional candidate-entered" value={x.reasonForLeaving||''} onChange={v=>set(i,{reasonForLeaving:v})}/><button type="button" className="button secondary" onClick={()=>onChange(items.filter((_,j)=>j!==i))}>Remove Employment History</button></div></details>)}<button type="button" className="button secondary" onClick={()=>onChange([...items,{id:uid(),positionTitle:'',employer:'',responsibilities:[]}])}>+ Add Employment History</button></div>}
 
