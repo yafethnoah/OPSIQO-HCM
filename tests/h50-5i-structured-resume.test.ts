@@ -43,7 +43,9 @@ describe('OPSIQO H50.5I structured resume application',()=>{
   it('preserves candidate verification and ATS evidence boundary',()=>{
     const p=read('src/components/candidate-application-portal.tsx');
     const fit=read('src/lib/recruiting/candidate-fit-service.ts');
-    expect(p).toContain('100% candidate-verified');
+    expect(p).toContain('Candidate review');
+    expect(p).toContain('Structured resume verification');
+    expect(p).not.toContain('100% candidate-verified');
     expect(p).toContain('internal Fit % remains grounded in the original uploaded resume evidence');
     expect(fit).toContain('candidate.resumeText');
   });

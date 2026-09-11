@@ -44,11 +44,13 @@ describe('OPSIQO H50.5J resume parsing accuracy closure',()=>{
   expect(activation).toContain('recruitingLiveReady');
   expect(activation).toContain('Human recruiter review remains mandatory');
  });
- it('keeps machine confidence separate from 100 percent candidate verification',()=>{
+ it('keeps machine confidence separate from candidate review and final structural verification',()=>{
   const portal=read('src/components/candidate-application-portal.tsx');
   expect(portal).toContain('Structured Record Quality');
   expect(portal).toContain('Machine Parse Trust');
-  expect(portal).toContain('100% candidate-verified');
+  expect(portal).toContain('Candidate review');
+  expect(portal).toContain('Structured resume verification');
+  expect(portal).not.toContain('100% candidate-verified');
   expect(portal).toContain('internal Fit % remains grounded in the original uploaded resume evidence');
  });
  it('preserves candidate draft and submission helpers while adding H50.5J parsing',()=>{

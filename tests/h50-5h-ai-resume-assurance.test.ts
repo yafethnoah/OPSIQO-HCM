@@ -20,7 +20,8 @@ describe('OPSIQO H50.5H AI resume parsing assurance',()=>{
     p.includes("RECRUITING_RESUME_PARSE_V7_ADVANCED_DOCUMENT_INTELLIGENCE") ||
     p.includes("RECRUITING_RESUME_PARSE_V8_BOUNDED_LATENCY") ||
     p.includes("RECRUITING_RESUME_PARSE_V9_ADAPTIVE_RECOVERY") ||
-    p.includes("RECRUITING_RESUME_PARSE_V10_RESILIENT_PREFILL");
+    p.includes("RECRUITING_RESUME_PARSE_V10_RESILIENT_PREFILL") ||
+    p.includes("RECRUITING_RESUME_PARSE_V11_STYLE_ADAPTIVE_RECORD_PURITY");
   expect(supportedResumeParserVersion).toBe(true);
   expect(p).toContain('PASS 3 - semantic reconstruction and completeness repair');
  });
@@ -28,7 +29,9 @@ describe('OPSIQO H50.5H AI resume parsing assurance',()=>{
   const p=read('src/components/candidate-application-portal.tsx');
   expect(p).toContain('Machine parsing is never represented as 100% certain');
   expect(p).toContain('I reviewed every parsed resume section');
-  expect(p).toContain('100% candidate-verified');
+  expect(p).toContain('Candidate review');
+  expect(p).toContain('Structured resume verification');
+  expect(p).not.toContain('100% candidate-verified');
   expect(p).toContain('Machine parse trust');
  });
  it('keeps candidate reviewed edits separate from ATS source evidence',()=>{

@@ -16,6 +16,11 @@ import type {
   ResumeAwardEntry,
   ResumePublicationEntry,
 } from '@/domain/structured-resume';
+import {
+  looksLikeResumeNarrativeFragment,
+  looksLikeResumeSectionHeading,
+  normalizeEducationLocationMeta,
+} from '@/lib/recruiting/resume-style-intelligence';
 
 type Q={id:string;label:string;type:'yes_no'|'text'|'number'|'select';required:boolean;options?:string[]};
 type Context={
@@ -24,7 +29,7 @@ type Context={
   application:{coverLetterRequired:boolean;allowTalentPoolConsent:boolean;screeningQuestions:Q[];closingAt?:string}
 };
 type CustomSection={id:string;title:string;content:string};
-type ParseAssurance={machineTrust:number;aiVerified:boolean;fieldConfidence:Record<string,number>;unresolvedFields:string[];requiresCandidateReview:true;verifiedStatus:'high_confidence'|'review_required';structuredQuality:number;structuredCoverage:number;structuredRecordCount:number;structuredIssues:string[]};
+type ParseAssurance={machineTrust:number;aiVerified:boolean;fieldConfidence:Record<string,number>;unresolvedFields:string[];requiresCandidateReview:true;verifiedStatus:'high_confidence'|'review_required';structuredQuality:number;structuredCoverage:number;structuredRecordCount:number;structuredCriticalIssues:string[];structuredIssues:string[]};
 type Profile={
   firstName:string;lastName:string;email:string;phone:string;location:string;
   linkedinUrl:string;portfolioUrl:string;githubUrl:string;socialMediaUrl:string;
@@ -41,6 +46,33 @@ const empty:Profile={
   linkedinUrl:'',portfolioUrl:'',githubUrl:'',socialMediaUrl:'',
   headline:'',summary:'',yearsOfExperience:'',candidateStatement:'',customResumeSections:[]
 };
+
+
+function candidateResumeReviewIssues(resume:StructuredResumeProfile):string[]{
+  const issues:string[]=[];
+
+  (resume.employmentHistory||[]).forEach((item,index)=>{
+    const title=String(item.positionTitle||'').trim();
+    const employer=String(item.employer||'').trim();
+    if(!title)issues.push(`Employment ${index+1}: add the position title.`);
+    if(!employer)issues.push(`Employment ${index+1}: add the employer/organization.`);
+    if(title&&(looksLikeResumeSectionHeading(title)||looksLikeResumeNarrativeFragment(title)))issues.push(`Employment ${index+1}: position title looks like a heading or sentence fragment.`);
+    if(employer&&(looksLikeResumeSectionHeading(employer)||looksLikeResumeNarrativeFragment(employer)))issues.push(`Employment ${index+1}: employer looks like a heading or sentence fragment.`);
+  });
+
+  (resume.educationHistory||[]).forEach((item,index)=>{
+    const degree=String(item.degree||'').trim();
+    const institution=String(item.institution||'').trim();
+    if(!degree)issues.push(`Education ${index+1}: add the degree/credential.`);
+    if(!institution)issues.push(`Education ${index+1}: add the institution.`);
+    if(degree&&(looksLikeResumeSectionHeading(degree)||looksLikeResumeNarrativeFragment(degree)))issues.push(`Education ${index+1}: degree looks like a heading or sentence fragment.`);
+    if(institution&&(looksLikeResumeSectionHeading(institution)||looksLikeResumeNarrativeFragment(institution)))issues.push(`Education ${index+1}: institution looks like a heading or sentence fragment.`);
+    const locationMeta=normalizeEducationLocationMeta(item.location||'');
+    if(locationMeta.status||locationMeta.expectedDate)issues.push(`Education ${index+1}: move study status/expected graduation out of the location field.`);
+  });
+
+  return [...new Set(issues)].slice(0,40);
+}
 
 async function call<T>(path:string,init:RequestInit={},draftToken?:string){
   const h=new Headers(init.headers);
@@ -80,6 +112,14 @@ export function CandidateApplicationPortal({token}:{token:string}){
 
   const key=`opsiqo.candidateDraftToken.${token}`;
   const set=(k:Exclude<keyof Profile,'customResumeSections'>,v:string)=>setP(x=>({...x,[k]:v}));
+  const localReviewIssues=candidateResumeReviewIssues(structured);
+  const skillsExpected=Boolean(parseAssurance?.structuredCriticalIssues?.some(x=>/skills/i.test(x)));
+  const reviewIssues=[...new Set([
+    ...localReviewIssues,
+    ...(skillsExpected&&!structured.skills.length?['Skills: add at least one source-supported skill or competency.']:[]),
+  ])];
+  const structurallyReady=reviewIssues.length===0;
+  const candidateReviewComplete=resumeReviewed&&structurallyReady;
 
   useEffect(()=>{void(async()=>{
     try{
@@ -101,7 +141,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
     }catch(e){setError(e instanceof Error?e.message:'Unable to open application.')}
   })()},[token]);
 
-  async function parse(f:File){
+  async function parse(f:File,targetStep=2){
     setBusy('parse');setError('');setParseNote('');setParseAssurance(null);setResumeReviewed(false);
     try{
       const d=new FormData();d.set('file',f);
@@ -130,7 +170,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
       });
       setParseAssurance(r.data.assurance);
       setParseNote(r.data.note);
-      setStep(2);
+      setStep(targetStep);
     }catch(e){
       setResume(null);setParseNote('');setParseAssurance(null);setResumeReviewed(false);
       setError(e instanceof Error?e.message:'Resume parsing failed.');
@@ -173,6 +213,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
   async function submit(e:FormEvent){
     e.preventDefault();
     if(!resume||!parseNote){setError('Attach and successfully validate your resume before submitting.');setStep(1);return}
+    if(reviewIssues.length){setError(`Resolve the ${reviewIssues.length} critical resume structure issue(s) before submitting.`);setStep(3);return}
     if(!resumeReviewed){setError('Review every parsed resume section and confirm the resume review before submitting.');setStep(3);return}
     if(ctx?.application.coverLetterRequired&&!cover&&!coverText.trim()){setError('A cover letter is required.');setStep(5);return}
     if(!consent||!accuracy){setError('Confirm the declaration and privacy consent.');return}
@@ -227,8 +268,9 @@ export function CandidateApplicationPortal({token}:{token:string}){
           <strong>{parseAssurance.aiVerified?'AI-verified parse':'Deterministic draft'} · Machine Parse Trust {parseAssurance.machineTrust}%</strong><br/>
           <strong>Structured Record Quality {parseAssurance.structuredQuality}% · Coverage {parseAssurance.structuredCoverage}% · {parseAssurance.structuredRecordCount} extracted record(s)</strong><br/>
           {parseAssurance.unresolvedFields.length?`Needs review: ${parseAssurance.unresolvedFields.join(', ')}`:'No machine-detected unresolved fields.'}<br/>
+          {parseAssurance.structuredCriticalIssues.length?<><strong>Critical machine review: {parseAssurance.structuredCriticalIssues.slice(0,4).join(' · ')}</strong><br/></>:null}
           {parseAssurance.structuredIssues.length?<span className="muted">Structured review: {parseAssurance.structuredIssues.slice(0,4).join(' · ')}</span>:null}<br/>
-          <span className="muted">Machine parse trust is an evidence-backed confidence indicator. Machine parsing is never represented as 100% certain. The application becomes 100% candidate-verified only after you review and confirm the parsed information.</span>
+          <span className="muted">Machine parse trust is an evidence-backed confidence indicator. Machine parsing is never represented as 100% certain. Candidate review is tracked separately, and final structural verification occurs during submission.</span>
         </div>}
         <button type="button" className="button" disabled={!resume||busy==='parse'} onClick={()=>resume&&void parse(resume)}>{busy==='parse'?'AI parsing, reconstructing & verifying...':parseNote?'Improve parsing with AI':'AI parse & enhance'}</button>
       </section>}
@@ -249,6 +291,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
 
       {step===3&&<section className="prehireCard stack" data-h50-5g-resume-editor="true" data-h50-5i-structured-resume="true">
         <div className="toolbar"><div><h2>3. Resume review & edit</h2><p className="muted">OPSIQO extracted your resume into structured application records. Review every card; edit, add or remove records before submitting.</p></div><span className="badge">Structured resume</span></div>
+        {reviewIssues.length?<div className="error"><strong>{reviewIssues.length} critical resume structure issue(s) need correction.</strong><ul>{reviewIssues.slice(0,8).map(issue=><li key={issue}>{issue}</li>)}</ul>{resume&&<button type="button" className="button secondary" disabled={busy==='parse'} onClick={()=>void parse(resume,3)}>{busy==='parse'?'AI repairing resume…':'Improve these records with AI'}</button>}</div>:<div className="success"><strong>No client-side critical structure issues detected.</strong> Final source-grounded verification will still run when you submit.</div>}
         <F label="Estimated years of experience from resume · review" type="number" value={p.yearsOfExperience} onChange={v=>set('yearsOfExperience',v)}/>
 
         <SectionTitle title="Professional experience" hint="Employment History"/>
@@ -288,7 +331,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
         </div>)}
 
         <div className="notice"><strong>Evidence boundary:</strong> your reviewed profile is saved for recruiter review, but the internal Fit % remains grounded in the original uploaded resume evidence. Your edits do not silently rewrite the source document used for automated evidence matching.</div>
-        <label className="notice"><input type="checkbox" checked={resumeReviewed} onChange={e=>setResumeReviewed(e.target.checked)}/> <strong>I reviewed every parsed resume section and corrected any inaccurate or missing information.</strong><br/><span className="muted">Checking this makes the submitted profile 100% candidate-verified; it does not claim that AI extraction itself is infallible.</span></label>
+        <label className="notice"><input type="checkbox" checked={candidateReviewComplete} disabled={!structurallyReady} onChange={e=>setResumeReviewed(e.target.checked)}/> <strong>I reviewed every parsed resume section and corrected any inaccurate or missing information.</strong><br/><span className="muted">{structurallyReady?'Checking this records completion of your review. Final source-grounded structural verification still runs on submission.':'Resolve the critical structure issues above before confirming your review.'}</span></label>
       </section>}
 
       {step===4&&<section className="prehireCard stack"><h2>4. Screening questions</h2>{ctx.application.screeningQuestions.map(q=><Question key={q.id} q={q} value={answers[q.id]||''} onChange={v=>setAnswers(x=>({...x,[q.id]:v}))}/>)}{!ctx.application.screeningQuestions.length&&<div className="notice">No additional screening questions.</div>}</section>}
@@ -313,14 +356,15 @@ export function CandidateApplicationPortal({token}:{token:string}){
           <Review l="Candidate" v={`${p.firstName} ${p.lastName}`}/><Review l="Email" v={p.email}/><Review l="Resume" v={resume?.name||'Not attached'}/>
           <Review l="Employment records" v={String(structured.employmentHistory.length)}/><Review l="Education records" v={String(structured.educationHistory.length)}/><Review l="Skills" v={String(structured.skills.length)}/>
           <Review l="Machine Parse Trust" v={parseAssurance?`${parseAssurance.machineTrust}% · ${parseAssurance.aiVerified?'AI verified':'deterministic draft'}`:'Not available'}/>
-          <Review l="Candidate verification" v={resumeReviewed?'100% candidate-verified':'Review required'}/>
+          <Review l="Candidate review" v={candidateReviewComplete?'Completed':'Review required'}/>
+          <Review l="Structured resume verification" v={structurallyReady?'Ready for final server verification':`${reviewIssues.length} critical issue(s) remaining`}/>
         </div>
         <div className="row wrap"><button type="button" className="button secondary" onClick={()=>setStep(2)}>Edit personal information</button><button type="button" className="button secondary" onClick={()=>setStep(3)}>Edit resume sections</button></div>
         <label><input type="checkbox" checked={accuracy} onChange={e=>setAccuracy(e.target.checked)} required/> I confirm this application and supporting documents are accurate to the best of my knowledge.</label>
         <label><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} required/> I consent to processing my application information for recruitment purposes and acknowledge the privacy notice.</label>
         {ctx.application.allowTalentPoolConsent&&<label><input type="checkbox" checked={talent} onChange={e=>setTalent(e.target.checked)}/> I agree that my application may be considered for other suitable opportunities. Optional.</label>}
         <div className="notice">Protected characteristics and social-profile content are excluded from automated fit analysis. OPSIQO does not automatically hire, reject or advance candidates.</div>
-        <button className="button" disabled={busy==='submit'}>{busy==='submit'?'Submitting…':'Submit application'}</button>
+        <button className="button" disabled={busy==='submit'||!resume||!parseNote||!candidateReviewComplete||!accuracy||!consent||(ctx.application.coverLetterRequired&&!cover&&!coverText.trim())}>{busy==='submit'?'Submitting…':'Submit application'}</button>
       </section>}
 
       <section className="prehireCard"><div className="row wrap"><button type="button" className="button secondary" disabled={step<=1} onClick={()=>setStep(x=>Math.max(1,x-1))}>Back</button>{step<6&&<button type="button" className="button" disabled={step===1&&(!resume||busy==='parse'||!parseNote)} onClick={()=>setStep(x=>Math.min(6,x+1))}>Continue</button>}<button type="button" className="button secondary" disabled={busy==='draft'} onClick={()=>void saveDraft()}>{busy==='draft'?'Saving…':'Save & continue later'}</button></div><p className="muted">Draft fields are retained securely for 14 days. File attachments are retained only after final submission.</p></section>

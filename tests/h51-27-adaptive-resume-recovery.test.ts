@@ -6,7 +6,8 @@ describe("H51.27 adaptive resume recovery", () => {
     const provider = fs.readFileSync("src/lib/recruiting/ats-provider.ts", "utf8");
     expect(
       provider.includes("RECRUITING_RESUME_PARSE_V9_ADAPTIVE_RECOVERY") ||
-      provider.includes("RECRUITING_RESUME_PARSE_V10_RESILIENT_PREFILL"),
+      provider.includes("RECRUITING_RESUME_PARSE_V10_RESILIENT_PREFILL") ||
+      provider.includes("RECRUITING_RESUME_PARSE_V11_STYLE_ADAPTIVE_RECORD_PURITY"),
     ).toBe(true);
     expect(provider).toContain("scoreResumeEvidence(source)");
     expect(provider).toContain("sourceScore>=70");

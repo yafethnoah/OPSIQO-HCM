@@ -137,7 +137,8 @@ export async function parsePublicCandidateResume(token:string,form:FormData){
  const structuredQuality=Number(parsed.profile.structuredQuality||0);
  const structuredCoverage=Number(parsed.profile.structuredCoverage||0);
  const structuredRecordCount=Number(parsed.profile.structuredRecordCount||0);
- const structuredIssues=[...(parsed.profile.structuredCriticalIssues||[]),...(parsed.profile.structuredIssues||[])].slice(0,40);
+ const structuredCriticalIssues=[...(parsed.profile.structuredCriticalIssues||[])].slice(0,40);
+ const structuredIssues=[...(parsed.profile.structuredIssues||[])].slice(0,40);
  return{
   profile,
   structuredResume,
@@ -150,14 +151,15 @@ export async function parsePublicCandidateResume(token:string,form:FormData){
    fieldConfidence:parsed.profile.fieldConfidence||{},
    unresolvedFields,
    requiresCandidateReview:true,
-   verifiedStatus:machineTrust>=90&&structuredQuality>=85&&!unresolvedFields.length&&!parsed.profile.structuredCriticalIssues?.length?'high_confidence':'review_required',
+   verifiedStatus:machineTrust>=90&&structuredQuality>=85&&!unresolvedFields.length&&!structuredCriticalIssues.length?'high_confidence':'review_required',
    structuredQuality,
    structuredCoverage,
    structuredRecordCount,
+   structuredCriticalIssues,
    structuredIssues,
   },
   note:parsed.profile.sourceText?.trim()
-   ?(structuredIssues.length||unresolvedFields.length
+   ?(structuredCriticalIssues.length||structuredIssues.length||unresolvedFields.length
       ?'Resume was recovered as an editable review draft. Correct every highlighted or missing employment, education, skills and identity field before final confirmation. Final submission remains blocked while critical structured issues remain.'
       :'Resume was parsed into editable structured application fields. Review every section before final confirmation.')
    :'Recruiting AI is temporarily unavailable or the file has no readable text layer. Continue in manual review mode, complete the application fields, and confirm accuracy before submission.'

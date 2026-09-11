@@ -33,7 +33,9 @@ describe("H51.29 candidate review recovery", () => {
     expect(portal).toContain(
       "I reviewed every parsed resume section and corrected any inaccurate or missing information.",
     );
-    expect(portal).toContain("100% candidate-verified");
+    expect(portal).toContain("Candidate review");
+    expect(portal).toContain("Structured resume verification");
+    expect(portal).not.toContain("100% candidate-verified");
     expect(portal).toContain("internal Fit % remains grounded in the original uploaded resume evidence");
   });
 });

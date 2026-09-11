@@ -5,6 +5,14 @@ import type {
   ResumeEducationEntry,
 } from '@/domain/structured-resume';
 import { normalizeResumeLanguages, normalizeResumeSkills } from './resume-semantic-reconstruction';
+import {
+  looksLikeResumeNarrativeFragment,
+  looksLikeResumeSectionHeading,
+  minimumEvidenceDistance,
+  minimumEvidenceLineDistance,
+  normalizeEducationLocationMeta,
+  resumeHeadingKind,
+} from './resume-style-intelligence';
 
 export interface StructuredResumeAssessment {
   quality: number;
@@ -16,21 +24,21 @@ export interface StructuredResumeAssessment {
 
 const ALL_HEADINGS = new Set([
   'professional summary','summary','profile','professional profile',
-  'professional experience','work experience','experience','employment history','career history',
-  'skills','technical skills','core competencies','competencies','expertise','core skills','key skills','professional skills','professional competencies','technical competencies','core capabilities','executive capabilities','core executive capabilities','core executive & hr capabilities','areas of expertise','hr systems & process improvement','technology & digital transformation','technology and digital transformation',
-  'education','education & credentials','education and credentials','education & training','education and training','academic credentials','academic background','academic qualifications','qualifications',
-  'certifications','certificates','licences','licenses','credentials','professional certifications','certifications & credentials','certifications and credentials',
-  'languages','language skills','projects','selected projects','key projects',
+  'professional experience','work experience','experience','employment history','career history','career experience','professional history','professional background','relevant experience','selected experience','leadership experience','executive experience','consulting experience',
+  'skills','technical skills','core competencies','competencies','expertise','core skills','key skills','key competencies','professional skills','professional competencies','technical competencies','core capabilities','leadership capabilities','core leadership capabilities','executive capabilities','core executive capabilities','core executive & hr capabilities','areas of expertise','areas of strength','functional expertise','technical proficiencies','tools & technologies','tools and technologies','hr systems & process improvement','technology & digital transformation','technology and digital transformation',
+  'education','education & credentials','education and credentials','education & training','education and training','education & professional development','academic credentials','academic background','academic history','academic qualifications','qualifications',
+  'certifications','certificates','licences','licenses','credentials','professional certifications','certifications & credentials','certifications and credentials','certifications & professional development','professional development & certifications',
+  'languages','language skills','language proficiency','projects','selected projects','key projects',
   'volunteer experience','volunteering','community experience','community involvement',
   'awards','honours','honors','achievements','publications','presentations',
   'additional information','professional affiliations','memberships','interests',
 ]);
 
-const EXPERIENCE_HEADINGS = ['professional experience','work experience','experience','employment history','career history'];
-const EDUCATION_HEADINGS = ['education','education & credentials','education and credentials','education & training','education and training','academic credentials','academic background','academic qualifications','qualifications'];
-const SKILLS_HEADINGS = ['skills','technical skills','core competencies','competencies','expertise','core skills','key skills','professional skills','professional competencies','technical competencies','core capabilities','executive capabilities','core executive capabilities','core executive & hr capabilities','areas of expertise','hr systems & process improvement','technology & digital transformation','technology and digital transformation'];
-const CERTIFICATION_HEADINGS = ['certifications','certificates','licences','licenses','credentials','professional certifications','certifications & credentials','certifications and credentials'];
-const LANGUAGE_HEADINGS = ['languages','language skills'];
+const EXPERIENCE_HEADINGS = ['professional experience','work experience','experience','employment history','career history','career experience','professional history','professional background','relevant experience','selected experience','leadership experience','executive experience','consulting experience'];
+const EDUCATION_HEADINGS = ['education','education & credentials','education and credentials','education & training','education and training','education & professional development','academic credentials','academic background','academic history','academic qualifications','qualifications'];
+const SKILLS_HEADINGS = ['skills','technical skills','core competencies','competencies','expertise','core skills','key skills','key competencies','professional skills','professional competencies','technical competencies','core capabilities','leadership capabilities','core leadership capabilities','executive capabilities','core executive capabilities','core executive & hr capabilities','areas of expertise','areas of strength','functional expertise','technical proficiencies','tools & technologies','tools and technologies','hr systems & process improvement','technology & digital transformation','technology and digital transformation'];
+const CERTIFICATION_HEADINGS = ['certifications','certificates','licences','licenses','credentials','professional certifications','certifications & credentials','certifications and credentials','certifications & professional development','professional development & certifications'];
+const LANGUAGE_HEADINGS = ['languages','language skills','language proficiency'];
 
 const DEGREE_HINT = /\b(?:bachelor(?:['’]s)?|bachelor\s+of\s+pharmacy|b\.?\s*pharm\.?|bpharm|master(?:['’]s)?|doctor(?:ate|al)?|doctor\s+of\s+pharmacy|pharm\.?\s*d\.?|pharmd|ph\.?d\.?|mba|m\.?sc\.?|b\.?sc\.?|b\.?a\.?|b\.?s\.?|m\.?a\.?|m\.?s\.?|diploma|degree|post[- ]?graduate|graduate certificate)\b/i;
 const INSTITUTION_HINT = /\b(?:university|college|institute|school|academy|polytechnic|faculty|conservatory)\b/i;
@@ -65,6 +73,7 @@ function isStructuralNoise(v: string) {
   const heading = cleanHeading(raw);
   if (!raw) return true;
   if (ALL_HEADINGS.has(heading)) return true;
+  if (looksLikeResumeSectionHeading(raw)) return true;
   if (/^page\s+\d+(?:\s+of\s+\d+)?$/i.test(raw)) return true;
   if (/\b(?:professional\s+experience|work\s+experience|education|skills|core\s+competencies|certifications?|languages?)\b.*\b(?:continued|cont\.?)\b/i.test(raw)) return true;
   return false;
@@ -73,6 +82,7 @@ function isStructuralNoise(v: string) {
 function looksLikeResponsibilitySentence(v: string) {
   const value = stripBullet(clean(v, 1200));
   if (!value) return false;
+  if (looksLikeResumeNarrativeFragment(value)) return true;
   if (ACTION_SENTENCE.test(value)) return true;
   if (/^(?:assisted|answered|handled|served|processed|scheduled|collaborated|facilitated|provided|resolved|organized|organised|performed|ensured|promoted|advised|partnered)\b/i.test(value)) return true;
   const words = value.split(/\s+/).filter(Boolean);
@@ -161,23 +171,39 @@ function normalizeSectionLayout(source: string) {
 function sectionBody(source: string, aliases: string[]): string {
   const lines = normalizeSectionLayout(source).split('\n');
   const wanted = new Set(aliases.map(cleanHeading));
+  const wantedKinds = new Set(
+    aliases
+      .map((alias) => resumeHeadingKind(alias))
+      .filter((kind): kind is NonNullable<ReturnType<typeof resumeHeadingKind>> => Boolean(kind && kind !== 'other')),
+  );
+
   let start = -1;
   for (let i = 0; i < lines.length; i++) {
-    if (wanted.has(cleanHeading(lines[i] || ''))) {
+    const raw = lines[i] || '';
+    const heading = cleanHeading(raw);
+    const kind = resumeHeadingKind(raw);
+    if (wanted.has(heading) || (kind && wantedKinds.has(kind))) {
       start = i + 1;
       break;
     }
   }
+
   if (start < 0) return '';
+
   const out: string[] = [];
   for (let i = start; i < lines.length; i++) {
     const raw = lines[i] || '';
     const heading = cleanHeading(raw);
-    if (wanted.has(heading)) continue;
+    const kind = resumeHeadingKind(raw);
+
+    if (wanted.has(heading) || (kind && wantedKinds.has(kind))) continue;
     if (ALL_HEADINGS.has(heading)) break;
+    if (kind && kind !== 'other' && !wantedKinds.has(kind)) break;
     if (isStructuralNoise(raw)) continue;
+
     out.push(raw);
   }
+
   return out.join('\n').trim();
 }
 
@@ -198,17 +224,9 @@ function supported(value: unknown, source: string, threshold = 0.68): string | u
   return hit / unique.length >= threshold ? text : undefined;
 }
 
-function indexOfEvidence(value: string, source: string) {
-  const needle = normalizeEvidence(value);
-  if (!needle) return -1;
-  return normalizeEvidence(source).indexOf(needle);
-}
-
 function coLocated(a: string | undefined, b: string | undefined, source: string, maxDistance = 900) {
   if (!a || !b) return false;
-  const ai = indexOfEvidence(a, source);
-  const bi = indexOfEvidence(b, source);
-  return ai >= 0 && bi >= 0 && Math.abs(ai - bi) <= maxDistance;
+  return minimumEvidenceDistance(a, b, source) <= maxDistance;
 }
 
 function uniqueStrings(values: string[]) {
@@ -269,6 +287,9 @@ function splitInstitutionMeta(value: string) {
   let dateText: string | undefined;
   let location: string | undefined;
 
+  const wholeMeta = normalizeEducationLocationMeta(text);
+  if (wholeMeta.expectedDate) dateText = wholeMeta.expectedDate;
+
   const commaParts = text.split(/\s*,\s*/).map((v) => clean(v, 260)).filter(Boolean);
   const institutionIndex = commaParts.findIndex((part) => INSTITUTION_HINT.test(part));
 
@@ -284,32 +305,44 @@ function splitInstitutionMeta(value: string) {
     text = institutionParts.join(', ');
 
     for (const part of commaParts.slice(cursor)) {
+      const meta = normalizeEducationLocationMeta(part);
       const range = part.match(DATE_RANGE)?.[0];
       const token = part.match(DATE_TOKEN)?.[0];
-      if (!dateText && (range || token)) dateText = range || token;
-      else if (!location && LOCATION_HINT.test(part)) location = part;
+
+      if (!dateText && (meta.expectedDate || range || token)) {
+        dateText = meta.expectedDate || range || token;
+      }
+
+      if (!location && meta.location && LOCATION_HINT.test(meta.location)) {
+        location = meta.location;
+      }
     }
   } else {
     const range = text.match(DATE_RANGE)?.[0];
     const token = text.match(DATE_TOKEN)?.[0];
 
+    if (!dateText && (range || token)) dateText = range || token;
+
     if (range || token) {
-      dateText = range || token;
-      const idx = text.toLowerCase().lastIndexOf(String(dateText).toLowerCase());
-      if (idx >= 0 && idx + String(dateText).length >= text.length - 2) {
+      const matchedDate = range || token;
+      const idx = text.toLowerCase().lastIndexOf(String(matchedDate).toLowerCase());
+      if (idx >= 0 && idx + String(matchedDate).length >= text.length - 2) {
         text = text.slice(0, idx).replace(/[\s,;|·•-]+$/u, '').trim();
       }
     }
 
-    text = text
+    const meta = normalizeEducationLocationMeta(text);
+    if (meta.expectedDate && !dateText) dateText = meta.expectedDate;
+    text = meta.location || text
       .replace(/\s*\((?:in\s+progress|expected|anticipated)[^)]*\)?\s*$/i, '')
       .trim();
 
     const remaining = text.split(/\s*,\s*/).filter(Boolean);
     if (remaining.length >= 2) {
       const tail = remaining[remaining.length - 1]!;
-      if (LOCATION_HINT.test(tail) && !INSTITUTION_HINT.test(tail)) {
-        location = tail;
+      const tailMeta = normalizeEducationLocationMeta(tail);
+      if (tailMeta.location && LOCATION_HINT.test(tailMeta.location) && !INSTITUTION_HINT.test(tailMeta.location)) {
+        location = tailMeta.location;
         text = remaining.slice(0, -1).join(', ');
       }
     }
@@ -318,7 +351,7 @@ function splitInstitutionMeta(value: string) {
   return {
     institution: clean(text, 280),
     dateText,
-    location,
+    location: normalizeEducationLocationMeta(location).location,
   };
 }
 
@@ -416,7 +449,8 @@ function employerCandidate(line: string) {
   const value = clean(line, 260);
   const lexical = stripBullet(value);
   if (!lexical || isStructuralNoise(lexical)) return false;
-  if (DATE_TOKEN.test(lexical) || LOCATION_HINT.test(lexical) || looksLikeResponsibilitySentence(lexical)) return false;
+  if (looksLikeResumeSectionHeading(lexical) || looksLikeResumeNarrativeFragment(lexical)) return false;
+  if (DATE_TOKEN.test(lexical) || LOCATION_HINT.test(lexical)) return false;
   if (ROLE_DESCRIPTOR.test(lexical)) return false;
   if (TITLE_HINT.test(lexical) && lexical.split(/\s+/).length <= 8) return false;
   const words = lexical.split(/\s+/).filter(Boolean);
@@ -429,8 +463,9 @@ function titleCandidate(line: string) {
   return Boolean(
     value &&
     !isStructuralNoise(value) &&
+    !looksLikeResumeSectionHeading(value) &&
+    !looksLikeResumeNarrativeFragment(value) &&
     TITLE_HINT.test(value) &&
-    !looksLikeResponsibilitySentence(value) &&
     !DATE_TOKEN.test(value)
   );
 }
@@ -605,6 +640,20 @@ export function deterministicStructuredResume(profile: Pick<ParsedResumeProfile,
   };
 }
 
+function supportedRelated(
+  value: unknown,
+  source: string,
+  anchors: string[],
+  threshold = 0.7,
+  maxLines = 3,
+) {
+  const grounded = supported(value, source, threshold);
+  if (!grounded || !anchors.length) return undefined;
+  return anchors.some((anchor) => minimumEvidenceLineDistance(grounded, anchor, source) <= maxLines)
+    ? grounded
+    : undefined;
+}
+
 function safeEmployment(items: StructuredResumeProfile['employmentHistory'], source: string) {
   return (items || []).flatMap((raw) => {
     const titleParts = splitParts(String(raw.positionTitle || ''))
@@ -624,31 +673,54 @@ function safeEmployment(items: StructuredResumeProfile['employmentHistory'], sou
       locationEmployer ||
       '';
 
-    const positionTitle = supported(titleSeed, source, 0.72) || '';
+    let positionTitle = supported(titleSeed, source, 0.72) || '';
     let employer = supported(employerSeed, source, 0.72) || '';
+
+    if (
+      looksLikeResumeSectionHeading(positionTitle) ||
+      looksLikeResumeNarrativeFragment(positionTitle) ||
+      isStructuralNoise(positionTitle)
+    ) positionTitle = '';
+
     if (
       ROLE_DESCRIPTOR.test(stripBullet(employer)) ||
-      looksLikeResponsibilitySentence(employer) ||
+      looksLikeResumeSectionHeading(employer) ||
+      looksLikeResumeNarrativeFragment(employer) ||
       isStructuralNoise(employer)
     ) employer = '';
-    if (positionTitle && employer && !coLocated(positionTitle, employer, source, 1300)) employer = '';
+
+    if (positionTitle && employer && !coLocated(positionTitle, employer, source, 900)) {
+      employer = '';
+    }
+
+    const anchors = [positionTitle, employer].filter(Boolean);
+    const startDate = supportedRelated(raw.startDate, source, anchors, 0.7, 3);
+    const endDate = supportedRelated(raw.endDate, source, anchors, 0.7, 3);
+    const location = supportedRelated(locationPlace || raw.location, source, anchors, 0.7, 3);
+
     const responsibilities = (raw.responsibilities || [])
       .flatMap((v) => {
         const x = supported(v, source, 0.68);
-        return x ? [x] : [];
+        if (!x) return [];
+        return anchors.length && anchors.some((anchor) => minimumEvidenceLineDistance(x, anchor, source) <= 8)
+          ? [x]
+          : [];
       })
       .slice(0, 40);
+
     if (!positionTitle && !employer) return [];
+
     return [{
       ...raw,
       positionTitle,
       employer,
-      startDate: supported(raw.startDate, source, 0.7),
-      endDate: supported(raw.endDate, source, 0.7),
-      location: supported(locationPlace || raw.location, source, 0.7),
-      city: supported(raw.city, source, 0.7),
-      region: supported(raw.region, source, 0.7),
-      country: supported(raw.country, source, 0.7),
+      current: Boolean(raw.current && (startDate || endDate)),
+      startDate,
+      endDate,
+      location,
+      city: supportedRelated(raw.city, source, anchors, 0.7, 3),
+      region: supportedRelated(raw.region, source, anchors, 0.7, 3),
+      country: supportedRelated(raw.country, source, anchors, 0.7, 3),
       responsibilities,
       reasonForLeaving: supported(raw.reasonForLeaving, source, 0.8),
     }];
@@ -659,23 +731,47 @@ function safeEducation(items: StructuredResumeProfile['educationHistory'], sourc
   return (items || []).flatMap((raw) => {
     const degreeMeta = splitEducationDegree(String(raw.degree || ''));
     const institutionMeta = splitInstitutionMeta(String(raw.institution || ''));
+    const rawLocationMeta = normalizeEducationLocationMeta(raw.location || institutionMeta.location || '');
+    const institutionLocationMeta = normalizeEducationLocationMeta(String(raw.institution || ''));
 
     let degree = supported(degreeMeta.degree, source, 0.72) || '';
     let institution = supported(institutionMeta.institution, source, 0.72) || '';
     let fieldOfStudy = supported(raw.fieldOfStudy || degreeMeta.fieldOfStudy, source, 0.72);
-    if (ACTION_SENTENCE.test(stripBullet(degree)) && !DEGREE_HINT.test(stripBullet(degree))) degree = '';
-    if (ACTION_SENTENCE.test(stripBullet(institution))) institution = '';
-    if (degree && institution && !coLocated(degree, institution, source, 1000)) institution = '';
+
+    if (
+      (looksLikeResumeNarrativeFragment(degree) || looksLikeResumeSectionHeading(degree)) &&
+      !DEGREE_HINT.test(stripBullet(degree))
+    ) degree = '';
+
+    if (looksLikeResumeNarrativeFragment(institution) || looksLikeResumeSectionHeading(institution)) {
+      institution = '';
+    }
+
+    if (fieldOfStudy && (looksLikeResumeNarrativeFragment(fieldOfStudy) || looksLikeResumeSectionHeading(fieldOfStudy))) {
+      fieldOfStudy = undefined;
+    }
+
+    if (degree && institution && !coLocated(degree, institution, source, 900)) institution = '';
+
+    const anchors = [degree, institution].filter(Boolean);
     if (!degree && !institution) return [];
+
+    const range = institutionMeta.dateText?.match(DATE_RANGE)?.[0];
+    const rangeParts = range?.split(/\s*(?:-|–|—|to)\s*/i) || [];
+    const expectedDate =
+      rawLocationMeta.expectedDate ||
+      institutionLocationMeta.expectedDate ||
+      (!range ? institutionMeta.dateText : undefined);
+
     return [{
       ...raw,
       degree,
       institution,
       fieldOfStudy,
-      startDate: supported(raw.startDate || institutionMeta.dateText?.match(DATE_RANGE)?.[0]?.split(/\s*(?:-|–|—|to)\s*/i)[0], source, 0.7),
-      endDate: supported(raw.endDate || institutionMeta.dateText?.match(DATE_RANGE)?.[0]?.split(/\s*(?:-|–|—|to)\s*/i)[1], source, 0.7),
-      graduationDate: supported(raw.graduationDate, source, 0.7),
-      location: supported(raw.location || institutionMeta.location, source, 0.7),
+      startDate: supportedRelated(raw.startDate || rangeParts[0], source, anchors, 0.7, 3),
+      endDate: supportedRelated(raw.endDate || rangeParts[1], source, anchors, 0.7, 3),
+      graduationDate: supportedRelated(raw.graduationDate || expectedDate, source, anchors, 0.7, 3),
+      location: supportedRelated(rawLocationMeta.location || institutionMeta.location, source, anchors, 0.7, 3),
     }];
   });
 }
@@ -891,21 +987,19 @@ export function mergeStructuredResume(
 }
 
 function categoryHints(source: string) {
-  const headingSet = new Set(
+  const kinds = new Set(
     normalizeSectionLayout(source)
       .split('\n')
-      .map(cleanHeading)
-      .filter(Boolean),
+      .map((line) => resumeHeadingKind(line))
+      .filter((kind): kind is NonNullable<ReturnType<typeof resumeHeadingKind>> => Boolean(kind)),
   );
 
-  const hasHeading = (headings: string[]) =>
-    headings.some((h) => headingSet.has(cleanHeading(h)));
   return {
-    employmentHistory: hasHeading(EXPERIENCE_HEADINGS),
-    educationHistory: hasHeading(EDUCATION_HEADINGS),
-    skills: hasHeading(SKILLS_HEADINGS),
-    certifications: hasHeading(CERTIFICATION_HEADINGS),
-    languages: hasHeading(LANGUAGE_HEADINGS),
+    employmentHistory: kinds.has('experience'),
+    educationHistory: kinds.has('education'),
+    skills: kinds.has('skills'),
+    certifications: kinds.has('certifications'),
+    languages: kinds.has('languages'),
   };
 }
 
