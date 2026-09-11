@@ -124,7 +124,7 @@ export function AttendanceHero({
           body: JSON.stringify({
             action,
             location: nativeLocation,
-            clientCapturedAt: capturedAt,
+
           }),
         });
 
@@ -289,7 +289,7 @@ export function AttendanceHero({
             Server policy, duplicate controls and audit evidence remain authoritative.
           </Muted>
           <Button
-            title={busy ? "Synchronizingâ€¦" : "Synchronize now"}
+            title={busy ? "Synchronizing..." : "Synchronize now"}
             onPress={() => void synchronize()}
             disabled={busy}
             secondary

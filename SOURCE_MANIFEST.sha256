@@ -1,6 +1,6 @@
 8c2448821eb1fc292d928566ab5c5dc7ef1ebd18d270a9d4d7d300fdb6feeab0  .env.example
 bb0f83e060feffed36d4f3063305184ad31e17d863d9bf35b3c26c5a5f07e4d2  .firebaserc
-a318cf7d537ba37a5bd660ff558cefb3055fc8825a88a61199d5064065e56215  .git
+38f61433f313ad33f06331321007979c4c28ecff5dd9090f4d7012e04720ccea  .git
 8963730503a22b069daabf119fe60c9f5e2b1464cbb8ef9ae1078c670eb02433  .gitattributes
 14335ded41a8a3e4d5b2dcb209f0111372f8f195c8b5185e322bd326660b027c  .github/workflows/automation-scheduler.yml
 16e05e57fd50853f18b458418c0771e2060721ebc9805f4dbb66a05b9528d01e  .github/workflows/cloud-dr-evidence.yml
@@ -181,7 +181,7 @@ cc38d49eeef947fa796971a501d4db4b4042a9986c270849022ab33824791804  mobile/app.jso
 a412ed901529f982c3d1d9a29e027899ebfece3fbdcdd15a57a4e2ecd37aaed2  mobile/app/(app)/_layout.tsx
 3f132e38e488c283a63c61d0fa1a954d719cf30cc89bcd941506b9ddd4541176  mobile/app/(app)/copilot.tsx
 ef46d5cff6c4dc47c4dc25e74d82aeda3e3be23cfdcf38433cd711cf39fffa42  mobile/app/(app)/documents.tsx
-c9498f71160a128af046cc7442667cd2906597ba845b60448f132e69bab5680c  mobile/app/(app)/home.tsx
+719c3735cf69619ae30727fd19f0bde9e2ce5d1c2d4215ef5bf6e38ff7ce272c  mobile/app/(app)/home.tsx
 94239c0e56e4a9e4183d1eeade19373710446109e9314c4d2c3e48a294ff8677  mobile/app/(app)/inbox.tsx
 9f1df80c2728282d5ab0c93a0e0173729e4c9bb76ea78e20984672aa274d1ae3  mobile/app/(app)/learning.tsx
 d4e52e0f1c5394097d98c3e40859bf7461ec9436117a38d89c984b26ca79e546  mobile/app/(app)/me.tsx
@@ -205,7 +205,7 @@ ebe0e128c71756dd16683e6fe1b90684736e92a0383e5e7aaa7ab4413df33972  mobile/src/aut
 ed58f0164a6ec90a1a8bda43d4317d8d243cfe33e7045e907bca1388ffa5ba1a  mobile/src/auth/provider.tsx
 413d411fd391115d52027402d593561c7f19386e10f15e89960d90c06b72075c  mobile/src/auth/session.ts
 278ac2506d4ee0ba1a561db8af5774f7e4cb1957138d623c6ed42a40d9a0c795  mobile/src/components/ad-banner.tsx
-8459fe398c28c2bd05b7acdc8e40ad441933d41d35be0d70969e8ee8b0e2d10d  mobile/src/components/attendance-hero.tsx
+b7b76c05f87a13d0a69111daba7819e282bd2bd111a83629b1e61b1797bff758  mobile/src/components/attendance-hero.tsx
 ff37b2276c787ee985d8c83efb0e845747ff5594d8efa8ac6643b11ccd2c38a5  mobile/src/components/attendance-pulse-monitor.tsx
 9c60bf3c017a5c2c566f7668fb3a5f86610dd69561fccdd9077e814531fe0a8c  mobile/src/components/live-pulse-clock.tsx
 86e1be62cc85fcd0e6224e769269d5d473a11cffd83e7268da416a5331e4f2fd  mobile/src/components/ui.tsx
@@ -1741,6 +1741,7 @@ ca1988f9102d1b51cfd65f5582699a44b45633128f40436cf98cb9331855ee28  tests/mobile-e
 ae0012918fc3eee4e917f6cb0e156dc6ec6a57fe91e9f944e4ad37b011229380  tests/mobile-employee-h50-1s-testflight-admob.test.ts
 e94c62f42fc61e9008b1550573c9383220cc175396f3357aaafac37c5d31d02b  tests/mobile-employee-h50-1t-attendance-reminders.test.ts
 f9f1972b75cae7f02355bf2d4b1634c78b2e76ce2466cc95985f2865f4d56532  tests/mobile-employee-h50-1u-pulse-monitor.test.ts
+b32c670c6d5b66d50d936bcb62a6cf3213198c8bad65f9557154a637725eb63a  tests/mobile-employee-h50-1v-safe-area-attendance.test.ts
 66664f26dafe7041bd0084122ccb28cd97ae0f12684ed6082b2c45d8c8c4b557  tests/mobile-employee-h50-appcheck-brand.test.ts
 472ac138939222122bd822902759f1a2e316ac8d3ae5a795cac5d67db28fd171  tests/mobile-employee-h50-ios.test.ts
 2f135af588e1b099a6874f5b99c3eb3bfa102c039e0e1036e8c51598a2a6392d  tests/onboarding.test.ts

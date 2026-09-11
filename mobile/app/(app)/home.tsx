@@ -1,4 +1,5 @@
 import { Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useAuth } from "@/auth/provider";
 import { useBootstrap } from "@/hooks/use-bootstrap";
@@ -24,6 +25,7 @@ const fmt = (iso: string) => {
 };
 
 export default function Home() {
+  const insets = useSafeAreaInsets();
   const { activeOrgId } = useAuth();
   const { data, loading, error, reload } = useBootstrap();
   const reminders = useAttendanceReminders(data?.shifts || []);
@@ -31,7 +33,7 @@ export default function Home() {
   if (loading && !data) {
     return (
       <Screen>
-        <Loading label="Loading OPSIQO Pulseâ€¦" />
+        <Loading label="Loading OPSIQO Pulse..." />
       </Screen>
     );
   }
@@ -45,18 +47,18 @@ export default function Home() {
   return (
     <ScrollView
       style={{ backgroundColor: colors.bg }}
-      contentContainerStyle={s.content}
+      contentContainerStyle={[s.content, { paddingTop: Math.max(insets.top + 8, 24) }]}
       refreshControl={
         <RefreshControl refreshing={loading} onRefresh={() => void reload()} />
       }
     >
       <View>
-        <Text style={s.eyebrow}>OPSIQO PULSE Â· iOS</Text>
+        <Text style={s.eyebrow}>OPSIQO PULSE · iOS</Text>
         <H1>Hi, {worker?.displayName?.split(" ")[0] || "there"}</H1>
         <Muted>
           {data?.employee?.assignment?.positionTitle || "Employee"}
           {data?.employee?.assignment?.orgUnitName
-            ? ` Â· ${data.employee.assignment.orgUnitName}`
+            ? ` · ${data.employee.assignment.orgUnitName}`
             : ""}
         </Muted>
       </View>
@@ -92,7 +94,7 @@ export default function Home() {
           <>
             <Text style={s.big}>{data.shifts[0].title}</Text>
             <Muted>
-              {fmt(data.shifts[0].startAt)} â†’{" "}
+              {fmt(data.shifts[0].startAt)} →{" "}
               {fmt(data.shifts[0].endAt)}
             </Muted>
           </>
