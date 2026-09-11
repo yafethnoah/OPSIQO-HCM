@@ -19,7 +19,8 @@ describe("H50.6D recruiting document AI parser assurance", () => {
       provider.indexOf("export async function governedResumeParse"),
       provider.indexOf("export async function governedJobDescriptionParse"),
     );
-    expect(block.match(/aiJson\(profile,[^;]+,attachment\)/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(block.match(/aiJson\(profile,[^;]+,attachment(?:,[^)]+)?\)/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(block).toContain("aiJson(profile,semanticPrompt,undefined,pass3TimeoutMs)");
     expect(block).not.toContain("!input.text?input:undefined");
   });
 

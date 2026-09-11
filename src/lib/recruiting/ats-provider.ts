@@ -2,12 +2,13 @@ import type { ActorContext } from '@/domain/security';
 import type { Candidate, Requisition } from '@/domain/recruiting';
 import type { AtsResumeReview, ParsedResumeProfile } from '@/domain/ats';
 import { adminDb, getAdminApp } from '@/lib/firebase/admin';
+import { boundedProviderFetch } from './recruiting-ai-deadline';
 import { ApiError } from '@/lib/http/errors';
 import { parseResumeTextDeterministic } from './ats-engine';
 import { assessStructuredResume, deterministicStructuredResume, mergeStructuredResume } from './resume-structure';
 import { normalizeResumeLanguages, normalizeResumeSkills } from './resume-semantic-reconstruction';
 
-const RESUME_PROMPT_VERSION='RECRUITING_RESUME_PARSE_V7_ADVANCED_DOCUMENT_INTELLIGENCE';
+const RESUME_PROMPT_VERSION='RECRUITING_RESUME_PARSE_V8_BOUNDED_LATENCY';
 const COVER_PROMPT_VERSION='RECRUITING_COVER_LETTER_V2';
 type Profile={provider:string;model:string;governedInstruction?:string;promptCode?:string;promptVersion?:number};
 async function activeProfile(actor:ActorContext):Promise<Profile|null>{const db=adminDb(),[m,p]=await Promise.all([db.collection(`organizations/${actor.orgId}/aiModelProfiles`).where('status','==','active').limit(30).get(),db.collection(`organizations/${actor.orgId}/aiPromptTemplates`).where('status','==','active').limit(30).get()]),models=m.docs.map(d=>d.data() as any),prompts=p.docs.map(d=>d.data() as any),strict=process.env.OPSIQO_REQUIRE_GOVERNED_AI_CONFIG==='true',dm=models.find(x=>x.code==='RECRUITING_ATS_MODEL'),dp=prompts.find(x=>x.code==='RECRUITING_ATS');if(strict){if(!dm||!dp)throw new ApiError(503,'Recruiting AI requires approved RECRUITING_ATS_MODEL and RECRUITING_ATS governance records.','ai_governance_required');if(!dm.approvedBy||!dp.activatedBy)throw new ApiError(503,'Recruiting ATS AI governance records are not approved/active.','ai_governance_required');if(String(dm.provider||'')==='demo')throw new ApiError(503,'Recruiting ATS cannot use a demo provider in strict production mode.','ai_governance_required')}const model=dm||models.find(x=>x.code==='HR_COPILOT_MODEL')||models[0],prompt=dp||prompts.find(x=>x.code==='HR_COPILOT');if(!model)return null;return{provider:String(model.provider||''),model:String((String(model.provider||'')==='gemini'&&process.env.OPSIQO_RECRUITING_AI_MODEL)||model.model||model.modelId||''),governedInstruction:prompt?.systemInstruction?String(prompt.systemInstruction):undefined,promptCode:prompt?.code,promptVersion:Number(prompt?.version||0)}}
@@ -50,19 +51,25 @@ function recruitingRetryDelayMs(response:Response,attempt:number){
  }
  return Math.min(5000,750*(2**attempt));
 }
-async function recruitingProviderFetch(provider:string,url:string,init:RequestInit){
- const maxAttempts=4;
- let response:Response|null=null;
- for(let attempt=0;attempt<maxAttempts;attempt+=1){
-   response=await fetch(url,init);
-   if(response.ok)return response;
-   const retryable=response.status===429||response.status>=500;
-   if(!retryable||attempt===maxAttempts-1)throw recruitingProviderError(provider,response.status);
-   const delayMs=recruitingRetryDelayMs(response,attempt);
-   await new Promise(resolve=>setTimeout(resolve,delayMs));
+function recruitingStageTimeout(variable:string,fallback:number,min=3000,max=30000){
+  const raw=Number(process.env[variable]||fallback);
+  return Math.max(min,Math.min(max,Number.isFinite(raw)?Math.round(raw):fallback));
  }
- throw recruitingProviderError(provider,response?.status||503);
-}
+ function recruitingTimeoutError(provider:string){
+  const name=provider==='gemini'?'Gemini':provider==='openai'?'OpenAI':'Recruiting AI';
+  return new ApiError(503,`${name} timed out before OPSIQO could produce a reliable structured profile. Retry parsing.`,'ai_provider_timeout');
+ }
+ async function recruitingProviderFetch(provider:string,url:string,init:RequestInit,timeoutMs=18000){
+  return boundedProviderFetch(url,init,{
+    timeoutMs,
+    maxAttempts:2,
+    isRetryable:(response)=>response.status===429||response.status>=500,
+    retryDelayMs:(response,attempt)=>recruitingRetryDelayMs(response,attempt),
+    statusError:(response)=>recruitingProviderError(provider,response.status),
+    timeoutError:()=>recruitingTimeoutError(provider),
+    networkError:()=>new ApiError(503,'Recruiting AI provider connection failed. Retry shortly.','ai_provider_unavailable'),
+  });
+ }
 
 function outputText(j:any){if(typeof j?.output_text==='string')return j.output_text;let x='';for(const i of j?.output||[])for(const c of i?.content||[])if(c?.type==='output_text')x+=c.text||'';return x}
 function parseJson(s:string){return JSON.parse(s.trim().replace(/^```(?:json)?\s*/i,'').replace(/```$/,'').trim())}
@@ -85,7 +92,7 @@ function normalizeResume(raw:any,text:string,provider:string,model:string,fileNa
  const aiEvidencePresent=Boolean(displayName||supportedList(raw?.skills).length||supportedList(raw?.education).length||supportedList(raw?.jobTitles).length||supportedList(raw?.employers).length);
  return{...base,firstName,lastName,displayName,email,phone,location,linkedinUrl,headline,summary,skills:normalizeResumeSkills(merge(raw?.skills,base.skills),evidenceText),certifications:merge(raw?.certifications,base.certifications).slice(0,80),education:merge(raw?.education,base.education).slice(0,80),employers:merge(raw?.employers,base.employers).slice(0,80),jobTitles:merge(raw?.jobTitles,base.jobTitles).slice(0,80),yearsOfExperience:base.yearsOfExperience,warnings:[...new Set([...base.warnings,...aiWarnings,...((Number.isFinite(Number(raw?.yearsOfExperience))&&base.yearsOfExperience==null)?['AI-reported experience duration was not used because dated employment ranges could not be verified from the resume evidence.']:[])])].slice(0,60),sourceText:evidenceText,parser:'hybrid',provider,model,parseQuality:Math.max(base.parseQuality||0,aiEvidencePresent?85:base.parseQuality||0),extractionSignals:[...new Set([...(base.extractionSignals||[]),...(aiEvidencePresent?['governed_ai_grounded']:[])])]};
 }
-async function geminiApiKeyJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer}){
+async function geminiApiKeyJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer},timeoutMs=18000){
  const key=process.env.GEMINI_API_KEY;
  if(!key)throw new ApiError(503,'GEMINI_API_KEY is not configured for Recruiting ATS.','ai_unavailable');
  const parts:any[]=[{text:prompt}];
@@ -100,7 +107,7 @@ async function geminiApiKeyJson(profile:Profile,prompt:string,file?:{name:string
      generationConfig:{responseMimeType:'application/json'},
    }),
  };
- const r=await recruitingProviderFetch('gemini',url,init);
+ const r=await recruitingProviderFetch('gemini',url,init,timeoutMs);
  const j:any=await r.json();
  const text=String(j?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||'').join('')||'');
  if(!text)throw new ApiError(502,'Gemini returned no Recruiting ATS output.','ai_provider_error');
@@ -118,7 +125,7 @@ async function vertexAccessToken(){
  cachedVertexToken={accessToken,expiresAt:Date.now()+Math.max(60,Number(token?.expires_in||3600)-120)*1000};
  return accessToken;
 }
-async function vertexGeminiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer}){
+async function vertexGeminiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer},timeoutMs=18000){
  const project=String(process.env.GOOGLE_CLOUD_PROJECT||process.env.FIREBASE_PROJECT_ID||process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID||'').trim();
  if(!project)throw new ApiError(503,'Google Cloud project configuration is unavailable for Vertex Recruiting ATS.','ai_unavailable');
  const location=String(process.env.OPSIQO_VERTEX_AI_LOCATION||'global').trim();
@@ -135,26 +142,27 @@ async function vertexGeminiJson(profile:Profile,prompt:string,file?:{name:string
      generationConfig:{responseMimeType:'application/json',maxOutputTokens:32768},
    }),
  };
- const r=await recruitingProviderFetch('gemini',url,init);
+ const r=await recruitingProviderFetch('gemini',url,init,timeoutMs);
  const j:any=await r.json();
  const text=String(j?.candidates?.[0]?.content?.parts?.map((p:any)=>p.text||'').join('')||'');
  if(!text)throw new ApiError(502,'Vertex Gemini returned no Recruiting ATS output.','ai_provider_error');
  return parseJson(text);
 }
-async function geminiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer}){
+async function geminiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer},timeoutMs=18000){
  const transport=String(process.env.OPSIQO_RECRUITING_GEMINI_TRANSPORT||'auto').trim().toLowerCase();
- if(transport==='vertex')return vertexGeminiJson(profile,prompt,file);
- if(transport==='google_api_key')return geminiApiKeyJson(profile,prompt,file);
+ if(transport==='vertex')return vertexGeminiJson(profile,prompt,file,timeoutMs);
+ if(transport==='google_api_key')return geminiApiKeyJson(profile,prompt,file,timeoutMs);
  if(transport!=='auto')throw new ApiError(503,'Unsupported Recruiting Gemini transport configuration.','ai_governance_required');
  try{
-   return await vertexGeminiJson(profile,prompt,file);
+   return await vertexGeminiJson(profile,prompt,file,timeoutMs);
  }catch(error){
+   if(String((error as any)?.code||'')==='ai_provider_timeout')throw error;
    if(!process.env.GEMINI_API_KEY)throw error;
-   return geminiApiKeyJson(profile,prompt,file);
+   return geminiApiKeyJson(profile,prompt,file,timeoutMs);
  }
 }
 
-async function openaiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer}){
+async function openaiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer},timeoutMs=18000){
  const key=process.env.OPENAI_API_KEY;
  if(!key)throw new ApiError(503,'OPENAI_API_KEY is not configured for Recruiting ATS.','ai_unavailable');
  const content:any[]=[{type:'input_text',text:prompt}];
@@ -169,13 +177,13 @@ async function openaiJson(profile:Profile,prompt:string,file?:{name:string;mimeT
      input:[{role:'user',content}],
    }),
  };
- const r=await recruitingProviderFetch('openai','https://api.openai.com/v1/responses',init);
+ const r=await recruitingProviderFetch('openai','https://api.openai.com/v1/responses',init,timeoutMs);
  const j:any=await r.json();
  const text=outputText(j);
  if(!text)throw new ApiError(502,'OpenAI returned no Recruiting ATS output.','ai_provider_error');
  return parseJson(text);
 }
-async function aiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer}){if(profile.provider==='gemini')return geminiJson(profile,prompt,file);if(profile.provider==='openai')return openaiJson(profile,prompt,file);return null}
+async function aiJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer},timeoutMs=18000){if(profile.provider==='gemini')return geminiJson(profile,prompt,file,timeoutMs);if(profile.provider==='openai')return openaiJson(profile,prompt,file,timeoutMs);return null}
 const RECRUITING_DOCUMENT_PROBE_PDF_B64='JVBERi0xLjMKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMSAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL0NvbnRlbnRzIDcgMCBSIC9NZWRpYUJveCBbIDAgMCA2MTIgNzkyIF0gL1BhcmVudCA2IDAgUiAvUmVzb3VyY2VzIDw8Ci9Gb250IDEgMCBSIC9Qcm9jU2V0IFsgL1BERiAvVGV4dCAvSW1hZ2VCIC9JbWFnZUMgL0ltYWdlSSBdCj4+IC9Sb3RhdGUgMCAvVHJhbnMgPDwKCj4+IAogIC9UeXBlIC9QYWdlCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9QYWdlTW9kZSAvVXNlTm9uZSAvUGFnZXMgNiAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0F1dGhvciAoYW5vbnltb3VzKSAvQ3JlYXRpb25EYXRlIChEOjIwMjYwOTA4MjA1ODQ4KzAwJzAwJykgL0NyZWF0b3IgKGFub255bW91cykgL0tleXdvcmRzICgpIC9Nb2REYXRlIChEOjIwMjYwOTA4MjA1ODQ4KzAwJzAwJykgL1Byb2R1Y2VyIChSZXBvcnRMYWIgUERGIExpYnJhcnkgLSBcKG9wZW5zb3VyY2VcKSkgCiAgL1N1YmplY3QgKHVuc3BlY2lmaWVkKSAvVGl0bGUgKHVudGl0bGVkKSAvVHJhcHBlZCAvRmFsc2UKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0NvdW50IDEgL0tpZHMgWyAzIDAgUiBdIC9UeXBlIC9QYWdlcwo+PgplbmRvYmoKNyAwIG9iago8PAovRmlsdGVyIFsgL0FTQ0lJODVEZWNvZGUgL0ZsYXRlRGVjb2RlIF0gL0xlbmd0aCAxMzYKPj4Kc3RyZWFtCkdhcFFoMEU9RiwwVVxIM1RccE5ZVF5RS2s/dGM+SVAsO1cjVTFeMjNpaFBFTV8/Q1c0S0lTaTwhWzdgI09CX3F1cysiTSc1XyJLXmVFIUBQYmBeMl9GRzU9QHIzRlAyZTA5VTJyOGM7XWVAWkVVODVjSWI2OmREL0xfZSZXIllLZDJwYDxyfj5lbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA4CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMDkyIDAwMDAwIG4gCjAwMDAwMDAxOTkgMDAwMDAgbiAKMDAwMDAwMDM5MiAwMDAwMCBuIAowMDAwMDAwNDYwIDAwMDAwIG4gCjAwMDAwMDA3MjEgMDAwMDAgbiAKMDAwMDAwMDc4MCAwMDAwMCBuIAp0cmFpbGVyCjw8Ci9JRCAKWzw2MGIyN2JmMjQwYzc1Y2FmNjQ3Njk3ZDEyMzYxMzZhNz48NjBiMjdiZjI0MGM3NWNhZjY0NzY5N2QxMjM2MTM2YTc+XQolIFJlcG9ydExhYiBnZW5lcmF0ZWQgUERGIGRvY3VtZW50IC0tIGRpZ2VzdCAob3BlbnNvdXJjZSkKCi9JbmZvIDUgMCBSCi9Sb290IDQgMCBSCi9TaXplIDgKPj4Kc3RhcnR4cmVmCjEwMDYKJSVFT0YK';
 
 export async function probeRecruitingAiProvider(actor:ActorContext){
@@ -210,30 +218,35 @@ export async function governedResumeParse(actor:ActorContext,input:{name:string;
  const profile=await safeRecruitingAiProfile(actor);if(!profile||profile.provider==='demo'||!profile.model)return null;
  const source=input.text?input.text.slice(0,400000):'';
  const attachment=input.bytes?.length&&['application/pdf','image/png','image/jpeg'].includes(input.mimeType)?input:undefined;
+  const pass1TimeoutMs=recruitingStageTimeout('OPSIQO_RECRUITING_AI_PASS1_TIMEOUT_MS',16000,5000,25000);
+  const pass2TimeoutMs=recruitingStageTimeout('OPSIQO_RECRUITING_AI_PASS2_TIMEOUT_MS',12000,4000,20000);
+  const pass3TimeoutMs=recruitingStageTimeout('OPSIQO_RECRUITING_AI_PASS3_TIMEOUT_MS',8000,3000,15000);
  const schema=`Return JSON only with: firstName,lastName,displayName,email,phone,location,linkedinUrl,headline,summary,skills[],certifications[],education[],employers[],jobTitles[],yearsOfExperience,warnings[],evidenceText,fieldConfidence{},unresolvedFields[],overallTrust,employmentHistory:[{positionTitle,employer,current,startDate,endDate,location,city,region,country,responsibilities[],reasonForLeaving}],educationHistory:[{degree,fieldOfStudy,institution,startDate,endDate,graduationDate,completed,location}],certificationRecords:[{name,issuer,issuedAt,expiresAt,credentialId}],languageRecords:[{language,proficiency}],projectRecords:[{name,role,startDate,endDate,description}],volunteerRecords:[{organization,role,startDate,endDate,description}],awardRecords:[{title,issuer,date,description}],publicationRecords:[{title,publisher,date,url,description}],additionalInformation. fieldConfidence values are integers 0-100. Preserve resume wording. Never infer reasonForLeaving; populate it only when explicitly stated.`;
  const identity=`The candidate is the person whose career history the resume describes. Never use a hiring manager, recruiter, HR department, employer contact, reference contact, application recipient, company mailbox, company phone number or job-posting contact as the candidate identity. Generic values such as "HR", "Department", "Recruiting", "Careers", "Talent", "Manager" or hr@/jobs@/careers@ addresses are NOT candidate identity unless the resume explicitly proves otherwise. Filename "${input.name}" is only a weak hint and must never override resume evidence.`;
  const structure=`When resume_text is supplied, it is OPSIQO document-intelligence evidence recovered from native PDF text, Enterprise OCR, or Layout Parser. Reconcile it against the attached original document; the original document remains the visual authority. Preserve a faithful, ordered evidenceText transcription. Recover all resume sections including professional experience, employers, job titles, dates, responsibilities, skills, education, certifications, languages, projects, volunteer/community work, awards/honours, publications/presentations and professional affiliations when present. Build a separate structured record for every employment, education, certification, language, project, volunteer, award and publication item. RELATIONSHIP RULE: title, employer, dates, location and responsibilities must belong to the same local employment block; degree, fieldOfStudy, institution and dates must belong to the same local education block. Never pair fields merely because they appear somewhere else in the resume. Never put an achievement/responsibility sentence into degree, institution, employer or positionTitle. A role descriptor such as Founding Leader is not an employer unless explicitly identified as an organization. For a line such as Master’s Degree – Pharmaceutical Botany – Voronezh State University, map degree=Master’s Degree, fieldOfStudy=Pharmaceutical Botany, institution=Voronezh State University. Do not merge employer/application-recipient contact details into candidate contact fields. Use null/[] when uncertain; uncertainty is better than a wrong auto-fill. FIELD-PURITY RULES: repeated page labels and section headers such as PROFESSIONAL EXPERIENCE - CONTINUED are structural noise and must never become positionTitle, employer, degree or institution. A responsibility or achievement sentence must never become an employer. Keep employer as the organization only; keep positionTitle as the role only; keep location separate. Keep institution as the school/university only; move degree specialization into fieldOfStudy and dates into date fields. If skills, certifications or languages are visibly present in the original resume, do not silently return those arrays empty.`;
  const pass1Prompt=`${BOUNDARY}\nPASS 1 - candidate-focused resume extraction.\n${identity}\n${structure}\n${schema}\nDerive yearsOfExperience only from dated employment ranges. Do not guess.\n${source?`<resume_text>\n${source}\n</resume_text>`:'The resume file is attached.'}`;
- const first=await aiJson(profile,pass1Prompt,attachment);if(!first)return null;
+ const first=await aiJson(profile,pass1Prompt,attachment,pass1TimeoutMs);if(!first)return null;
  const firstJson=JSON.stringify(first).slice(0,120000);
  const verifyPrompt=`${BOUNDARY}\nPASS 2 - independently verify and correct the candidate extraction against the resume evidence.\n${identity}\n${structure}\n${schema}\nAudit especially candidate name, candidate email, candidate phone, headline, employers, job titles, dates, education and certifications. Correct any field that actually belongs to an employer, recruiter, HR department, job posting or reference contact. overallTrust is the confidence that the structured extraction faithfully represents the resume, not a hiring score. Never output 100 unless every populated field is directly supported and no unresolved field remains.\n<first_pass>\n${firstJson}\n</first_pass>\n${source?`<resume_text>\n${source}\n</resume_text>`:'Re-open and verify the attached resume file.'}`;
  let verified:any;
- try{verified=await aiJson(profile,verifyPrompt,attachment)}catch{verified=first}
+ try{verified=await aiJson(profile,verifyPrompt,attachment,pass2TimeoutMs)}catch{verified=first}
  const verifiedResult=verified||first;
+ const semanticEvidence=(source||String(verifiedResult?.evidenceText||'')).replace(/\u0000/g,'').trim().slice(0,400000);
  const semanticPrompt=[
    BOUNDARY,
    'PASS 3 - semantic reconstruction and completeness repair.',
    identity,
    structure,
    schema,
+   'PASS 3 INPUT RULE: This pass is text-only. Use verified_pass and resume_text as the complete evidence boundary; do not invent values that require unseen visual evidence.',
    'QUALITY RULES: Return the COMPLETE corrected resume object, not a delta. Skills must be complete human-readable competency phrases, never visual/PDF fragments. When neighboring fragments are one source-backed competency, reconstruct one phrase (for example Stakeholder + Engagement => Stakeholder Engagement; Board/Committee + Support => Board/Committee Support). Never combine separate skills merely because they are adjacent. Deduplicate equivalent skill wording without inventing broader skills. languageRecords.language must contain only the language name and languageRecords.proficiency must contain source-supported proficiency. A source value such as Arabic (Native) must become language=Arabic and proficiency=Native. Re-open the original document and recover omitted education, certifications, employment records, locations and issuers when visibly supported. Preserve title/employer/date and degree/institution relationships. Do not invent any missing value. Use null/[] and unresolvedFields when evidence is insufficient. evidenceText must remain a faithful source transcription and must not omit source sections. Never use repeated section headings or page continuation labels as field values. Before returning, explicitly audit whether skills, certifications, languages, employment and education visible in the original document are represented in their corresponding arrays.',
    '<verified_pass>',
    JSON.stringify(verifiedResult).slice(0,120000),
    '</verified_pass>',
-   source?`<resume_text>\n${source}\n</resume_text>`:'Re-open and reconstruct the attached resume file.',
+   semanticEvidence?`<resume_text>\n${semanticEvidence}\n</resume_text>`:'No additional source text was recovered; use verified_pass only.',
  ].join('\n');
  let reconstructed:any;
- try{reconstructed=await aiJson(profile,semanticPrompt,attachment)}catch{reconstructed=verifiedResult}
+ try{reconstructed=await aiJson(profile,semanticPrompt,undefined,pass3TimeoutMs)}catch{reconstructed=verifiedResult}
  const raw=reconstructed||verifiedResult;
  const normalized=normalizeResume(raw,input.text,profile.provider,profile.model,input.name);
  const evidence=String(normalized.sourceText||input.text||'');

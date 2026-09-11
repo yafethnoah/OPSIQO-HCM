@@ -208,7 +208,14 @@ async function processDocumentAi(
       : `${location}-documentai.googleapis.com`;
   const token = await googleCloudAccessToken();
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 45_000);
+  const configuredTimeout = Number(
+    process.env.OPSIQO_RECRUITING_DOCUMENT_AI_TIMEOUT_MS || 18_000,
+  );
+  const timeoutMs = Math.max(
+    5_000,
+    Math.min(25_000, Number.isFinite(configuredTimeout) ? configuredTimeout : 18_000),
+  );
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const processOptions =

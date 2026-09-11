@@ -6,7 +6,12 @@ const read=(path:string)=>fs.readFileSync(path,'utf8');
 describe('OPSIQO H51.22 Recruiting AI provider resilience',()=>{
   it('uses bounded retry and exponential backoff for transient 429 and 5xx failures',()=>{
     const provider=read('src/lib/recruiting/ats-provider.ts');
-    expect(provider).toContain('const maxAttempts=4');
+    const legacyFourAttemptPolicy = provider.includes('const maxAttempts=4');
+    const h5126DeadlinePolicy =
+      provider.includes('boundedProviderFetch') &&
+      provider.includes('maxAttempts:2') &&
+      provider.includes('ai_provider_timeout');
+    expect(legacyFourAttemptPolicy || h5126DeadlinePolicy).toBe(true);
     expect(provider).toContain('response.status===429||response.status>=500');
     expect(provider).toContain('recruitingRetryDelayMs(response,attempt)');
     expect(provider).toContain('750*(2**attempt)');

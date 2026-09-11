@@ -39,7 +39,14 @@ describe("H50.6E Recruiting AI live provider verification", () => {
       provider.includes("setTimeout(resolve,delayMs)") &&
       provider.includes("response.headers.get('retry-after')");
 
-    expect(h506eLegacyRetry || h5122BoundedBackoff).toBe(true);
+    const h5126DeadlineRetry =
+      provider.includes("boundedProviderFetch") &&
+      provider.includes("maxAttempts:2") &&
+      provider.includes("response.status===429||response.status>=500") &&
+      provider.includes("recruitingRetryDelayMs(response,attempt)") &&
+      provider.includes("ai_provider_timeout");
+
+    expect(h506eLegacyRetry || h5122BoundedBackoff || h5126DeadlineRetry).toBe(true);
   });
 
   it("uses three-way precedence: provider failure, unsafe PDF, then setup guidance", () => {
