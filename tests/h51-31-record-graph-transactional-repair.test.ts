@@ -178,7 +178,7 @@ describe('OPSIQO H51.31 record graph + transactional repair', () => {
     const service = fs.readFileSync('src/lib/recruiting/candidate-portal-service.ts', 'utf8');
     const portal = fs.readFileSync('src/components/candidate-application-portal.tsx', 'utf8');
 
-    expect(provider).toContain('RECRUITING_RESUME_PARSE_V14_SOURCE_COMPLETENESS_CONVERGENCE');
+    expect(provider).toContain('RECRUITING_RESUME_PARSE_V15_RECORD_BOUND_EDUCATION_PROVENANCE');
     expect(provider).toContain('DOCUMENT-GRAPH REASONING');
     expect(provider).toContain('transactional_repair_accepted');
     expect(provider).toContain('transactional_repair_rolled_back');

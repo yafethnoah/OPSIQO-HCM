@@ -7,7 +7,7 @@ describe("H51.27 adaptive resume recovery", () => {
     expect(
       provider.includes("RECRUITING_RESUME_PARSE_V9_ADAPTIVE_RECOVERY") ||
       provider.includes("RECRUITING_RESUME_PARSE_V10_RESILIENT_PREFILL") ||
-      provider.includes("RECRUITING_RESUME_PARSE_V14_SOURCE_COMPLETENESS_CONVERGENCE"),
+      provider.includes("RECRUITING_RESUME_PARSE_V15_RECORD_BOUND_EDUCATION_PROVENANCE"),
     ).toBe(true);
     expect(provider).toContain("scoreResumeEvidence(source)");
     expect(provider).toContain("sourceScore>=70");

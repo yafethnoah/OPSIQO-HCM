@@ -170,9 +170,9 @@ describe('OPSIQO H51.33 source completeness + readiness convergence', () => {
     const ui = fs.readFileSync('src/components/candidate-application-portal.tsx', 'utf8');
     const provider = fs.readFileSync('src/lib/recruiting/ats-provider.ts', 'utf8');
 
-    expect(ui).toContain('Semantic and source-completeness readiness checks passed for the records currently shown.');
+    expect(ui).toContain('Record-bound semantic and source-completeness readiness checks passed for the records currently shown.');
     expect(ui).toContain('critical resume structure/completeness issue(s) need correction.');
-    expect(provider).toContain('RECRUITING_RESUME_PARSE_V14_SOURCE_COMPLETENESS_CONVERGENCE');
+    expect(provider).toContain('RECRUITING_RESUME_PARSE_V15_RECORD_BOUND_EDUCATION_PROVENANCE');
     expect(provider).toContain('SOURCE COMPLETENESS CONVERGENCE');
     expect(provider).toContain('recover source-supported certifications/licences');
   });

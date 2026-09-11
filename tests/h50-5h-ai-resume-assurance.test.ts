@@ -21,7 +21,7 @@ describe('OPSIQO H50.5H AI resume parsing assurance',()=>{
     p.includes("RECRUITING_RESUME_PARSE_V8_BOUNDED_LATENCY") ||
     p.includes("RECRUITING_RESUME_PARSE_V9_ADAPTIVE_RECOVERY") ||
     p.includes("RECRUITING_RESUME_PARSE_V10_RESILIENT_PREFILL") ||
-    p.includes("RECRUITING_RESUME_PARSE_V14_SOURCE_COMPLETENESS_CONVERGENCE");
+    p.includes("RECRUITING_RESUME_PARSE_V15_RECORD_BOUND_EDUCATION_PROVENANCE");
   expect(supportedResumeParserVersion).toBe(true);
   expect(p).toContain('PASS 3 - semantic reconstruction and completeness repair');
  });

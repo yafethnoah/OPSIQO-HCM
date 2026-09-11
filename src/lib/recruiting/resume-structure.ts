@@ -309,76 +309,80 @@ function hasExplicitCurrentEvidence(anchors: string[], source: string) {
   return false;
 }
 
-function educationCompletionEvidence(anchors: string[], source: string) {
-  const month = '(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)';
-  const expected = new RegExp('\\b(?:expected|anticipated|graduation(?:\\s+expected)?|completion(?:\\s+expected)?)\\b[\\s\\S]{0,140}?(' + month + '\\s+(?:19|20)\\d{2}|(?:19|20)\\d{2})', 'i');
-  const status = /\b(?:in\s+progress|ongoing|currently\s+enrolled|studying|expected\s+completion|expected\s+graduation)\b/i;
-  const body = sectionBody(source, EDUCATION_HEADINGS) || normalizeSectionLayout(source);
+function educationRecordEvidenceBlock(anchors: string[], source: string) {
+  const body = sectionBody(source, EDUCATION_HEADINGS);
+  if (!body) return { blockText:'', blockId:undefined as string|undefined, expectedDate:undefined as string|undefined, expectedEvidenceId:undefined as string|undefined, inProgress:false };
+
   const lines = body.split('\n').map((line) => clean(line, 1000)).filter(Boolean);
-  const normalizedAnchors = anchors.map(normalizeEvidence).filter(Boolean);
-
-  const anchorIndexes: number[] = [];
-  lines.forEach((line, index) => {
-    const normalized = normalizeEvidence(line);
-    if (!normalized) return;
-    if (normalizedAnchors.some((anchor) => normalized.includes(anchor) || anchor.includes(normalized))) {
-      anchorIndexes.push(index);
-    }
+  const normalizedAnchors = anchors.map((value) => ({ raw: clean(value, 320), normalized: normalizeEvidence(value) })).filter((value) => Boolean(value.normalized));
+  const institutionAnchors = normalizedAnchors.filter((value) => INSTITUTION_HINT.test(value.raw));
+  const degreeAnchors = normalizedAnchors.filter((value) => !INSTITUTION_HINT.test(value.raw));
+  const matchingIndexes = (anchor:{raw:string;normalized:string}) => lines.flatMap((line,index)=>{
+    const normalizedLine=normalizeEvidence(line);
+    if(!normalizedLine)return [];
+    return normalizedLine.includes(anchor.normalized)||anchor.normalized.includes(normalizedLine)?[index]:[];
   });
+  const institutionIndexes=[...new Set(institutionAnchors.flatMap(matchingIndexes))];
+  const degreeIndexes=[...new Set(degreeAnchors.flatMap(matchingIndexes))];
 
-  const windows: string[] = [];
-  for (const anchorIndex of anchorIndexes) {
-    let end = Math.min(lines.length - 1, anchorIndex + 12);
-
-    // Stop before the next clearly separate education record when possible.
-    for (let cursor = anchorIndex + 2; cursor <= end; cursor += 1) {
-      const candidate = lines[cursor] || '';
-      const normalizedCandidate = normalizeEvidence(candidate);
-      const belongsToCurrent = normalizedAnchors.some(
-        (anchor) => normalizedCandidate.includes(anchor) || anchor.includes(normalizedCandidate),
-      );
-      if (!belongsToCurrent && (DEGREE_HINT.test(candidate) || INSTITUTION_HINT.test(candidate))) {
-        end = cursor - 1;
-        break;
-      }
-    }
-
-    windows.push(
-      lines
-        .slice(Math.max(0, anchorIndex - 4), end + 1)
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim(),
-    );
-  }
-
-  // If line extraction fragmented the record so heavily that no anchor matched,
-  // use only the Education section, never the full resume, as a bounded fallback.
-  if (!windows.length && body) {
-    windows.push(body.replace(/\s+/g, ' ').trim().slice(0, 12000));
-  }
-
-  for (const window of windows) {
-    const match = window.match(expected);
-    if (match?.[1]) {
-      return {
-        expectedDate: clean(match[1], 80),
-        inProgress: status.test(window) || /\b(?:expected|anticipated)\b/i.test(window),
-      };
+  const pairs:{degree?:number;institution?:number;score:number}[]=[];
+  if(institutionIndexes.length&&degreeIndexes.length){
+    for(const institution of institutionIndexes)for(const degree of degreeIndexes){
+      const distance=Math.abs(institution-degree);
+      if(distance<=8)pairs.push({institution,degree,score:40-distance});
     }
   }
 
-  const nearby = evidenceLineNeighborhood(anchors, source, 8).join(' ').replace(/\s+/g, ' ').trim();
-  const nearbyMatch = nearby.match(expected);
+  let pair:typeof pairs[number]|undefined;
+  if(pairs.length){
+    const bestScore=Math.max(...pairs.map((x)=>x.score));
+    const best=pairs.filter((x)=>x.score===bestScore);
+    if(best.length===1)pair=best[0];
+  }
+  if(!pair&&institutionIndexes.length===1)pair={institution:institutionIndexes[0],score:20};
+  if(!pair&&!institutionIndexes.length&&degreeIndexes.length===1)pair={degree:degreeIndexes[0],score:10};
+  if(!pair)return { blockText:'', blockId:undefined as string|undefined, expectedDate:undefined as string|undefined, expectedEvidenceId:undefined as string|undefined, inProgress:false };
+
+  const core=[pair.degree,pair.institution].filter((value):value is number=>value!=null);
+  const coreStart=Math.min(...core), coreEnd=Math.max(...core);
+  let start=Math.max(0,coreStart-4), end=Math.min(lines.length-1,coreEnd+12);
+
+  const belongs=(line:string)=>{
+    const normalized=normalizeEvidence(line);
+    return normalizedAnchors.some((anchor)=>normalized.includes(anchor.normalized)||anchor.normalized.includes(normalized));
+  };
+
+  for(let cursor=coreStart-1;cursor>=start;cursor-=1){
+    const line=lines[cursor]||'';
+    if(!belongs(line)&&(DEGREE_HINT.test(line)||INSTITUTION_HINT.test(line))){start=cursor+1;break;}
+  }
+  for(let cursor=coreEnd+1;cursor<=end;cursor+=1){
+    const line=lines[cursor]||'';
+    if(!belongs(line)&&(DEGREE_HINT.test(line)||INSTITUTION_HINT.test(line))){end=cursor-1;break;}
+  }
+
+  const blockText=lines.slice(start,end+1).join(' ').replace(/\s+/g,' ').trim();
+  const month='(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)';
+  const expected=new RegExp('\\b(?:expected|anticipated|graduation(?:\\s+expected)?|completion(?:\\s+expected)?)\\b[\\s\\S]{0,140}?('+month+'\\s+(?:19|20)\\d{2}|(?:19|20)\\d{2})','i');
+  const status=/\b(?:in\s+progress|ongoing|currently\s+enrolled|studying|expected\s+completion|expected\s+graduation)\b/i;
+  const match=blockText.match(expected);
+  const expectedDate=match?.[1]?clean(match[1],80):undefined;
+  const blockId=`${start}:${end}`;
   return {
-    expectedDate: nearbyMatch?.[1] ? clean(nearbyMatch[1], 80) : undefined,
-    inProgress: status.test(nearby),
+    blockText,
+    blockId,
+    expectedDate,
+    expectedEvidenceId: expectedDate&&match?.index!=null ? `${blockId}:${match.index}:${normalizeEvidence(expectedDate)}` : undefined,
+    inProgress:status.test(blockText)||Boolean(expectedDate&&/\b(?:expected|anticipated)\b/i.test(blockText)),
   };
 }
 
-function nearbyExpectedEducationDate(anchors: string[], source: string) {
-  return educationCompletionEvidence(anchors, source).expectedDate;
+function educationCompletionEvidence(anchors:string[],source:string){return educationRecordEvidenceBlock(anchors,source);}
+function educationValueSupportedByRecord(value:unknown,evidence:ReturnType<typeof educationRecordEvidenceBlock>,threshold=0.72){
+  if(!evidence.blockText)return undefined;
+  return supported(value,evidence.blockText,threshold);
 }
+function nearbyExpectedEducationDate(anchors:string[],source:string){return educationCompletionEvidence(anchors,source).expectedDate;}
 
 function certificationEvidenceLines(source: string) {
   const sectionValues = sectionLines(source, CERTIFICATION_HEADINGS, 60);
@@ -1038,29 +1042,30 @@ function safeEducation(items: StructuredResumeProfile['educationHistory'], sourc
     const anchors = [degree, institution].filter(Boolean);
     if (!degree && !institution) return [];
 
-    const range = institutionMeta.dateText?.match(DATE_RANGE)?.[0];
-    const rangeParts = range?.split(/\s*(?:-|–|—|to)\s*/i) || [];
     const completionEvidence = educationCompletionEvidence(anchors, source);
+    const range = completionEvidence.blockText.match(DATE_RANGE)?.[0] || institutionMeta.dateText?.match(DATE_RANGE)?.[0];
+    const rangeParts = range?.split(/\s*(?:-|–|—|to)\s*/i) || [];
     const expectedDate =
-      rawLocationMeta.expectedDate ||
-      institutionLocationMeta.expectedDate ||
       completionEvidence.expectedDate ||
-      (!range ? institutionMeta.dateText : undefined);
+      educationValueSupportedByRecord(rawLocationMeta.expectedDate, completionEvidence, 0.75) ||
+      educationValueSupportedByRecord(institutionLocationMeta.expectedDate, completionEvidence, 0.75) ||
+      educationValueSupportedByRecord(!range ? institutionMeta.dateText : undefined, completionEvidence, 0.75);
     const sourceGroundedGraduation =
-      supportedRelated(raw.graduationDate, source, anchors, 0.7, 6) ||
+      educationValueSupportedByRecord(raw.graduationDate, completionEvidence, 0.8) ||
       completionEvidence.expectedDate ||
-      (expectedDate ? supported(expectedDate, source, 0.7) : undefined);
+      expectedDate;
 
     return [{
       ...raw,
       degree,
       institution,
       fieldOfStudy,
-      startDate: supportedRelated(raw.startDate || rangeParts[0], source, anchors, 0.7, 3),
-      endDate: supportedRelated(raw.endDate || rangeParts[1], source, anchors, 0.7, 4),
+      startDate: educationValueSupportedByRecord(raw.startDate || rangeParts[0], completionEvidence, 0.75),
+      endDate: educationValueSupportedByRecord(raw.endDate || rangeParts[1], completionEvidence, 0.75),
       graduationDate: sourceGroundedGraduation,
       completed: completionEvidence.inProgress || completionEvidence.expectedDate ? false : raw.completed,
-      location: supportedRelated(rawLocationMeta.location || institutionMeta.location, source, anchors, 0.7, 3),
+      location: educationValueSupportedByRecord(rawLocationMeta.location || institutionMeta.location, completionEvidence, 0.72) ||
+        supportedRelated(rawLocationMeta.location || institutionMeta.location, source, anchors, 0.8, 2),
     }];
   });
 }
@@ -1512,29 +1517,52 @@ function semanticIntegrityIssues(input: StructuredResumeProfile, source: string)
     }
   }
 
-  (input.educationHistory || []).forEach((record, index) => {
-    const anchors = [clean(record.degree, 260), clean(record.institution, 280)].filter(Boolean);
-    const completion = educationCompletionEvidence(anchors, source);
-    const expected = completion.expectedDate;
-    const locationMeta = normalizeEducationLocationMeta(record.location || '');
+  const educationEvidence=(input.educationHistory||[]).map((record)=>{
+    const anchors=[clean(record.degree,260),clean(record.institution,280)].filter(Boolean);
+    return{record,completion:educationCompletionEvidence(anchors,source)};
+  });
 
-    if (locationMeta.status || locationMeta.expectedDate || /[([{]\s*$/.test(String(record.location || ''))) {
-      critical.push(`Education ${index + 1}: location contains study-status or wrapped metadata.`);
+  educationEvidence.forEach(({record,completion},index)=>{
+    const expected=completion.expectedDate;
+    const locationMeta=normalizeEducationLocationMeta(record.location||'');
+    const graduation=clean(record.graduationDate,100);
+    const endDate=clean(record.endDate,100);
+
+    if(locationMeta.status||locationMeta.expectedDate||/[([{]\s*$/.test(String(record.location||''))){
+      critical.push(`Education ${index+1}: location contains study-status or wrapped metadata.`);
     }
-    if (expected && !record.graduationDate && !record.endDate) {
-      critical.push(`Education ${index + 1}: expected graduation ${expected} is source-supported but missing from the structured record.`);
+    if(graduation&&!educationValueSupportedByRecord(graduation,completion,0.8)){
+      critical.push(`Education ${index+1}: graduation date ${graduation} is not supported by this education record's local evidence block.`);
     }
-    if (
-      expected &&
-      record.graduationDate &&
-      normalizeEvidence(record.graduationDate) !== normalizeEvidence(expected)
-    ) {
-      critical.push(`Education ${index + 1}: graduation date does not match source-supported expected completion ${expected}.`);
+    if(endDate&&!educationValueSupportedByRecord(endDate,completion,0.8)){
+      critical.push(`Education ${index+1}: end date ${endDate} is not supported by this education record's local evidence block.`);
     }
-    if (completion.inProgress && record.completed === true) {
-      critical.push(`Education ${index + 1}: source indicates the credential is in progress, but the record is marked completed.`);
+    if(expected&&!graduation&&!endDate){
+      critical.push(`Education ${index+1}: expected graduation ${expected} is source-supported but missing from the structured record.`);
+    }
+    if(expected&&graduation&&normalizeEvidence(graduation)!==normalizeEvidence(expected)){
+      critical.push(`Education ${index+1}: graduation date does not match source-supported expected completion ${expected}.`);
+    }
+    if(completion.inProgress&&record.completed===true){
+      critical.push(`Education ${index+1}: source indicates the credential is in progress, but the record is marked completed.`);
     }
   });
+
+  for(let i=0;i<educationEvidence.length;i+=1)for(let j=i+1;j<educationEvidence.length;j+=1){
+    const left=educationEvidence[i]!,right=educationEvidence[j]!;
+    if(sameEducationRecord(left.record,right.record))continue;
+    const leftDate=normalizeEvidence(left.record.graduationDate||left.record.endDate||'');
+    const rightDate=normalizeEvidence(right.record.graduationDate||right.record.endDate||'');
+    if(leftDate&&rightDate&&leftDate===rightDate&&(
+      !educationValueSupportedByRecord(left.record.graduationDate||left.record.endDate,left.completion,0.8)||
+      !educationValueSupportedByRecord(right.record.graduationDate||right.record.endDate,right.completion,0.8)
+    )){
+      critical.push(`Education ${j+1}: graduation/end date duplicates another education record without independent local source support.`);
+    }
+    if(left.completion.expectedEvidenceId&&right.completion.expectedEvidenceId&&left.completion.expectedEvidenceId===right.completion.expectedEvidenceId){
+      critical.push(`Education ${j+1}: expected-completion evidence span is already assigned to another unrelated education record.`);
+    }
+  }
 
   const certificationEvidence = certificationEvidenceLines(source);
   if (certificationEvidence.length && !(input.certifications || []).length) {
