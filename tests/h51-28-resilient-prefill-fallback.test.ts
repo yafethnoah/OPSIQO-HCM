@@ -6,7 +6,7 @@ describe("H51.28 resilient resume prefill fallback", () => {
     const provider = fs.readFileSync("src/lib/recruiting/ats-provider.ts", "utf8");
     expect(
       provider.includes("RECRUITING_RESUME_PARSE_V10_RESILIENT_PREFILL") ||
-      provider.includes("RECRUITING_RESUME_PARSE_V13_SEMANTIC_ENTITY_PURITY_READINESS"),
+      provider.includes("RECRUITING_RESUME_PARSE_V14_SOURCE_COMPLETENESS_CONVERGENCE"),
     ).toBe(true);
     expect(provider).toContain("deterministicResumeFallback");
     expect(provider).toContain("source&&sourceScore>=70");

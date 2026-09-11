@@ -55,7 +55,7 @@ describe("H51.26 bounded recruiting latency", () => {
       provider.includes("RECRUITING_RESUME_PARSE_V8_BOUNDED_LATENCY") ||
       provider.includes("RECRUITING_RESUME_PARSE_V9_ADAPTIVE_RECOVERY") ||
       provider.includes("RECRUITING_RESUME_PARSE_V10_RESILIENT_PREFILL") ||
-      provider.includes("RECRUITING_RESUME_PARSE_V13_SEMANTIC_ENTITY_PURITY_READINESS"),
+      provider.includes("RECRUITING_RESUME_PARSE_V14_SOURCE_COMPLETENESS_CONVERGENCE"),
     ).toBe(true);
     expect(provider).toContain("maxAttempts:2");
     expect(provider).toContain("ai_provider_timeout");

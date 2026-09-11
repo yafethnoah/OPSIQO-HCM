@@ -195,12 +195,12 @@ describe('OPSIQO H51.32 semantic entity purity + truthful readiness', () => {
 
     expect(ui).toContain('...serverCriticalIssues');
     expect(ui).toContain("d.set('repairIssues',JSON.stringify(repairableIssues))");
-    expect(ui).toContain('Structural readiness checks passed for the records currently shown.');
+    expect(ui).toContain('Semantic and source-completeness readiness checks passed for the records currently shown.');
     expect(ui).not.toContain('No client-side critical structure issues detected.');
     expect(service).toContain("form.get('repairIssues')");
     expect(service).toContain('candidateEnteredVerification');
     expect(service).toContain('!candidateEnteredVerification.canFinalize');
-    expect(provider).toContain('RECRUITING_RESUME_PARSE_V13_SEMANTIC_ENTITY_PURITY_READINESS');
+    expect(provider).toContain('RECRUITING_RESUME_PARSE_V14_SOURCE_COMPLETENESS_CONVERGENCE');
     expect(provider).toContain('SEMANTIC ENTITY PURITY + TRUTHFUL READINESS');
   });
 
