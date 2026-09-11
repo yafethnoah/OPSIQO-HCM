@@ -303,7 +303,7 @@ export async function parseResumeFile(actor: ActorContext, file: File, options: 
   };
   const structuredAssessment=assessStructuredResume(structuredResume,profile.sourceText||text);
   profile={...profile,structuredQuality:structuredAssessment.quality,structuredCoverage:structuredAssessment.coverage,structuredRecordCount:structuredAssessment.recordCount,structuredIssues:structuredAssessment.issues,structuredCriticalIssues:structuredAssessment.criticalIssues};
-  profile = applyResumeAssurance(profile,{fileName:file.name,sourceText:profile.sourceText||text,aiUsed:Boolean(ai?.profile)});
+  profile = applyResumeAssurance(profile,{fileName:file.name,sourceText:profile.sourceText||text,aiUsed:Boolean(ai?.profile)&&!ai?.profile?.parserPasses?.includes('deterministic_source_fallback')});
   if (documentEvidence.warnings.length)
     profile = {
       ...profile,

@@ -9,7 +9,7 @@ import { assessStructuredResume, deterministicStructuredResume, mergeStructuredR
 import { normalizeResumeLanguages, normalizeResumeSkills } from './resume-semantic-reconstruction';
 import { scoreResumeEvidence } from './resume-document-intelligence';
 
-const RESUME_PROMPT_VERSION='RECRUITING_RESUME_PARSE_V9_ADAPTIVE_RECOVERY';
+const RESUME_PROMPT_VERSION='RECRUITING_RESUME_PARSE_V10_RESILIENT_PREFILL';
 const COVER_PROMPT_VERSION='RECRUITING_COVER_LETTER_V2';
 type Profile={provider:string;model:string;governedInstruction?:string;promptCode?:string;promptVersion?:number};
 async function activeProfile(actor:ActorContext):Promise<Profile|null>{const db=adminDb(),[m,p]=await Promise.all([db.collection(`organizations/${actor.orgId}/aiModelProfiles`).where('status','==','active').limit(30).get(),db.collection(`organizations/${actor.orgId}/aiPromptTemplates`).where('status','==','active').limit(30).get()]),models=m.docs.map(d=>d.data() as any),prompts=p.docs.map(d=>d.data() as any),strict=process.env.OPSIQO_REQUIRE_GOVERNED_AI_CONFIG==='true',dm=models.find(x=>x.code==='RECRUITING_ATS_MODEL'),dp=prompts.find(x=>x.code==='RECRUITING_ATS');if(strict){if(!dm||!dp)throw new ApiError(503,'Recruiting AI requires approved RECRUITING_ATS_MODEL and RECRUITING_ATS governance records.','ai_governance_required');if(!dm.approvedBy||!dp.activatedBy)throw new ApiError(503,'Recruiting ATS AI governance records are not approved/active.','ai_governance_required');if(String(dm.provider||'')==='demo')throw new ApiError(503,'Recruiting ATS cannot use a demo provider in strict production mode.','ai_governance_required')}const model=dm||models.find(x=>x.code==='HR_COPILOT_MODEL')||models[0],prompt=dp||prompts.find(x=>x.code==='HR_COPILOT');if(!model)return null;return{provider:String(model.provider||''),model:String((String(model.provider||'')==='gemini'&&process.env.OPSIQO_RECRUITING_AI_MODEL)||model.model||model.modelId||''),governedInstruction:prompt?.systemInstruction?String(prompt.systemInstruction):undefined,promptCode:prompt?.code,promptVersion:Number(prompt?.version||0)}}
@@ -36,7 +36,7 @@ async function safeRecruitingAiProfile(actor:ActorContext){
 
 function recruitingResumeTelemetry(event:string,data:Record<string,string|number|boolean|null|undefined>={}){
  try{
-   console.info(JSON.stringify({scope:'opsiqo_recruiting_resume',event,...data}));
+   console.warn('OPSIQO_RECRUITING_RESUME '+JSON.stringify({scope:'opsiqo_recruiting_resume',event,...data}));
  }catch{
    // Telemetry must never affect recruiting behavior.
  }
@@ -128,6 +128,44 @@ function normalizeResume(raw:any,text:string,provider:string,model:string,fileNa
  const aiEvidencePresent=Boolean(displayName||supportedList(raw?.skills).length||supportedList(raw?.education).length||supportedList(raw?.jobTitles).length||supportedList(raw?.employers).length);
  return{...base,firstName,lastName,displayName,email,phone,location,linkedinUrl,headline,summary,skills:normalizeResumeSkills(merge(raw?.skills,base.skills),evidenceText),certifications:merge(raw?.certifications,base.certifications).slice(0,80),education:merge(raw?.education,base.education).slice(0,80),employers:merge(raw?.employers,base.employers).slice(0,80),jobTitles:merge(raw?.jobTitles,base.jobTitles).slice(0,80),yearsOfExperience:base.yearsOfExperience,warnings:[...new Set([...base.warnings,...aiWarnings,...((Number.isFinite(Number(raw?.yearsOfExperience))&&base.yearsOfExperience==null)?['AI-reported experience duration was not used because dated employment ranges could not be verified from the resume evidence.']:[])])].slice(0,60),sourceText:evidenceText,parser:'hybrid',provider,model,parseQuality:Math.max(base.parseQuality||0,aiEvidencePresent?85:base.parseQuality||0),extractionSignals:[...new Set([...(base.extractionSignals||[]),...(aiEvidencePresent?['governed_ai_grounded']:[])])]};
 }
+
+function deterministicResumeFallback(
+ profile:Profile,
+ input:{name:string;mimeType:string;bytes:Buffer;text:string},
+ source:string,
+){
+ const normalized=normalizeResume({},source,profile.provider,profile.model,input.name);
+ const evidence=String(normalized.sourceText||source||'');
+ const structuredResume=deterministicStructuredResume(normalized);
+ const structuredAssessment=assessStructuredResume(structuredResume,evidence);
+ const trust=Math.max(0,Math.min(79,Math.round(Number(normalized.parseQuality)||0)));
+ recruitingResumeTelemetry('deterministic_fallback',{
+   sourceScore:scoreResumeEvidence(source),
+   structuredQuality:structuredAssessment.quality,
+   recordCount:structuredAssessment.recordCount,
+   criticalIssues:structuredAssessment.criticalIssues.length,
+ });
+ return{
+   profile:{
+     ...normalized,
+     structuredResume,
+     structuredQuality:structuredAssessment.quality,
+     structuredCoverage:structuredAssessment.coverage,
+     structuredRecordCount:structuredAssessment.recordCount,
+     structuredIssues:structuredAssessment.issues,
+     structuredCriticalIssues:structuredAssessment.criticalIssues,
+     parseTrust:trust,
+     fieldConfidence:{},
+     unresolvedFields:structuredAssessment.criticalIssues.slice(0,40),
+     aiVerified:false,
+     parserPasses:['deterministic_source_fallback','structured_resume_records'],
+   },
+   provider:profile.provider,
+   model:profile.model,
+   promptVersion:`${RESUME_PROMPT_VERSION}${profile.promptCode?`+${profile.promptCode}:v${profile.promptVersion||0}`:''}`,
+ };
+}
+
 async function geminiApiKeyJson(profile:Profile,prompt:string,file?:{name:string;mimeType:string;bytes:Buffer},timeoutMs=18000){
  const key=process.env.GEMINI_API_KEY;
  if(!key)throw new ApiError(503,'GEMINI_API_KEY is not configured for Recruiting ATS.','ai_unavailable');
@@ -257,16 +295,16 @@ export async function governedResumeParse(actor:ActorContext,input:{name:string;
  const sourceScore=scoreResumeEvidence(source);
  const evidenceFirst=Boolean(source&&sourceScore>=70);
  const pass1Attachment=evidenceFirst?undefined:attachment;
- const pass1TimeoutMs=recruitingStageTimeout('OPSIQO_RECRUITING_AI_PASS1_TIMEOUT_MS',20000,7000,30000);
+ const pass1TimeoutMs=recruitingStageTimeout('OPSIQO_RECRUITING_AI_PASS1_TIMEOUT_MS',28000,7000,35000);
  const pass2TimeoutMs=recruitingStageTimeout('OPSIQO_RECRUITING_AI_PASS2_TIMEOUT_MS',12000,4000,20000);
  const pass3TimeoutMs=recruitingStageTimeout('OPSIQO_RECRUITING_AI_PASS3_TIMEOUT_MS',8000,3000,15000);
- const recoveryTimeoutMs=recruitingStageTimeout('OPSIQO_RECRUITING_AI_RECOVERY_TIMEOUT_MS',10000,4000,15000);
+ const recoveryTimeoutMs=recruitingStageTimeout('OPSIQO_RECRUITING_AI_RECOVERY_TIMEOUT_MS',12000,4000,18000);
  recruitingResumeTelemetry('strategy',{sourceScore,evidenceFirst,hasAttachment:Boolean(attachment)});
  const schema=`Return JSON only with: firstName,lastName,displayName,email,phone,location,linkedinUrl,headline,summary,skills[],certifications[],education[],employers[],jobTitles[],yearsOfExperience,warnings[],evidenceText,fieldConfidence{},unresolvedFields[],overallTrust,employmentHistory:[{positionTitle,employer,current,startDate,endDate,location,city,region,country,responsibilities[],reasonForLeaving}],educationHistory:[{degree,fieldOfStudy,institution,startDate,endDate,graduationDate,completed,location}],certificationRecords:[{name,issuer,issuedAt,expiresAt,credentialId}],languageRecords:[{language,proficiency}],projectRecords:[{name,role,startDate,endDate,description}],volunteerRecords:[{organization,role,startDate,endDate,description}],awardRecords:[{title,issuer,date,description}],publicationRecords:[{title,publisher,date,url,description}],additionalInformation. fieldConfidence values are integers 0-100. Preserve resume wording. Never infer reasonForLeaving; populate it only when explicitly stated.`;
  const identity=`The candidate is the person whose career history the resume describes. Never use a hiring manager, recruiter, HR department, employer contact, reference contact, application recipient, company mailbox, company phone number or job-posting contact as the candidate identity. Generic values such as "HR", "Department", "Recruiting", "Careers", "Talent", "Manager" or hr@/jobs@/careers@ addresses are NOT candidate identity unless the resume explicitly proves otherwise. Filename "${input.name}" is only a weak hint and must never override resume evidence.`;
  const structure=`When resume_text is supplied, it is OPSIQO document-intelligence evidence recovered from native PDF text, Enterprise OCR, or Layout Parser. Reconcile it against the attached original document; the original document remains the visual authority. Preserve a faithful, ordered evidenceText transcription. Recover all resume sections including professional experience, employers, job titles, dates, responsibilities, skills, education, certifications, languages, projects, volunteer/community work, awards/honours, publications/presentations and professional affiliations when present. Build a separate structured record for every employment, education, certification, language, project, volunteer, award and publication item. RELATIONSHIP RULE: title, employer, dates, location and responsibilities must belong to the same local employment block; degree, fieldOfStudy, institution and dates must belong to the same local education block. Never pair fields merely because they appear somewhere else in the resume. Never put an achievement/responsibility sentence into degree, institution, employer or positionTitle. A role descriptor such as Founding Leader is not an employer unless explicitly identified as an organization. For a line such as Master’s Degree – Pharmaceutical Botany – Voronezh State University, map degree=Master’s Degree, fieldOfStudy=Pharmaceutical Botany, institution=Voronezh State University. Do not merge employer/application-recipient contact details into candidate contact fields. Use null/[] when uncertain; uncertainty is better than a wrong auto-fill. FIELD-PURITY RULES: repeated page labels and section headers such as PROFESSIONAL EXPERIENCE - CONTINUED are structural noise and must never become positionTitle, employer, degree or institution. A responsibility or achievement sentence must never become an employer. Keep employer as the organization only; keep positionTitle as the role only; keep location separate. Keep institution as the school/university only; move degree specialization into fieldOfStudy and dates into date fields. If skills, certifications or languages are visibly present in the original resume, do not silently return those arrays empty.`;
  const pass1Prompt=`${BOUNDARY}\nPASS 1 - candidate-focused resume extraction.\n${identity}\n${structure}\n${schema}\nDerive yearsOfExperience only from dated employment ranges. Do not guess.\n${source?`<resume_text>\n${source}\n</resume_text>`:'The resume file is attached.'}`;
- const compactRecoveryPrompt=`${BOUNDARY}\nRECOVERY PASS - extract a complete structured candidate profile from the trusted resume evidence text.\n${identity}\n${schema}\nKeep title/employer/dates/responsibilities inside the same employment block and degree/field/institution/dates inside the same education block. Preserve candidate contact identity. Use null or [] instead of guessing. Return the complete object, not a delta.\n<resume_text>\n${source.slice(0,240000)}\n</resume_text>`;
+ const compactRecoveryPrompt=`${BOUNDARY}\nRECOVERY PASS - extract a complete structured candidate profile from the trusted resume evidence text.\n${identity}\n${schema}\nKeep title/employer/dates/responsibilities inside the same employment block and degree/field/institution/dates inside the same education block. Preserve candidate contact identity. Use null or [] instead of guessing. Return the complete object, not a delta.\n<resume_text>\n${source.slice(0,120000)}\n</resume_text>`;
  let first:any;
  const pass1Started=Date.now();
  try{
@@ -281,10 +319,16 @@ export async function governedResumeParse(actor:ActorContext,input:{name:string;
      recruitingResumeTelemetry('pass1_text_recovery_complete',{durationMs:Date.now()-recoveryStarted});
    }catch(recoveryError){
      recruitingResumeTelemetry('pass1_text_recovery_failed',{durationMs:Date.now()-recoveryStarted,code:errorCode(recoveryError)});
+     if(source&&sourceScore>=70){
+       return deterministicResumeFallback(profile,input,source);
+     }
      return null;
    }
  }
- if(!first)return null;
+ if(!first){
+   if(source&&sourceScore>=70)return deterministicResumeFallback(profile,input,source);
+   return null;
+ }
  const firstJson=JSON.stringify(first).slice(0,120000);
  const verifyPrompt=`${BOUNDARY}\nPASS 2 - independently verify and correct the candidate extraction against the resume evidence.\n${identity}\n${structure}\n${schema}\nAudit especially candidate name, candidate email, candidate phone, headline, employers, job titles, dates, education and certifications. Correct any field that actually belongs to an employer, recruiter, HR department, job posting or reference contact. overallTrust is the confidence that the structured extraction faithfully represents the resume, not a hiring score. Never output 100 unless every populated field is directly supported and no unresolved field remains.\n<first_pass>\n${firstJson}\n</first_pass>\n${source?`<resume_text>\n${source}\n</resume_text>`:'Re-open and verify the attached resume file.'}`;
  let verified:any;
