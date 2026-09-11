@@ -1,4 +1,4 @@
-﻿import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { ActorContext } from "@/domain/security";
 import type { Application, Candidate, Requisition } from "@/domain/recruiting";
 import type {
@@ -22,7 +22,7 @@ import {
 } from "./ats-engine";
 import { classifyRecruitingDocument, isPlausibleProfessionalHeadline } from "./document-classifier";
 import { applyResumeAssurance, resumeParseCoverage } from "./resume-assurance";
-import { assessStructuredResume, deterministicStructuredResume, mergeStructuredResume } from "./resume-structure";
+import { assessStructuredResume, deriveStructuredExperienceYears, deterministicStructuredResume, mergeStructuredResume } from "./resume-structure";
 import { governedCoverLetterDraft, governedJobDescriptionParse, governedResumeParse } from "./ats-provider";
 import { listRequisitions } from "./service";
 
@@ -287,7 +287,12 @@ export async function parseResumeFile(actor: ActorContext, file: File, options: 
     );
   const deterministicStructure=deterministicStructuredResume(profile);
   const structuredResume=mergeStructuredResume(profile.structuredResume,deterministicStructure,profile.sourceText||text);
-  profile={...profile,structuredResume};
+  const derivedYearsOfExperience=deriveStructuredExperienceYears(structuredResume.employmentHistory);
+  profile={
+    ...profile,
+    structuredResume,
+    ...(derivedYearsOfExperience!==undefined?{yearsOfExperience:derivedYearsOfExperience}:{}),
+  };
   const structuredAssessment=assessStructuredResume(structuredResume,profile.sourceText||text);
   profile={...profile,structuredQuality:structuredAssessment.quality,structuredCoverage:structuredAssessment.coverage,structuredRecordCount:structuredAssessment.recordCount,structuredIssues:structuredAssessment.issues,structuredCriticalIssues:structuredAssessment.criticalIssues};
   profile = applyResumeAssurance(profile,{fileName:file.name,sourceText:profile.sourceText||text,aiUsed:Boolean(ai?.profile)});
