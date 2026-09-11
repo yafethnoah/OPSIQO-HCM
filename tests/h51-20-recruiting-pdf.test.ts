@@ -28,9 +28,13 @@ describe('H51.20B2B Recruiting PDF migration', () => {
 
     expect(
       source.match(
-        /const text = await textFromResume\(/g,
+        /await textFromResume\(file\.name, bytes\)/g,
       )?.length,
     ).toBe(3);
+
+    expect(source).toContain(
+      'extractResumeDocumentEvidence',
+    );
 
     expect(source).toContain(
       'const pdfLayerState = await pdfTextLayerState(',

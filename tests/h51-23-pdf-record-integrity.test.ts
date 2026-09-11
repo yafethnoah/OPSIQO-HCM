@@ -167,6 +167,13 @@ describe('OPSIQO H51.23 PDF resume record integrity', () => {
     expect(provider).toContain("const sourceEvidence=String(text||'')");
     expect(provider).toContain("const aiEvidenceText=raw?.evidenceText");
     expect(provider).toContain("const evidenceText=sourceEvidence||aiEvidenceText");
-    expect(provider).toContain('RECRUITING_RESUME_PARSE_V6_RECORD_INTEGRITY');
+    expect(provider).toContain('RECRUITING_RESUME_PARSE_V7_ADVANCED_DOCUMENT_INTELLIGENCE');
+    const intelligence = fs.readFileSync(
+      'src/lib/recruiting/resume-document-intelligence.ts',
+      'utf8',
+    );
+    expect(intelligence).toContain(
+      'if (native && native.score >= NATIVE_AUTHORITY_SCORE) return native;',
+    );
   });
 });

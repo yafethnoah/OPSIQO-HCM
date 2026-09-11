@@ -13,6 +13,7 @@ import { buildAudit } from "@/lib/audit/service";
 import { buildDomainEvent } from "@/lib/events/build";
 import { extractDocxText, extractRtfText } from "@/lib/contract-import/docx";
 import { assessPdfTextQuality, extractPdfDocument } from "@/lib/data-import/pdf-engine";
+import { extractResumeDocumentEvidence } from "./resume-document-intelligence";
 import {
   analyzeJobDescription,
   buildAtsReview,
@@ -188,7 +189,14 @@ async function bundle(actor: ActorContext, applicationId: string) {
 export async function parseResumeFile(actor: ActorContext, file: File, options: { requireStructuredPrefill?: boolean } = {}) {
   const bytes = Buffer.from(await file.arrayBuffer());
   validateResumeFile(file, bytes);
-  const text = await textFromResume(file.name, bytes);
+  const nativeText = await textFromResume(file.name, bytes);
+  const documentEvidence = await extractResumeDocumentEvidence({
+    fileName: file.name,
+    mimeType: mimeFor(file),
+    bytes,
+    nativeText,
+  });
+  const text = documentEvidence.text;
   const documentClassification = classifyRecruitingDocument(file.name, text);
   if (
     documentClassification.kind === "cover_letter" &&
@@ -296,6 +304,11 @@ export async function parseResumeFile(actor: ActorContext, file: File, options: 
   const structuredAssessment=assessStructuredResume(structuredResume,profile.sourceText||text);
   profile={...profile,structuredQuality:structuredAssessment.quality,structuredCoverage:structuredAssessment.coverage,structuredRecordCount:structuredAssessment.recordCount,structuredIssues:structuredAssessment.issues,structuredCriticalIssues:structuredAssessment.criticalIssues};
   profile = applyResumeAssurance(profile,{fileName:file.name,sourceText:profile.sourceText||text,aiUsed:Boolean(ai?.profile)});
+  if (documentEvidence.warnings.length)
+    profile = {
+      ...profile,
+      warnings: [...new Set([...(profile.warnings || []), ...documentEvidence.warnings])].slice(0, 60),
+    };
   const coverage=resumeParseCoverage(profile);
   if(options.requireStructuredPrefill!==false&&!coverage.prefillReady){
     const aiCode=aiFailure instanceof ApiError?aiFailure.code:'';
@@ -329,7 +342,14 @@ export async function parseResumeFile(actor: ActorContext, file: File, options: 
 export async function extractRecruitingDocumentFile(file: File) {
   const bytes = Buffer.from(await file.arrayBuffer());
   validateResumeFile(file, bytes);
-  const text = await textFromResume(file.name, bytes);
+  const nativeText = await textFromResume(file.name, bytes);
+  const documentEvidence = await extractResumeDocumentEvidence({
+    fileName: file.name,
+    mimeType: mimeFor(file),
+    bytes,
+    nativeText,
+  });
+  const text = documentEvidence.text;
   const sourceMeta: ResumeSourceMeta = {
     fileName: file.name.replace(/[^A-Za-z0-9._ -]/g, "_").slice(-180),
     contentType: mimeFor(file),

@@ -95,3 +95,21 @@ env:
     value: 'true'
   - variable: GEMINI_API_KEY
     secret: OPSIQO_GEMINI_API_KEY
+  - variable: OPSIQO_RECRUITING_GEMINI_TRANSPORT
+    value: vertex
+    availability: [RUNTIME]
+  - variable: OPSIQO_RECRUITING_AI_MODEL
+    value: gemini-3.8-flash
+    availability: [RUNTIME]
+  - variable: OPSIQO_VERTEX_AI_LOCATION
+    value: global
+    availability: [RUNTIME]
+  - variable: OPSIQO_RECRUITING_DOCUMENT_AI_MODE
+    value: auto
+    availability: [RUNTIME]
+  - variable: OPSIQO_RECRUITING_DOCUMENT_AI_OCR_PROCESSOR
+    secret: OPSIQO_RECRUITING_DOCUMENT_AI_OCR_PROCESSOR
+    availability: [RUNTIME]
+  - variable: OPSIQO_RECRUITING_DOCUMENT_AI_LAYOUT_PROCESSOR
+    secret: OPSIQO_RECRUITING_DOCUMENT_AI_LAYOUT_PROCESSOR
+    availability: [RUNTIME]
