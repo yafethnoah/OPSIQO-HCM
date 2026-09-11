@@ -32,6 +32,23 @@ const SKILL_CONTINUATIONS = new Set([
   'delivery',
 ]);
 
+const SKILL_FRAGMENT_STOPWORDS = new Set([
+  'board',
+  'committee',
+  'department',
+  'organization',
+  'organisation',
+  'company',
+  'foundation',
+  'association',
+  'society',
+  'team',
+  'staff',
+  'office',
+  'unit',
+  'division',
+]);
+
 const PROFICIENCY_LABELS: Array<[RegExp, string]> = [
   [/^native(?:\s+speaker)?$/iu, 'Native'],
   [/^(?:native\s+or\s+)?bilingual$/iu, 'Bilingual'],
@@ -137,7 +154,9 @@ export function normalizeResumeSkills(values: unknown[], source = ''): string[] 
   const seen = new Set<string>();
   return merged.filter((value) => {
     const key = canonical(value);
+    const tokens = key.split(/\s+/).filter(Boolean);
     if (!key || seen.has(key)) return false;
+    if (tokens.length === 1 && SKILL_FRAGMENT_STOPWORDS.has(key)) return false;
     seen.add(key);
     return true;
   }).slice(0, 200);

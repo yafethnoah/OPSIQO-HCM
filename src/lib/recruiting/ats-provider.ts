@@ -1,6 +1,7 @@
 import type { ActorContext } from '@/domain/security';
 import type { Candidate, Requisition } from '@/domain/recruiting';
 import type { AtsResumeReview, ParsedResumeProfile } from '@/domain/ats';
+import type { StructuredResumeProfile } from '@/domain/structured-resume';
 import { adminDb, getAdminApp } from '@/lib/firebase/admin';
 import { boundedProviderFetch } from './recruiting-ai-deadline';
 import { ApiError } from '@/lib/http/errors';
@@ -9,7 +10,7 @@ import { assessStructuredResume, deterministicStructuredResume, mergeStructuredR
 import { normalizeResumeLanguages, normalizeResumeSkills } from './resume-semantic-reconstruction';
 import { scoreResumeEvidence } from './resume-document-intelligence';
 
-const RESUME_PROMPT_VERSION='RECRUITING_RESUME_PARSE_V11_STYLE_ADAPTIVE_RECORD_PURITY';
+const RESUME_PROMPT_VERSION='RECRUITING_RESUME_PARSE_V12_RECORD_GRAPH_TRANSACTIONAL_REPAIR';
 const COVER_PROMPT_VERSION='RECRUITING_COVER_LETTER_V2';
 type Profile={provider:string;model:string;governedInstruction?:string;promptCode?:string;promptVersion?:number};
 async function activeProfile(actor:ActorContext):Promise<Profile|null>{const db=adminDb(),[m,p]=await Promise.all([db.collection(`organizations/${actor.orgId}/aiModelProfiles`).where('status','==','active').limit(30).get(),db.collection(`organizations/${actor.orgId}/aiPromptTemplates`).where('status','==','active').limit(30).get()]),models=m.docs.map(d=>d.data() as any),prompts=p.docs.map(d=>d.data() as any),strict=process.env.OPSIQO_REQUIRE_GOVERNED_AI_CONFIG==='true',dm=models.find(x=>x.code==='RECRUITING_ATS_MODEL'),dp=prompts.find(x=>x.code==='RECRUITING_ATS');if(strict){if(!dm||!dp)throw new ApiError(503,'Recruiting AI requires approved RECRUITING_ATS_MODEL and RECRUITING_ATS governance records.','ai_governance_required');if(!dm.approvedBy||!dp.activatedBy)throw new ApiError(503,'Recruiting ATS AI governance records are not approved/active.','ai_governance_required');if(String(dm.provider||'')==='demo')throw new ApiError(503,'Recruiting ATS cannot use a demo provider in strict production mode.','ai_governance_required')}const model=dm||models.find(x=>x.code==='HR_COPILOT_MODEL')||models[0],prompt=dp||prompts.find(x=>x.code==='HR_COPILOT');if(!model)return null;return{provider:String(model.provider||''),model:String((String(model.provider||'')==='gemini'&&process.env.OPSIQO_RECRUITING_AI_MODEL)||model.model||model.modelId||''),governedInstruction:prompt?.systemInstruction?String(prompt.systemInstruction):undefined,promptCode:prompt?.code,promptVersion:Number(prompt?.version||0)}}
@@ -67,6 +68,48 @@ function mergeResumeRecovery(base:any,recovered:any){
    awardRecords:preferRecoveredArray(recovered.awardRecords,base?.awardRecords),
    publicationRecords:preferRecoveredArray(recovered.publicationRecords,base?.publicationRecords),
  };
+}
+
+function repairDefectVector(value:any,source:string){
+ const list=(v:any)=>Array.isArray(v)?v:[];
+ const canonical=(v:any)=>String(v||'').normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').replace(/\s+/g,' ').trim();
+ const narrative=(v:any)=>{const t=String(v||'').trim();const words=t.match(/[\p{L}\p{N}]+/gu)||[];return (/^\p{Ll}/u.test(t)&&words.length>=4)||(words.length>=5&&/,\s*(?:and|or|with|including|while|which|that)\b/i.test(t))};
+ const heading=(v:any)=>{const t=String(v||'').trim();const letters=t.replace(/[^\p{L}]+/gu,'');return Boolean(letters)&&letters===letters.toLocaleUpperCase()&&/\b(?:governance|advisory|engagement|experience|leadership|skills|education|certifications?|languages?|volunteer)\b/i.test(t)};
+ const volunteer=(v:any)=>/^(?:volunteer|voluntary|pro\s+bono)\b|\bvolunteer\s+(?:leadership|contributor)\b/i.test(String(v||'').trim());
+ let defects=0;
+ let completeness=0;
+ const seenEmployment=new Set<string>();
+
+ for(const row of list(value?.employmentHistory)){
+   const title=String(row?.positionTitle||'').trim();
+   const employer=String(row?.employer||'').trim();
+   if(!title)defects+=2;else completeness+=1;
+   if(!employer)defects+=2;else completeness+=1;
+   if(heading(title)||heading(employer)||narrative(title)||narrative(employer))defects+=3;
+   if(volunteer(title)||volunteer(employer))defects+=3;
+   if(row?.current===true&&!/\b(?:present|current|currently|ongoing|to\s+date|now)\b/i.test(source))defects+=2;
+   const key=canonical(title)+'|'+canonical(employer)+'|'+String(row?.startDate||'').match(/\b(?:19|20)\d{2}\b/)?.[0];
+   if(key&&seenEmployment.has(key))defects+=2;
+   if(key)seenEmployment.add(key);
+ }
+ for(const row of list(value?.educationHistory)){
+   const degree=String(row?.degree||'').trim();
+   const institution=String(row?.institution||'').trim();
+   if(!degree)defects+=2;else completeness+=1;
+   if(!institution)defects+=2;else completeness+=1;
+   if(heading(degree)||heading(institution)||narrative(degree)||narrative(institution))defects+=3;
+   if(/[([{]\s*$|\b(?:in progress|expected|anticipated|graduation|completion)\b/i.test(String(row?.location||'')))defects+=2;
+ }
+ completeness+=Math.min(20,list(value?.skills).length);
+ completeness+=Math.min(10,list(value?.certificationRecords).length);
+ completeness+=Math.min(10,list(value?.volunteerRecords).length);
+ return{defects,completeness};
+}
+function acceptTransactionalRawRepair(base:any,candidate:any,source:string){
+ const before=repairDefectVector(base,source);
+ const after=repairDefectVector(candidate,source);
+ const accepted=after.defects<before.defects||(after.defects===before.defects&&after.completeness>before.completeness);
+ return{accepted,before,after};
 }
 
 function recruitingProviderError(provider:string,status:number){
@@ -303,7 +346,7 @@ export async function governedResumeParse(actor:ActorContext,input:{name:string;
  const schema=`Return JSON only with: firstName,lastName,displayName,email,phone,location,linkedinUrl,headline,summary,skills[],certifications[],education[],employers[],jobTitles[],yearsOfExperience,warnings[],evidenceText,fieldConfidence{},unresolvedFields[],overallTrust,employmentHistory:[{positionTitle,employer,current,startDate,endDate,location,city,region,country,responsibilities[],reasonForLeaving}],educationHistory:[{degree,fieldOfStudy,institution,startDate,endDate,graduationDate,completed,location}],certificationRecords:[{name,issuer,issuedAt,expiresAt,credentialId}],languageRecords:[{language,proficiency}],projectRecords:[{name,role,startDate,endDate,description}],volunteerRecords:[{organization,role,startDate,endDate,description}],awardRecords:[{title,issuer,date,description}],publicationRecords:[{title,publisher,date,url,description}],additionalInformation. fieldConfidence values are integers 0-100. Preserve resume wording. Never infer reasonForLeaving; populate it only when explicitly stated.`;
  const identity=`The candidate is the person whose career history the resume describes. Never use a hiring manager, recruiter, HR department, employer contact, reference contact, application recipient, company mailbox, company phone number or job-posting contact as the candidate identity. Generic values such as "HR", "Department", "Recruiting", "Careers", "Talent", "Manager" or hr@/jobs@/careers@ addresses are NOT candidate identity unless the resume explicitly proves otherwise. Filename "${input.name}" is only a weak hint and must never override resume evidence.`;
  const structure=`When resume_text is supplied, it is OPSIQO document-intelligence evidence recovered from native PDF text, Enterprise OCR, or Layout Parser. Reconcile it against the attached original document; the original document remains the visual authority. Preserve a faithful, ordered evidenceText transcription. Recover all resume sections including professional experience, employers, job titles, dates, responsibilities, skills, education, certifications, languages, projects, volunteer/community work, awards/honours, publications/presentations and professional affiliations when present. Build a separate structured record for every employment, education, certification, language, project, volunteer, award and publication item. RELATIONSHIP RULE: title, employer, dates, location and responsibilities must belong to the same local employment block; degree, fieldOfStudy, institution and dates must belong to the same local education block. Never pair fields merely because they appear somewhere else in the resume. Never put an achievement/responsibility sentence into degree, institution, employer or positionTitle. A role descriptor such as Founding Leader is not an employer unless explicitly identified as an organization. For a line such as Master’s Degree – Pharmaceutical Botany – Voronezh State University, map degree=Master’s Degree, fieldOfStudy=Pharmaceutical Botany, institution=Voronezh State University. Do not merge employer/application-recipient contact details into candidate contact fields. Use null/[] when uncertain; uncertainty is better than a wrong auto-fill. FIELD-PURITY RULES: repeated page labels and section headers such as PROFESSIONAL EXPERIENCE - CONTINUED are structural noise and must never become positionTitle, employer, degree or institution. A responsibility or achievement sentence must never become an employer. Keep employer as the organization only; keep positionTitle as the role only; keep location separate. Keep institution as the school/university only; move degree specialization into fieldOfStudy and dates into date fields. If skills, certifications or languages are visibly present in the original resume, do not silently return those arrays empty.`;
- const styleAdaptation=`STYLE-ADAPTIVE RESUME REASONING: Resumes may be reverse-chronological, chronological, functional, combination/hybrid, skills-first, executive biography, academic CV, consulting/project portfolio, humanitarian/NGO profile, government-style CV, multi-column, table-based, timeline-based, or visually designed. Section names are not standardized. Infer section purpose from local content, typography/layout evidence and neighboring records rather than relying on one exact heading vocabulary. Treat thematic labels and all-caps category/subsection text as STRUCTURE, not data, unless the same local block clearly proves it is an organization or role. Examples that must never become employers: GOVERNANCE, ADVISORY & INTERNATIONAL ENGAGEMENT; PROFESSIONAL EXPERIENCE - CONTINUED; CORE LEADERSHIP CAPABILITIES. A sentence or bullet fragment such as storage, and expiry-control practices. must never become an employer, position title, school or degree. EMPLOYMENT PURITY: emit an employmentHistory record only when positionTitle and employer are both independently source-supported in the same local record neighborhood; attach dates, location and responsibilities only from that same neighborhood. If a title or employer is unresolved, put the problem in unresolvedFields rather than pairing it with a nearby record. EDUCATION PURITY: keep degree, fieldOfStudy, institution, dates/status and location separate. A value such as Ontario (in progress; expected August 2026) means location=Ontario, status=in progress and graduationDate=August 2026; never place the status/date phrase inside location. SKILLS COMPLETENESS: recognize skills under variant headings such as Core Leadership Capabilities, Key Competencies, Areas of Expertise, Functional Expertise, Technical Proficiencies, Tools & Technologies and similar semantic headings. Recover source-supported skills even in functional or skills-first resumes. Never invent a competency merely from a job title.`;
+ const styleAdaptation=`STYLE-ADAPTIVE RESUME REASONING: Resumes may be reverse-chronological, chronological, functional, combination/hybrid, skills-first, executive biography, academic CV, consulting/project portfolio, humanitarian/NGO profile, government-style CV, multi-column, table-based, timeline-based, or visually designed. Section names are not standardized. Infer section purpose from local content, typography/layout evidence and neighboring records rather than relying on one exact heading vocabulary. Treat thematic labels and all-caps category/subsection text as STRUCTURE, not data, unless the same local block clearly proves it is an organization or role. Examples that must never become employers: GOVERNANCE, ADVISORY & INTERNATIONAL ENGAGEMENT; PROFESSIONAL EXPERIENCE - CONTINUED; CORE LEADERSHIP CAPABILITIES. A sentence or bullet fragment such as storage, and expiry-control practices. must never become an employer, position title, school or degree. EMPLOYMENT PURITY: emit an employmentHistory record only when positionTitle and employer are both independently source-supported in the same local record neighborhood; attach dates, location and responsibilities only from that same neighborhood. If a title or employer is unresolved, put the problem in unresolvedFields rather than pairing it with a nearby record. EDUCATION PURITY: keep degree, fieldOfStudy, institution, dates/status and location separate. A value such as Ontario (in progress; expected August 2026) means location=Ontario, status=in progress and graduationDate=August 2026; never place the status/date phrase inside location. SKILLS COMPLETENESS: recognize skills under variant headings such as Core Leadership Capabilities, Key Competencies, Areas of Expertise, Functional Expertise, Technical Proficiencies, Tools & Technologies and similar semantic headings. Recover source-supported skills even in functional or skills-first resumes. Never invent a competency merely from a job title. DOCUMENT-GRAPH REASONING: classify each local source span before assigning it to a field, then connect only entities supported by the same local record neighborhood. A practicum, internship, fellowship or placement is a ROLE, not an employer, unless the text separately identifies an organization. VOLUNTEER CLASSIFICATION: volunteer/community/pro-bono roles belong in volunteerRecords, not employmentHistory. For "Volunteer Leadership & Policy Contributor, Syrian Civil Society Room", map role=Volunteer Leadership & Policy Contributor and organization=Syrian Civil Society Room. CURRENT-STATUS RULE: current=true only when the local source block explicitly says Present, Current, Ongoing, To Date, Now, or an equivalent explicit phrase. A missing end date alone NEVER means current. DEDUPLICATION RULE: if one partial record and one complete record describe the same title/start-date or employer/title neighborhood, merge them into one complete record rather than emitting duplicates. REPAIR SAFETY: a repair must reduce structural defects without creating new entity contamination; otherwise preserve the prior structure.`;
  const pass1Prompt=`${BOUNDARY}\nPASS 1 - candidate-focused resume extraction.\n${identity}\n${structure}\n${styleAdaptation}\n${schema}\nDerive yearsOfExperience only from dated employment ranges. Do not guess.\n${source?`<resume_text>\n${source}\n</resume_text>`:'The resume file is attached.'}`;
  const compactRecoveryPrompt=`${BOUNDARY}\nRECOVERY PASS - extract a complete structured candidate profile from the trusted resume evidence text.\n${identity}\n${styleAdaptation}\n${schema}\nKeep title/employer/dates/responsibilities inside the same employment block and degree/field/institution/dates inside the same education block. Preserve candidate contact identity. Use null or [] instead of guessing. Return the complete object, not a delta.\n<resume_text>\n${source.slice(0,120000)}\n</resume_text>`;
  let first:any;
@@ -359,7 +402,7 @@ export async function governedResumeParse(actor:ActorContext,input:{name:string;
  const suspectHeading=(value:any)=>{const text=String(value||'').trim();if(!text)return false;const letters=text.replace(/[^\p{L}]+/gu,'');const allUpper=Boolean(letters)&&letters===letters.toLocaleUpperCase();return allUpper&&/\b(?:governance|advisory|engagement|experience|leadership|skills|competenc|capabilit|education|certifications?|languages?)\b/i.test(text)};
  const suspectNarrative=(value:any)=>{const text=String(value||'').trim();if(!text)return false;return (/^\p{Ll}/u.test(text)&&/[.,;:!?]$/.test(text))||(/[.!?]$/.test(text)&&text.split(/\s+/).length>=5)};
  const arr=(v:any)=>Array.isArray(v)?v:[];
- const styleContamination=arr(raw?.employmentHistory).some((x:any)=>suspectHeading(x?.employer)||suspectHeading(x?.positionTitle)||suspectNarrative(x?.employer)||suspectNarrative(x?.positionTitle))||arr(raw?.educationHistory).some((x:any)=>suspectHeading(x?.degree)||suspectHeading(x?.institution)||suspectNarrative(x?.degree)||suspectNarrative(x?.institution)||/\b(?:in progress|expected|anticipated|graduation|completion)\b/i.test(String(x?.location||'')));
+ const styleContamination=arr(raw?.employmentHistory).some((x:any)=>suspectHeading(x?.employer)||suspectHeading(x?.positionTitle)||suspectNarrative(x?.employer)||suspectNarrative(x?.positionTitle)||/^(?:volunteer|voluntary|pro\s+bono)\b/i.test(String(x?.positionTitle||x?.employer||''))||(x?.current===true&&!/\b(?:present|current|currently|ongoing|to\s+date|now)\b/i.test(semanticEvidence)))||arr(raw?.educationHistory).some((x:any)=>suspectHeading(x?.degree)||suspectHeading(x?.institution)||suspectNarrative(x?.degree)||suspectNarrative(x?.institution)||/[([{]\s*$|\b(?:in progress|expected|anticipated|graduation|completion)\b/i.test(String(x?.location||'')));
  const recoveryNeeded=Boolean(semanticEvidence)&&(!String(raw?.displayName||'').trim()||arrLength(raw?.employmentHistory)===0||arrLength(raw?.educationHistory)===0||arrLength(raw?.skills)<3||styleContamination);
  if(recoveryNeeded){
    const completenessPrompt=[
@@ -370,6 +413,7 @@ export async function governedResumeParse(actor:ActorContext,input:{name:string;
      schema,
      'Return the COMPLETE profile. Preserve every source-backed employment and education relationship. Do not invent. Use null/[] when unsupported.',
      'STYLE REPAIR: delete thematic headings and sentence fragments from entity fields; rebuild title/employer/date and degree/institution/date relationships only from their local source blocks; separate education status/expected date from location; recover source-supported skills under nonstandard capability/competency/expertise headings.',
+     'RECORD-GRAPH REPAIR: merge duplicate partial/complete employment records; move volunteer/community/pro-bono roles out of employmentHistory into volunteerRecords; treat practicum/internship/fellowship/placement as roles; set current=true only with explicit local Present/Current/Ongoing/To Date evidence; never use missing end date as proof of current status.',
      '<current_profile>',
      JSON.stringify(raw).slice(0,80000),
      '</current_profile>',
@@ -380,7 +424,16 @@ export async function governedResumeParse(actor:ActorContext,input:{name:string;
    const recoveryStarted=Date.now();
    try{
      const recovered=await aiJson(profile,completenessPrompt,undefined,recoveryTimeoutMs);
-     if(recovered)raw=mergeResumeRecovery(raw,recovered);
+     if(recovered){
+       const candidate=mergeResumeRecovery(raw,recovered);
+       const decision=acceptTransactionalRawRepair(raw,candidate,semanticEvidence);
+       if(decision.accepted){
+         raw=candidate;
+         recruitingResumeTelemetry('transactional_repair_accepted',{beforeDefects:decision.before.defects,afterDefects:decision.after.defects});
+       }else{
+         recruitingResumeTelemetry('transactional_repair_rolled_back',{beforeDefects:decision.before.defects,afterDefects:decision.after.defects});
+       }
+     }
      recruitingResumeTelemetry('completeness_recovery_complete',{durationMs:Date.now()-recoveryStarted});
    }catch(error){
      recruitingResumeTelemetry('completeness_recovery_fallback',{durationMs:Date.now()-recoveryStarted,code:errorCode(error)});
@@ -475,6 +528,47 @@ export async function governedJobDescriptionParse(actor:ActorContext,input:{name
    promptVersion:`RECRUITING_JOB_DESCRIPTION_V1_ASSURANCE${profile.promptCode?`+${profile.promptCode}:v${profile.promptVersion||0}`:''}`,
    parserPasses:['governed_ai_extract','governed_ai_verify','deterministic_reconcile'],
  };
+}
+
+export async function governedStructuredResumeRepair(
+ actor:ActorContext,
+ input:{sourceText:string;current:StructuredResumeProfile;issues:string[]},
+){
+ if(!canUseRecruitingEvidenceAi(actor))return null;
+ const profile=await safeRecruitingAiProfile(actor);
+ if(!profile||profile.provider==='demo'||!profile.model)return null;
+
+ const prompt=[
+   BOUNDARY,
+   'TARGETED STRUCTURED RESUME REPAIR - repair only the listed structural issues.',
+   'The original resume evidence is authoritative. Candidate-edited fields that are already source-supported must be preserved.',
+   'Return JSON only with employmentHistory,educationHistory,skills,certificationRecords,languageRecords,projectRecords,volunteerRecords,awardRecords,publicationRecords,additionalInformation.',
+   'Use document-graph reasoning: classify source spans first, then connect only entities from the same local neighborhood.',
+   'Move volunteer/community/pro-bono roles to volunteerRecords. Practicum/internship/fellowship/placement are roles, not employers.',
+   'current=true requires explicit local Present/Current/Ongoing/To Date/Now evidence. Missing end date is not proof of current status.',
+   'Merge duplicate partial and complete records. Remove heading/narrative contamination. Separate education location from status and expected graduation.',
+   'Never invent data. If an issue cannot be repaired from source evidence, keep the reliable current value and leave the uncertain field empty.',
+   '<issues>'+JSON.stringify(input.issues.slice(0,40))+'</issues>',
+   '<current>'+JSON.stringify(input.current).slice(0,70000)+'</current>',
+   '<resume_text>'+String(input.sourceText||'').slice(0,120000)+'</resume_text>',
+ ].join('\n');
+
+ const raw:any=await aiJson(profile,prompt,undefined,recruitingStageTimeout('OPSIQO_RECRUITING_AI_REPAIR_TIMEOUT_MS',14000,5000,22000));
+ if(!raw||typeof raw!=='object')return null;
+
+ const arr=(v:any)=>Array.isArray(v)?v:[];
+ return{
+   employmentHistory:arr(raw.employmentHistory),
+   educationHistory:arr(raw.educationHistory),
+   skills:arr(raw.skills).map((v:any)=>String(v)).filter(Boolean),
+   certifications:arr(raw.certificationRecords),
+   languages:arr(raw.languageRecords),
+   projects:arr(raw.projectRecords),
+   volunteerExperience:arr(raw.volunteerRecords),
+   awards:arr(raw.awardRecords),
+   publications:arr(raw.publicationRecords),
+   additionalInformation:raw.additionalInformation?String(raw.additionalInformation):undefined,
+ } as StructuredResumeProfile;
 }
 
 export async function governedCoverLetterDraft(actor:ActorContext,input:{candidate:Candidate;requisition:Requisition;review:AtsResumeReview;tone:'professional'|'concise'|'warm';notes?:string}){if(!actor.permissions.includes('ai.use' as any))return null;const profile=await activeProfile(actor);if(!profile||profile.provider==='demo'||!profile.model)return null;const evidence=[...input.review.evidence.filter(x=>x.matched&&x.evidence).map(x=>`${x.criterion}: ${x.evidence}`),...input.review.matchedRequirements,...input.review.matchedKeywords].slice(0,30);const prompt=`${BOUNDARY}\nDraft one ${input.tone} cover letter for ${input.requisition.title}. Use ONLY the candidate evidence below. Never invent metrics, employers, degrees, dates, certifications, responsibilities or achievements. Return JSON {text,evidenceUsed:[...]}. Candidate: ${input.candidate.displayName}. Job description: ${(input.requisition.description||'').slice(0,12000)}. Requirements: ${(input.requisition.requirements||[]).join(' | ')}. Verified/reviewed evidence: ${evidence.join(' | ')}. Additional recruiter instruction (not evidence): ${(input.notes||'').slice(0,1000)}.`;const raw=await aiJson(profile,prompt);if(!raw?.text)return null;return{text:String(raw.text).slice(0,12000),evidenceUsed:Array.isArray(raw.evidenceUsed)?raw.evidenceUsed.map((x:any)=>String(x).slice(0,500)).slice(0,30):evidence,provider:profile.provider as 'openai'|'gemini',model:profile.model,promptVersion:`${COVER_PROMPT_VERSION}${profile.promptCode?`+${profile.promptCode}:v${profile.promptVersion||0}`:''}`}}

@@ -5,10 +5,10 @@ describe("H51.29 candidate review recovery", () => {
   it("lets the public parse endpoint return a reviewable source-backed draft instead of hard-stopping on prefillReady", () => {
     const service = fs.readFileSync("src/lib/recruiting/candidate-portal-service.ts", "utf8");
     expect(service).toContain(
-      "parseResumeFile(actor(x.orgId,x.link.id),file,{requireStructuredPrefill:false})",
+      "parseResumeFile(a,file,{requireStructuredPrefill:false})",
     );
-    expect(service).toContain("Resume was recovered as an editable review draft.");
-    expect(service).toContain("structuredIssues.length||unresolvedFields.length");
+    expect(service).toContain("Resume is an editable source-grounded review draft.");
+    expect(service).toContain("structuredCriticalIssues.length||structuredIssues.length||unresolvedFields.length");
   });
 
   it("keeps final submission fail-closed after candidate editing", () => {

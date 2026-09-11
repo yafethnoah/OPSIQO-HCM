@@ -112,7 +112,7 @@ describe('OPSIQO H51.30 style-adaptive resume intelligence', () => {
 
   it('uses V11 style-adaptive AI reasoning and triggers repair for semantic contamination', () => {
     const provider = fs.readFileSync('src/lib/recruiting/ats-provider.ts', 'utf8');
-    expect(provider).toContain('RECRUITING_RESUME_PARSE_V11_STYLE_ADAPTIVE_RECORD_PURITY');
+    expect(provider).toContain('RECRUITING_RESUME_PARSE_V12_RECORD_GRAPH_TRANSACTIONAL_REPAIR');
     expect(provider).toContain('STYLE-ADAPTIVE RESUME REASONING');
     expect(provider).toContain('functional, combination/hybrid, skills-first');
     expect(provider).toContain('GOVERNANCE, ADVISORY & INTERNATIONAL ENGAGEMENT');

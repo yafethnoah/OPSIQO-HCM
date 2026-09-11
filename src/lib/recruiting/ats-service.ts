@@ -23,7 +23,7 @@ import {
 } from "./ats-engine";
 import { classifyRecruitingDocument, isPlausibleProfessionalHeadline } from "./document-classifier";
 import { applyResumeAssurance, resumeParseCoverage } from "./resume-assurance";
-import { assessStructuredResume, deriveStructuredExperienceYears, deterministicStructuredResume, mergeStructuredResume } from "./resume-structure";
+import { assessStructuredResume, deriveValidatedStructuredExperienceYears, deterministicStructuredResume, mergeStructuredResume } from "./resume-structure";
 import { governedCoverLetterDraft, governedJobDescriptionParse, governedResumeParse } from "./ats-provider";
 import { listRequisitions } from "./service";
 
@@ -295,7 +295,7 @@ export async function parseResumeFile(actor: ActorContext, file: File, options: 
     );
   const deterministicStructure=deterministicStructuredResume(profile);
   const structuredResume=mergeStructuredResume(profile.structuredResume,deterministicStructure,profile.sourceText||text);
-  const derivedYearsOfExperience=deriveStructuredExperienceYears(structuredResume.employmentHistory);
+  const derivedYearsOfExperience=deriveValidatedStructuredExperienceYears(structuredResume.employmentHistory,profile.sourceText||text);
   profile={
     ...profile,
     structuredResume,

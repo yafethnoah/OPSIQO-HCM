@@ -29,7 +29,7 @@ type Context={
   application:{coverLetterRequired:boolean;allowTalentPoolConsent:boolean;screeningQuestions:Q[];closingAt?:string}
 };
 type CustomSection={id:string;title:string;content:string};
-type ParseAssurance={machineTrust:number;aiVerified:boolean;fieldConfidence:Record<string,number>;unresolvedFields:string[];requiresCandidateReview:true;verifiedStatus:'high_confidence'|'review_required';structuredQuality:number;structuredCoverage:number;structuredRecordCount:number;structuredCriticalIssues:string[];structuredIssues:string[]};
+type ParseAssurance={machineTrust:number;aiVerified:boolean;fieldConfidence:Record<string,number>;unresolvedFields:string[];requiresCandidateReview:true;verifiedStatus:'high_confidence'|'review_required';structuredQuality:number;structuredCoverage:number;structuredRecordCount:number;structuredCriticalIssues:string[];structuredIssues:string[];repairOutcome?:{attempted:true;accepted:boolean;resolvedCritical:number;beforeCritical:number;afterCritical:number}};
 type Profile={
   firstName:string;lastName:string;email:string;phone:string;location:string;
   linkedinUrl:string;portfolioUrl:string;githubUrl:string;socialMediaUrl:string;
@@ -141,21 +141,23 @@ export function CandidateApplicationPortal({token}:{token:string}){
     }catch(e){setError(e instanceof Error?e.message:'Unable to open application.')}
   })()},[token]);
 
-  async function parse(f:File,targetStep=2){
+  async function parse(f:File,targetStep=2,repair=false){
     setBusy('parse');setError('');setParseNote('');setParseAssurance(null);setResumeReviewed(false);
     try{
-      const d=new FormData();d.set('file',f);
+      const d=new FormData();d.set('file',f);if(repair){d.set('mode','repair');d.set('structuredResume',JSON.stringify(structured));}
       const r=await call<{data:{profile:any;structuredResume:StructuredResumeProfile;assurance:ParseAssurance;note:string}}>(
         `/api/public/recruiting/apply/${encodeURIComponent(token)}/parse`,
         {method:'POST',body:d},
       );
       const x=r.data.profile;
-      setP(v=>({...v,
-        firstName:x.firstName||v.firstName,lastName:x.lastName||v.lastName,email:x.email||v.email,
-        phone:x.phone||v.phone,location:x.location||v.location,linkedinUrl:x.linkedinUrl||v.linkedinUrl,
-        headline:x.headline||v.headline,summary:x.summary||v.summary,
-        yearsOfExperience:x.yearsOfExperience==null?v.yearsOfExperience:String(x.yearsOfExperience),
-      }));
+      setP(v=>repair
+        ?({...v,yearsOfExperience:x.yearsOfExperience==null?v.yearsOfExperience:String(x.yearsOfExperience)})
+        :({...v,
+          firstName:x.firstName||v.firstName,lastName:x.lastName||v.lastName,email:x.email||v.email,
+          phone:x.phone||v.phone,location:x.location||v.location,linkedinUrl:x.linkedinUrl||v.linkedinUrl,
+          headline:x.headline||v.headline,summary:x.summary||v.summary,
+          yearsOfExperience:x.yearsOfExperience==null?v.yearsOfExperience:String(x.yearsOfExperience),
+        }));
       setStructured({
         ...emptyStructured(),
         ...r.data.structuredResume,
@@ -170,6 +172,12 @@ export function CandidateApplicationPortal({token}:{token:string}){
       });
       setParseAssurance(r.data.assurance);
       setParseNote(r.data.note);
+      if(r.data.assurance.repairOutcome){
+        const o=r.data.assurance.repairOutcome;
+        setNotice(o.accepted
+          ?`AI repair accepted: ${o.resolvedCritical} critical issue(s) resolved; ${o.afterCritical} remain.`
+          :'AI repair made no safe structural improvement. Your previous source-grounded review draft was retained.');
+      }
       setStep(targetStep);
     }catch(e){
       setResume(null);setParseNote('');setParseAssurance(null);setResumeReviewed(false);
@@ -291,7 +299,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
 
       {step===3&&<section className="prehireCard stack" data-h50-5g-resume-editor="true" data-h50-5i-structured-resume="true">
         <div className="toolbar"><div><h2>3. Resume review & edit</h2><p className="muted">OPSIQO extracted your resume into structured application records. Review every card; edit, add or remove records before submitting.</p></div><span className="badge">Structured resume</span></div>
-        {reviewIssues.length?<div className="error"><strong>{reviewIssues.length} critical resume structure issue(s) need correction.</strong><ul>{reviewIssues.slice(0,8).map(issue=><li key={issue}>{issue}</li>)}</ul>{resume&&<button type="button" className="button secondary" disabled={busy==='parse'} onClick={()=>void parse(resume,3)}>{busy==='parse'?'AI repairing resume…':'Improve these records with AI'}</button>}</div>:<div className="success"><strong>No client-side critical structure issues detected.</strong> Final source-grounded verification will still run when you submit.</div>}
+        {reviewIssues.length?<div className="error"><strong>{reviewIssues.length} critical resume structure issue(s) need correction.</strong><ul>{reviewIssues.slice(0,8).map(issue=><li key={issue}>{issue}</li>)}</ul>{resume&&<button type="button" className="button secondary" disabled={busy==='parse'} onClick={()=>void parse(resume,3,true)}>{busy==='parse'?'AI repairing affected records…':'Improve these records with AI'}</button>}</div>:<div className="success"><strong>No client-side critical structure issues detected.</strong> Final source-grounded verification will still run when you submit.</div>}
         <F label="Estimated years of experience from resume · review" type="number" value={p.yearsOfExperience} onChange={v=>set('yearsOfExperience',v)}/>
 
         <SectionTitle title="Professional experience" hint="Employment History"/>

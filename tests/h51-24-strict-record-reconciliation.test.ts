@@ -215,11 +215,11 @@ describe('OPSIQO H51.24 strict record reconciliation', () => {
 
     expect(parseBlock).not.toContain('humanReviewFallback');
     expect(parseBlock).toContain(
-      'parseResumeFile(actor(x.orgId,x.link.id),file,{requireStructuredPrefill:false})',
+      'parseResumeFile(a,file,{requireStructuredPrefill:false})',
     );
     expect(parseBlock).toContain('requiresCandidateReview:true');
     expect(parseBlock).toContain('structuredIssues');
-    expect(parseBlock).toContain('editable review draft');
+    expect(parseBlock).toContain('editable source-grounded review draft');
 
     const submitStart = candidateService.indexOf(
       'export async function submitPublicCandidateApplication',

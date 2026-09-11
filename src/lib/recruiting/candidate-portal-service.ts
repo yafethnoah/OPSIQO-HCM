@@ -10,7 +10,8 @@ import {buildAudit} from '@/lib/audit/service';
 import {buildDomainEvent} from '@/lib/events/build';
 import {extractRecruitingDocumentFile,parseResumeFile} from './ats-service';
 import {autoScoreStoredApplication,recordAtsAnalysisFailure} from './candidate-fit-service';
-import {candidateVerificationGate,deterministicStructuredResume,mergeStructuredResume} from './resume-structure';
+import {candidateVerificationGate,deriveValidatedStructuredExperienceYears,deterministicStructuredResume,mergeStructuredResume,transactionalStructuredRepair} from './resume-structure';
+import {governedStructuredResumeRepair} from './ats-provider';
 
 const now=()=>new Date().toISOString(),sha=(v:string|Buffer)=>createHash('sha256').update(v).digest('hex');
 const hrRoles=new Set(['super_admin','org_admin','hr_admin','hr_partner']);
@@ -125,23 +126,67 @@ export async function enforceCandidatePortalRateLimit(token:string,request:Reque
 export async function parsePublicCandidateResume(token:string,form:FormData){
  const x=await resolve(token),file=form.get('file');
  if(!(file instanceof File))throw new ApiError(400,'Resume file is required.','resume_required');
- // Public parsing may expose a source-backed REVIEW DRAFT when machine prefill
- // is incomplete. This is not final acceptance: candidate edits remain subject to
- // candidateVerificationGate() during submission, and unresolved critical structure
- // still fails closed before the application can be finalized.
- const parsed=await parseResumeFile(actor(x.orgId,x.link.id),file,{requireStructuredPrefill:false});
- const structuredResume=structuredResumeFromProfile(parsed.profile);
- const {sourceText:_,...profile}=parsed.profile;
+
+ const a=actor(x.orgId,x.link.id);
+ const parsed=await parseResumeFile(a,file,{requireStructuredPrefill:false});
+ const source=String(parsed.profile.sourceText||'');
+ let reviewStructuredResume=structuredResumeFromProfile(parsed.profile);
+ let repairOutcome:{attempted:true;accepted:boolean;resolvedCritical:number;beforeCritical:number;afterCritical:number}|undefined;
+
+ if(String(form.get('mode')||'')==='repair'){
+   let currentRaw:unknown;
+   try{currentRaw=JSON.parse(String(form.get('structuredResume')||''))}
+   catch{throw new ApiError(400,'Current structured resume could not be read for AI repair.','invalid_resume_repair_payload')}
+
+   const current=structuredResume.parse(currentRaw);
+   const currentMerged=mergeStructuredResume(current,deterministicStructuredResume(parsed.profile),source);
+   const before=candidateVerificationGate(currentMerged,source);
+   const proposed=await governedStructuredResumeRepair(a,{
+     sourceText:source,
+     current:currentMerged,
+     issues:[...before.criticalIssues,...before.issues].slice(0,40),
+   });
+
+   if(proposed){
+     const decision=transactionalStructuredRepair(currentMerged,proposed,source);
+     reviewStructuredResume=decision.profile;
+     repairOutcome={
+       attempted:true,
+       accepted:decision.accepted,
+       resolvedCritical:decision.resolvedCritical,
+       beforeCritical:decision.before.criticalIssues.length,
+       afterCritical:decision.after.criticalIssues.length,
+     };
+   }else{
+     repairOutcome={
+       attempted:true,
+       accepted:false,
+       resolvedCritical:0,
+       beforeCritical:before.criticalIssues.length,
+       afterCritical:before.criticalIssues.length,
+     };
+     reviewStructuredResume=currentMerged;
+   }
+ }
+
+ const reviewAssessment=candidateVerificationGate(reviewStructuredResume,source);
+ const verifiedYears=deriveValidatedStructuredExperienceYears(reviewStructuredResume.employmentHistory,source);
+ const {sourceText:_,...profileBase}=parsed.profile;
+ const profile={
+   ...profileBase,
+   ...(verifiedYears!==undefined?{yearsOfExperience:verifiedYears}:{}),
+ };
  const machineTrust=Number(parsed.profile.parseTrust??parsed.profile.parseQuality??0);
  const unresolvedFields=parsed.profile.unresolvedFields||[];
- const structuredQuality=Number(parsed.profile.structuredQuality||0);
- const structuredCoverage=Number(parsed.profile.structuredCoverage||0);
- const structuredRecordCount=Number(parsed.profile.structuredRecordCount||0);
- const structuredCriticalIssues=[...(parsed.profile.structuredCriticalIssues||[])].slice(0,40);
- const structuredIssues=[...(parsed.profile.structuredIssues||[])].slice(0,40);
+ const structuredQuality=Number(reviewAssessment.quality||0);
+ const structuredCoverage=Number(reviewAssessment.coverage||0);
+ const structuredRecordCount=Number(reviewAssessment.recordCount||0);
+ const structuredCriticalIssues=[...reviewAssessment.criticalIssues].slice(0,40);
+ const structuredIssues=[...reviewAssessment.issues].slice(0,40);
+
  return{
   profile,
-  structuredResume,
+  structuredResume:reviewStructuredResume,
   sourceMeta:parsed.sourceMeta,
   parser:parsed.profile.parser,
   documentClassification:parsed.documentClassification,
@@ -157,10 +202,11 @@ export async function parsePublicCandidateResume(token:string,form:FormData){
    structuredRecordCount,
    structuredCriticalIssues,
    structuredIssues,
+   repairOutcome,
   },
-  note:parsed.profile.sourceText?.trim()
+  note:source.trim()
    ?(structuredCriticalIssues.length||structuredIssues.length||unresolvedFields.length
-      ?'Resume was recovered as an editable review draft. Correct every highlighted or missing employment, education, skills and identity field before final confirmation. Final submission remains blocked while critical structured issues remain.'
+      ?'Resume is an editable source-grounded review draft. Correct highlighted fields or use targeted AI repair. AI repairs are accepted only when structural defects are reduced without regression. Final submission remains fail-closed.'
       :'Resume was parsed into editable structured application fields. Review every section before final confirmation.')
    :'Recruiting AI is temporarily unavailable or the file has no readable text layer. Continue in manual review mode, complete the application fields, and confirm accuracy before submission.'
  };
@@ -179,6 +225,7 @@ export async function submitPublicCandidateApplication(token:string,form:FormDat
  const a=actor(x.orgId,x.link.id),parsed=await parseResumeFile(a,rf,{requireStructuredPrefill:false}),rd=await extractRecruitingDocumentFile(rf);if(parsed.sourceMeta.sha256!==rd.sourceMeta.sha256)throw new ApiError(409,'Resume changed during processing.','resume_changed_during_processing');
  const verifiedStructuredResume=mergeStructuredResume(i.structuredResume,deterministicStructuredResume(parsed.profile),parsed.profile.sourceText);
  const verification=candidateVerificationGate(verifiedStructuredResume,parsed.profile.sourceText);
+ const verifiedYearsOfExperience=deriveValidatedStructuredExperienceYears(verifiedStructuredResume.employmentHistory,parsed.profile.sourceText);
  if(parsed.profile.sourceText?.trim()&&!verification.canFinalize)throw new ApiError(422,'Resume verification cannot be finalized until critical structured resume issues are corrected. Review the employment, education and skills sections before confirming.','resume_structural_review_required');
  const cf=form.get('coverLetter'),coverText=String(i.coverLetterText||'').trim(),cd=cf instanceof File&&cf.size>0?await extractRecruitingDocumentFile(cf):null;
  if(cd?.documentClassification.kind==='resume'&&cd.documentClassification.confidence>=0.85)throw new ApiError(422,'This file looks like a resume, not a cover letter. Attach the cover letter in the Cover letter field.','cover_letter_document_mismatch');
@@ -229,7 +276,7 @@ export async function submitPublicCandidateApplication(token:string,form:FormDat
    // ALL TRANSACTION READS COMPLETE. Writes begin here.
    const {sourceText,...profile}=parsed.profile;
    const candidateReviewedResume={summary:i.summary||parsed.profile.summary,professionalExperience:i.professionalExperience,skills:i.skills.length?i.skills:parsed.profile.skills,certifications:i.certifications.length?i.certifications:parsed.profile.certifications,education:i.education.length?i.education:parsed.profile.education,languages:i.languages,projects:i.projects,volunteerExperience:i.volunteerExperience,awards:i.awards,publications:i.publications,additionalInformation:i.additionalInformation,structuredResume:verifiedStructuredResume,customSections:i.customResumeSections,reviewedAt:t,editorVersion:'H50.5G',structuredEditorVersion:'H50.5I'};
-   const candidateData={firstName:i.firstName,lastName:i.lastName,displayName:`${i.firstName} ${i.lastName}`.trim(),email:i.email,emailLower:email,phone:i.phone,location:i.location,source:'Candidate application portal',linkedinUrl,portfolioUrl,githubUrl,socialMediaUrl,professionalLinks,headline:i.headline||parsed.profile.headline,summary:i.summary||parsed.profile.summary,skills:i.skills.length?i.skills:parsed.profile.skills,certifications:i.certifications.length?i.certifications:parsed.profile.certifications,education:i.education.length?i.education:parsed.profile.education,yearsOfExperience:i.yearsOfExperience??parsed.profile.yearsOfExperience,candidateReviewedResume,resumeText:sourceText,resumeProfile:profile,resumeSourceMeta:{...parsed.sourceMeta,storagePath:resumePath},consentAt:t,talentPoolConsentAt:i.talentPoolConsent?t:existingCandidate?.talentPoolConsentAt,updatedAt:t};
+   const candidateData={firstName:i.firstName,lastName:i.lastName,displayName:`${i.firstName} ${i.lastName}`.trim(),email:i.email,emailLower:email,phone:i.phone,location:i.location,source:'Candidate application portal',linkedinUrl,portfolioUrl,githubUrl,socialMediaUrl,professionalLinks,headline:i.headline||parsed.profile.headline,summary:i.summary||parsed.profile.summary,skills:i.skills.length?i.skills:parsed.profile.skills,certifications:i.certifications.length?i.certifications:parsed.profile.certifications,education:i.education.length?i.education:parsed.profile.education,yearsOfExperience:verifiedYearsOfExperience??parsed.profile.yearsOfExperience,candidateReviewedResume,resumeText:sourceText,resumeProfile:profile,resumeSourceMeta:{...parsed.sourceMeta,storagePath:resumePath},consentAt:t,talentPoolConsentAt:i.talentPoolConsent?t:existingCandidate?.talentPoolConsentAt,updatedAt:t};
    if(existingCandidate)tx.set(candidateRef,{...existingCandidate,...candidateData},{merge:true});else{tx.create(candidateRef,{id:candidateId,...candidateData,createdAt:t});tx.create(eiRef,{candidateId,email,createdAt:t})}
 
    if(existingApplication)tx.set(appRef,{applicationLinkId:x.link.id,source:'Candidate application portal',screeningAnswers:i.screeningAnswers,candidateStatement:i.candidateStatement,professionalLinks,submissionVersion:version,resumeVersion:Number(existingApplication.resumeVersion||0)+1,coverLetterVersion:coverDocumentId?Number(existingApplication.coverLetterVersion||0)+1:Number(existingApplication.coverLetterVersion||0),talentPoolConsent:i.talentPoolConsent,atsAnalysisStatus:'pending',atsAnalysisMessage:null,atsLatestReviewId:FieldValue.delete(),atsLatestScore:FieldValue.delete(),atsLatestBand:FieldValue.delete(),atsLatestRequirementsCoverage:FieldValue.delete(),atsLatestEvidenceConfidence:FieldValue.delete(),atsLatestAssessmentCoverage:FieldValue.delete(),atsLatestGapCount:FieldValue.delete(),atsLatestJobTextHash:FieldValue.delete(),atsLatestResumeTextHash:FieldValue.delete(),atsReviewedAt:FieldValue.delete(),updatedAt:t},{merge:true});

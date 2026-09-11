@@ -3,6 +3,7 @@ import type {
   StructuredResumeProfile,
   ResumeEmploymentEntry,
   ResumeEducationEntry,
+  ResumeVolunteerEntry,
 } from '@/domain/structured-resume';
 import { normalizeResumeLanguages, normalizeResumeSkills } from './resume-semantic-reconstruction';
 import {
@@ -39,11 +40,16 @@ const EDUCATION_HEADINGS = ['education','education & credentials','education and
 const SKILLS_HEADINGS = ['skills','technical skills','core competencies','competencies','expertise','core skills','key skills','key competencies','professional skills','professional competencies','technical competencies','core capabilities','leadership capabilities','core leadership capabilities','executive capabilities','core executive capabilities','core executive & hr capabilities','areas of expertise','areas of strength','functional expertise','technical proficiencies','tools & technologies','tools and technologies','hr systems & process improvement','technology & digital transformation','technology and digital transformation'];
 const CERTIFICATION_HEADINGS = ['certifications','certificates','licences','licenses','credentials','professional certifications','certifications & credentials','certifications and credentials','certifications & professional development','professional development & certifications'];
 const LANGUAGE_HEADINGS = ['languages','language skills','language proficiency'];
+const VOLUNTEER_HEADINGS = ['volunteer experience','volunteering','volunteer leadership','community experience','community involvement','community service','pro bono'];
 
 const DEGREE_HINT = /\b(?:bachelor(?:['’]s)?|bachelor\s+of\s+pharmacy|b\.?\s*pharm\.?|bpharm|master(?:['’]s)?|doctor(?:ate|al)?|doctor\s+of\s+pharmacy|pharm\.?\s*d\.?|pharmd|ph\.?d\.?|mba|m\.?sc\.?|b\.?sc\.?|b\.?a\.?|b\.?s\.?|m\.?a\.?|m\.?s\.?|diploma|degree|post[- ]?graduate|graduate certificate)\b/i;
 const INSTITUTION_HINT = /\b(?:university|college|institute|school|academy|polytechnic|faculty|conservatory)\b/i;
-const TITLE_HINT = /\b(?:chief|ceo|president|vice president|vp|director|manager|specialist|officer|coordinator|advisor|adviser|consultant|partner|lead|head|supervisor|analyst|generalist|pharmacist|engineer|developer|administrator|executive|founder|co-founder)\b/i;
+const TITLE_HINT = /\b(?:chief|ceo|president|vice president|vp|director|manager|specialist|officer|coordinator|advisor|adviser|consultant|partner|lead|head|supervisor|analyst|generalist|pharmacist|engineer|developer|administrator|executive|founder|co-founder|practicum|intern|internship|fellow|fellowship|trainee|placement|volunteer|contributor)\b/i;
 const ROLE_DESCRIPTOR = /^(?:founding leader|founder|co-founder|team leader|project leader|executive leader|senior leader|department head|board member|consultant|advisor|adviser)$/i;
+const NON_ORG_ROLE_HINT = /\b(?:practicum|internship|fellowship|placement|residency|apprenticeship|traineeship)\b/i;
+const ORGANIZATION_HINT = /\b(?:inc(?:orporated)?|ltd|limited|llc|corp(?:oration)?|company|group|ngo|foundation|association|society|clinic|hospital|university|college|ministry|agency|authority|bank|school|institute|atelier|pharmacy|room|network|council|coalition|forum)\b/i;
+const EXPLICIT_CURRENT_SIGNAL = /\b(?:present|current|currently|ongoing|to\s+date|date\s+to\s+present|now)\b/i;
+const VOLUNTEER_ROLE_HINT = /^(?:volunteer|voluntary|pro\s+bono)\b|\b(?:volunteer\s+leadership|volunteer\s+contributor|community\s+volunteer|pro\s+bono)\b/i;
 const ACTION_SENTENCE = /^(?:assessed|analyzed|analysed|built|created|delivered|designed|developed|directed|drove|established|evaluated|expanded|implemented|improved|increased|launched|led|managed|negotiated|oversaw|prepared|reduced|restructured|supported|trained|transformed|updated|worked|coordinated|conducted|administered|achieved|maintained|monitored|introduced|streamlined|supervised)\b/i;
 const DATE_TOKEN = /\b(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+)?(?:19|20)\d{2}\b/i;
 const DATE_RANGE = new RegExp(`${DATE_TOKEN.source}\\s*(?:-|–|—|to)\\s*(?:(?:present|current|now)|${DATE_TOKEN.source})`, 'i');
@@ -238,6 +244,84 @@ function splitParts(line: string) {
     .split(/\s*(?:\||•|—|–)\s*|\s+-\s+/)
     .map((v) => clean(v, 400))
     .filter(Boolean);
+}
+
+function evidenceLineNeighborhood(anchors: string[], source: string, radius = 4) {
+  const lines = String(source || '').replace(/\r\n/g, '\n').split('\n');
+  const normalizedAnchors = anchors.map(normalizeEvidence).filter(Boolean);
+  if (!normalizedAnchors.length) return [] as string[];
+
+  const selected = new Set<number>();
+  lines.forEach((line, index) => {
+    const normalizedLine = normalizeEvidence(line);
+    if (!normalizedLine) return;
+    if (normalizedAnchors.some((anchor) => normalizedLine.includes(anchor) || anchor.includes(normalizedLine))) {
+      for (let cursor = Math.max(0, index - radius); cursor <= Math.min(lines.length - 1, index + radius); cursor += 1) {
+        selected.add(cursor);
+      }
+    }
+  });
+
+  return [...selected].sort((a, b) => a - b).map((index) => lines[index] || '');
+}
+
+function hasExplicitCurrentEvidence(anchors: string[], source: string) {
+  return evidenceLineNeighborhood(anchors, source, 3).some((line) => EXPLICIT_CURRENT_SIGNAL.test(line));
+}
+
+function nearbyExpectedEducationDate(anchors: string[], source: string) {
+  const month = '(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)';
+  const expected = new RegExp('\\b(?:expected|anticipated|graduation(?:\\s+expected)?|completion(?:\\s+expected)?)\\b[^\\n]{0,50}?(' + month + '\\s+(?:19|20)\\d{2}|(?:19|20)\\d{2})', 'i');
+
+  for (const line of evidenceLineNeighborhood(anchors, source, 4)) {
+    const match = line.match(expected);
+    if (match?.[1]) return clean(match[1], 80);
+  }
+  return undefined;
+}
+
+function nearbyVolunteerSection(anchor: string, source: string) {
+  const lines = String(source || '').replace(/\r\n/g, '\n').split('\n');
+  const needle = normalizeEvidence(anchor);
+  if (!needle) return false;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = normalizeEvidence(lines[index] || '');
+    if (!line || (!line.includes(needle) && !needle.includes(line))) continue;
+
+    for (let cursor = Math.max(0, index - 8); cursor <= index; cursor += 1) {
+      if (resumeHeadingKind(lines[cursor] || '') === 'volunteer') return true;
+    }
+  }
+  return false;
+}
+
+function splitVolunteerComposite(value: unknown) {
+  const raw = clean(value, 520);
+  if (!raw) return undefined;
+
+  const commaParts = raw.split(/\s*,\s*/).map((part) => clean(part, 260)).filter(Boolean);
+  if (commaParts.length >= 2 && VOLUNTEER_ROLE_HINT.test(commaParts[0]!)) {
+    return { role: commaParts[0]!, organization: commaParts.slice(1).join(', ') };
+  }
+
+  const atParts = raw.split(/\s+(?:at|with)\s+/i).map((part) => clean(part, 260)).filter(Boolean);
+  if (atParts.length === 2 && VOLUNTEER_ROLE_HINT.test(atParts[0]!)) {
+    return { role: atParts[0]!, organization: atParts[1]! };
+  }
+
+  return undefined;
+}
+
+function looksLikeRolePlacedAsEmployer(value: unknown) {
+  const raw = clean(value, 260);
+  return Boolean(
+    raw &&
+    NON_ORG_ROLE_HINT.test(raw) &&
+    !ORGANIZATION_HINT.test(raw) &&
+    !looksLikeResumeNarrativeFragment(raw) &&
+    !looksLikeResumeSectionHeading(raw)
+  );
 }
 
 function splitEducationDegree(value: string) {
@@ -612,6 +696,57 @@ function inlineLanguageSignals(source: string) {
   return uniqueStrings(values).slice(0, 40);
 }
 
+function parseVolunteer(source: string): ResumeVolunteerEntry[] {
+  const body = sectionBody(source, VOLUNTEER_HEADINGS);
+  if (!body) return [];
+
+  const lines = body.split('\n').map((value) => clean(value, 1000)).filter(Boolean);
+  const out: ResumeVolunteerEntry[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = stripBullet(lines[index]!);
+    if (!line || looksLikeResumeNarrativeFragment(line)) continue;
+
+    const composite = splitVolunteerComposite(line);
+    let role = composite?.role;
+    let organization = composite?.organization;
+
+    if (!composite) {
+      const parts = splitParts(line);
+      role = parts.find((part) => VOLUNTEER_ROLE_HINT.test(part) || titleCandidate(part));
+      organization = parts.find((part) => part !== role && employerCandidate(part));
+    }
+
+    if (!role && VOLUNTEER_ROLE_HINT.test(line)) role = line;
+    if (!organization && role) {
+      const next = lines[index + 1] ? stripBullet(lines[index + 1]!) : '';
+      if (next && employerCandidate(next)) organization = next;
+    }
+
+    if (!role || !organization) continue;
+
+    const anchors = [role, organization];
+    const nearby = evidenceLineNeighborhood(anchors, source, 4).join('\n');
+    const range = nearby.match(DATE_RANGE)?.[0];
+    const parts = range?.split(/\s*(?:-|–|—|to)\s*/i) || [];
+
+    out.push({
+      role: clean(role, 220),
+      organization: clean(organization, 260),
+      startDate: parts[0] ? clean(parts[0], 80) : undefined,
+      endDate: parts[1] && !EXPLICIT_CURRENT_SIGNAL.test(parts[1]) ? clean(parts[1], 80) : undefined,
+    });
+  }
+
+  const seen = new Set<string>();
+  return out.filter((item) => {
+    const key = canonicalRecordValue(item.role) + '|' + canonicalRecordValue(item.organization);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 50);
+}
+
 export function deterministicStructuredResume(profile: Pick<ParsedResumeProfile, 'sourceText'|'skills'|'certifications'>): StructuredResumeProfile {
   const source = String(profile.sourceText || '');
   const skillsFromSection = sectionLines(source, SKILLS_HEADINGS, 200, true);
@@ -633,7 +768,7 @@ export function deterministicStructuredResume(profile: Pick<ParsedResumeProfile,
       .slice(0, 60),
     languages,
     projects: [],
-    volunteerExperience: [],
+    volunteerExperience: parseVolunteer(source),
     awards: [],
     publications: [],
     additionalInformation: '',
@@ -656,20 +791,39 @@ function supportedRelated(
 
 function safeEmployment(items: StructuredResumeProfile['employmentHistory'], source: string) {
   return (items || []).flatMap((raw) => {
-    const titleParts = splitParts(String(raw.positionTitle || ''))
+    const rawTitle = String(raw.positionTitle || '');
+    const rawEmployer = String(raw.employer || '');
+    const employerCarriesRole = looksLikeRolePlacedAsEmployer(rawEmployer);
+
+    const volunteerComposite =
+      splitVolunteerComposite(rawEmployer) ||
+      splitVolunteerComposite(rawTitle);
+
+    if (
+      volunteerComposite ||
+      (VOLUNTEER_ROLE_HINT.test(rawTitle) && nearbyVolunteerSection(rawTitle, source))
+    ) {
+      return [];
+    }
+
+    const titleParts = splitParts(rawTitle)
       .map((v) => stripBullet(v))
       .filter((v) => v && !isStructuralNoise(v));
 
     const rawLocationParts = splitParts(String(raw.location || ''))
       .map((v) => stripBullet(v))
       .filter((v) => v && !isStructuralNoise(v));
+
     const locationEmployer = rawLocationParts.find(employerCandidate);
     const locationPlace = rawLocationParts.find((v) => LOCATION_HINT.test(v) && !employerCandidate(v));
 
-    const titleSeed = titleParts.find(titleCandidate) || String(raw.positionTitle || '');
+    const titleSeed =
+      titleParts.find(titleCandidate) ||
+      (employerCarriesRole ? rawEmployer : rawTitle);
+
     const employerSeed =
-      (employerCandidate(String(raw.employer || '')) ? String(raw.employer || '') : '') ||
-      titleParts.find(employerCandidate) ||
+      (employerCarriesRole ? '' : (employerCandidate(rawEmployer) ? rawEmployer : '')) ||
+      titleParts.find((part) => part !== titleSeed && employerCandidate(part)) ||
       locationEmployer ||
       '';
 
@@ -684,6 +838,7 @@ function safeEmployment(items: StructuredResumeProfile['employmentHistory'], sou
 
     if (
       ROLE_DESCRIPTOR.test(stripBullet(employer)) ||
+      looksLikeRolePlacedAsEmployer(employer) ||
       looksLikeResumeSectionHeading(employer) ||
       looksLikeResumeNarrativeFragment(employer) ||
       isStructuralNoise(employer)
@@ -695,8 +850,11 @@ function safeEmployment(items: StructuredResumeProfile['employmentHistory'], sou
 
     const anchors = [positionTitle, employer].filter(Boolean);
     const startDate = supportedRelated(raw.startDate, source, anchors, 0.7, 3);
-    const endDate = supportedRelated(raw.endDate, source, anchors, 0.7, 3);
-    const location = supportedRelated(locationPlace || raw.location, source, anchors, 0.7, 3);
+    const endDateCandidate = supportedRelated(raw.endDate, source, anchors, 0.7, 3);
+    const explicitCurrent = hasExplicitCurrentEvidence(anchors, source);
+    const endDate = explicitCurrent ? undefined : endDateCandidate;
+    const locationMeta = normalizeEducationLocationMeta(locationPlace || raw.location || '');
+    const location = supportedRelated(locationMeta.location, source, anchors, 0.7, 3);
 
     const responsibilities = (raw.responsibilities || [])
       .flatMap((v) => {
@@ -714,7 +872,7 @@ function safeEmployment(items: StructuredResumeProfile['employmentHistory'], sou
       ...raw,
       positionTitle,
       employer,
-      current: Boolean(raw.current && (startDate || endDate)),
+      current: explicitCurrent,
       startDate,
       endDate,
       location,
@@ -761,6 +919,7 @@ function safeEducation(items: StructuredResumeProfile['educationHistory'], sourc
     const expectedDate =
       rawLocationMeta.expectedDate ||
       institutionLocationMeta.expectedDate ||
+      nearbyExpectedEducationDate(anchors, source) ||
       (!range ? institutionMeta.dateText : undefined);
 
     return [{
@@ -770,18 +929,126 @@ function safeEducation(items: StructuredResumeProfile['educationHistory'], sourc
       fieldOfStudy,
       startDate: supportedRelated(raw.startDate || rangeParts[0], source, anchors, 0.7, 3),
       endDate: supportedRelated(raw.endDate || rangeParts[1], source, anchors, 0.7, 3),
-      graduationDate: supportedRelated(raw.graduationDate || expectedDate, source, anchors, 0.7, 3),
+      graduationDate: supportedRelated(raw.graduationDate || expectedDate, source, anchors, 0.7, 4),
       location: supportedRelated(rawLocationMeta.location || institutionMeta.location, source, anchors, 0.7, 3),
     }];
   });
+}
+
+function volunteerFromEmploymentRecord(
+  raw: StructuredResumeProfile['employmentHistory'][number],
+  source: string,
+): ResumeVolunteerEntry | undefined {
+  const rawTitle = clean(raw.positionTitle, 260);
+  const rawEmployer = clean(raw.employer, 520);
+  const composite = splitVolunteerComposite(rawEmployer) || splitVolunteerComposite(rawTitle);
+
+  let role = composite?.role;
+  let organization = composite?.organization;
+
+  if (!composite && VOLUNTEER_ROLE_HINT.test(rawTitle) && nearbyVolunteerSection(rawTitle, source)) {
+    role = rawTitle;
+    organization = rawEmployer;
+  }
+
+  if (!role || !organization) return undefined;
+
+  const groundedRole = supported(role, source, 0.72);
+  const groundedOrganization = supported(organization, source, 0.72);
+  if (!groundedRole || !groundedOrganization) return undefined;
+  if (looksLikeResumeNarrativeFragment(groundedOrganization) || looksLikeResumeSectionHeading(groundedOrganization)) return undefined;
+
+  const anchors = [groundedRole, groundedOrganization];
+  return {
+    organization: groundedOrganization,
+    role: groundedRole,
+    startDate: supportedRelated(raw.startDate, source, anchors, 0.7, 4),
+    endDate: hasExplicitCurrentEvidence(anchors, source)
+      ? undefined
+      : supportedRelated(raw.endDate, source, anchors, 0.7, 4),
+    description: (raw.responsibilities || [])
+      .flatMap((value) => {
+        const grounded = supported(value, source, 0.68);
+        return grounded ? [grounded] : [];
+      })
+      .slice(0, 8)
+      .join(' '),
+  };
+}
+
+function safeVolunteer(items: StructuredResumeProfile['volunteerExperience'], source: string) {
+  return (items || []).flatMap((raw) => {
+    const composite = splitVolunteerComposite(raw.organization) || splitVolunteerComposite(raw.role);
+    const organizationSeed = composite?.organization || raw.organization;
+    const roleSeed = composite?.role || raw.role;
+
+    const organization = supported(organizationSeed, source, 0.72);
+    const role = supported(roleSeed, source, 0.72);
+
+    if (!organization || !role) return [];
+    if (looksLikeResumeNarrativeFragment(organization) || looksLikeResumeSectionHeading(organization)) return [];
+
+    const anchors = [organization, role];
+    return [{
+      ...raw,
+      organization,
+      role,
+      startDate: supportedRelated(raw.startDate, source, anchors, 0.7, 4),
+      endDate: hasExplicitCurrentEvidence(anchors, source)
+        ? undefined
+        : supportedRelated(raw.endDate, source, anchors, 0.7, 4),
+      description: supported(raw.description, source, 0.65),
+    }];
+  });
+}
+
+function dedupeVolunteerRecords(items: ResumeVolunteerEntry[]) {
+  const out: ResumeVolunteerEntry[] = [];
+  for (const item of items) {
+    const key = canonicalRecordValue(item.role) + '|' + canonicalRecordValue(item.organization);
+    const existing = out.findIndex((candidate) =>
+      canonicalRecordValue(candidate.role) + '|' + canonicalRecordValue(candidate.organization) === key
+    );
+    if (existing < 0) {
+      out.push(item);
+      continue;
+    }
+    out[existing] = {
+      ...out[existing]!,
+      ...item,
+      description: item.description || out[existing]!.description,
+      startDate: item.startDate || out[existing]!.startDate,
+      endDate: item.endDate || out[existing]!.endDate,
+    };
+  }
+  return out.slice(0, 50);
 }
 
 export function sanitizeStructuredResume(input: StructuredResumeProfile, source: string): StructuredResumeProfile {
   const safeSimple = <T extends object, K extends keyof T>(items: T[], anchor: K, max: number): T[] =>
     (items || []).filter((item) => Boolean(supported(item[anchor] as unknown, source, 0.68))).slice(0, max);
 
+  const migratedVolunteers = (input.employmentHistory || [])
+    .flatMap((record) => {
+      const volunteer = volunteerFromEmploymentRecord(record, source);
+      return volunteer ? [volunteer] : [];
+    });
+
+  const employmentOnly = (input.employmentHistory || []).filter(
+    (record) => !volunteerFromEmploymentRecord(record, source),
+  );
+
+  const cleanedEmployment = dedupeEmploymentRecords(
+    safeEmployment(employmentOnly, source).filter((record) => Boolean(record.positionTitle && record.employer)),
+  );
+
+  const cleanedVolunteers = dedupeVolunteerRecords([
+    ...safeVolunteer(input.volunteerExperience || [], source),
+    ...migratedVolunteers,
+  ]);
+
   return {
-    employmentHistory: safeEmployment(input.employmentHistory || [], source),
+    employmentHistory: cleanedEmployment,
     educationHistory: safeEducation(input.educationHistory || [], source),
     skills: normalizeResumeSkills(
       (input.skills || []).flatMap((v) => supported(v, source, 0.65) ? [v] : []),
@@ -802,7 +1069,7 @@ export function sanitizeStructuredResume(input: StructuredResumeProfile, source:
       source,
     ),
     projects: safeSimple(input.projects || [], 'name', 50),
-    volunteerExperience: safeSimple(input.volunteerExperience || [], 'organization', 50),
+    volunteerExperience: cleanedVolunteers,
     awards: safeSimple(input.awards || [], 'title', 50),
     publications: safeSimple(input.publications || [], 'title', 50),
     additionalInformation: supported(input.additionalInformation, source, 0.65),
@@ -833,10 +1100,15 @@ function sameEmploymentRecord(a: ResumeEmploymentEntry, b: ResumeEmploymentEntry
   const employerSame = Boolean(employerA && employerB && employerA === employerB);
   const titleSame = Boolean(titleA && titleB && titleA === titleB);
   const startSame = Boolean(startA && startB && startA === startB);
+  const crossFieldRole = Boolean(
+    (titleA && employerB && titleA === employerB) ||
+    (titleB && employerA && titleB === employerA)
+  );
 
   if (employerSame && titleSame) return true;
   if (employerSame && startSame) return true;
   if (titleSame && startSame) return true;
+  if (crossFieldRole && startSame) return true;
   if (employerSame && (!a.positionTitle || !b.positionTitle) && (!startA || !startB)) return true;
   return false;
 }
@@ -866,6 +1138,19 @@ function mergeEmploymentPair(primary: ResumeEmploymentEntry, fallback: ResumeEmp
   } satisfies ResumeEmploymentEntry;
 }
 
+function dedupeEmploymentRecords(items: ResumeEmploymentEntry[]) {
+  const out: ResumeEmploymentEntry[] = [];
+  for (const item of items) {
+    const index = out.findIndex((candidate) => sameEmploymentRecord(item, candidate));
+    if (index < 0) {
+      out.push(item);
+      continue;
+    }
+    out[index] = mergeEmploymentPair(item, out[index]!);
+  }
+  return out.slice(0, 60);
+}
+
 function reconcileEmploymentRecords(
   primary: StructuredResumeProfile['employmentHistory'] | undefined,
   fallback: StructuredResumeProfile['employmentHistory'],
@@ -888,7 +1173,7 @@ function reconcileEmploymentRecords(
     if (record.positionTitle && record.employer) out.push(record);
   }
 
-  return safeEmployment(out, source);
+  return dedupeEmploymentRecords(safeEmployment(out, source).filter((record) => Boolean(record.positionTitle && record.employer)));
 }
 
 function sameEducationRecord(a: ResumeEducationEntry, b: ResumeEducationEntry) {
@@ -979,7 +1264,7 @@ export function mergeStructuredResume(
     certifications: mergeCertifications(p?.certifications, f.certifications),
     languages: normalizeResumeLanguages([...(p?.languages || []), ...f.languages], source),
     projects: choose(p?.projects, f.projects),
-    volunteerExperience: choose(p?.volunteerExperience, f.volunteerExperience),
+    volunteerExperience: dedupeVolunteerRecords([...(p?.volunteerExperience || []), ...f.volunteerExperience]),
     awards: choose(p?.awards, f.awards),
     publications: choose(p?.publications, f.publications),
     additionalInformation: p?.additionalInformation || f.additionalInformation,
@@ -1000,6 +1285,7 @@ function categoryHints(source: string) {
     skills: kinds.has('skills'),
     certifications: kinds.has('certifications'),
     languages: kinds.has('languages'),
+    volunteerExperience: kinds.has('volunteer'),
   };
 }
 
@@ -1054,6 +1340,7 @@ export function assessStructuredResume(input: StructuredResumeProfile, source: s
   if (hints.skills && !sr.skills.length) criticalIssues.push('Skills section detected but no reliable skills were built.');
   if (hints.certifications && !sr.certifications.length) criticalIssues.push('Certification section detected but no reliable certification records were built.');
   if (hints.languages && !sr.languages.length) criticalIssues.push('Language section detected but no reliable language records were built.');
+  if (hints.volunteerExperience && !sr.volunteerExperience.length) criticalIssues.push('Volunteer/community section detected but no reliable volunteer records were built.');
 
   const recordCount =
     sr.employmentHistory.length + sr.educationHistory.length + sr.skills.length +
@@ -1137,6 +1424,53 @@ export function deriveStructuredExperienceYears(
 
   const totalMs = merged.reduce((sum, [start, end]) => sum + (end - start), 0);
   return Math.round((totalMs / (365.2425 * 24 * 60 * 60 * 1000)) * 10) / 10;
+}
+
+export function deriveValidatedStructuredExperienceYears(
+  records: StructuredResumeProfile['employmentHistory'],
+  source: string,
+  now = new Date(),
+): number | undefined {
+  const verified = dedupeEmploymentRecords(
+    safeEmployment(records || [], source).filter((record) => Boolean(record.positionTitle && record.employer)),
+  );
+  return deriveStructuredExperienceYears(verified, now);
+}
+
+export function transactionalStructuredRepair(
+  current: StructuredResumeProfile,
+  proposed: StructuredResumeProfile,
+  source: string,
+) {
+  const beforeProfile = sanitizeStructuredResume(current, source);
+  const afterProfile = sanitizeStructuredResume(proposed, source);
+  const before = assessStructuredResume(beforeProfile, source);
+  const after = assessStructuredResume(afterProfile, source);
+
+  const accepted = before.criticalIssues.length > 0
+    ? (
+        after.criticalIssues.length < before.criticalIssues.length &&
+        after.coverage >= Math.max(0, before.coverage - 5)
+      )
+    : (
+        after.criticalIssues.length === 0 &&
+        after.coverage >= before.coverage &&
+        (
+          after.quality > before.quality ||
+          after.recordCount > before.recordCount
+        )
+      );
+
+  return {
+    accepted,
+    profile: accepted ? afterProfile : beforeProfile,
+    before,
+    after: accepted ? after : before,
+    proposedAssessment: after,
+    resolvedCritical: accepted
+      ? Math.max(0, before.criticalIssues.length - after.criticalIssues.length)
+      : 0,
+  };
 }
 
 export function candidateVerificationGate(input: StructuredResumeProfile, source: string) {

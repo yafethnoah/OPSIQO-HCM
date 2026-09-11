@@ -14,11 +14,11 @@ describe('H50.6H workflow resilience',()=>{
 
   expect(start).toBeGreaterThanOrEqual(0);
   expect(publicParseBlock).toContain(
-   'parseResumeFile(actor(x.orgId,x.link.id),file,{requireStructuredPrefill:false})',
+   'parseResumeFile(a,file,{requireStructuredPrefill:false})',
   );
   expect(publicParseBlock).not.toContain('humanReviewFallback');
   expect(publicParseBlock).toContain('requiresCandidateReview:true');
-  expect(publicParseBlock).toContain('editable review draft');
+  expect(publicParseBlock).toContain('editable source-grounded review draft');
 
   expect(source.match(/requireStructuredPrefill:false/g)?.length).toBeGreaterThanOrEqual(2);
   expect(source).toContain('manual review mode');

@@ -4,6 +4,7 @@ export type ResumeHeadingKind =
   | 'skills'
   | 'certifications'
   | 'languages'
+  | 'volunteer'
   | 'other';
 
 const ENTITY_SUFFIX = /\b(?:inc(?:orporated)?|ltd|limited|llc|corp(?:oration)?|company|group|ngo|foundation|association|society|clinic|hospital|university|college|ministry|agency|authority|bank|school|institute|atelier|pharmacy)\b/i;
@@ -14,6 +15,7 @@ const EDUCATION_SIGNAL = /\b(?:education|academic\s+(?:background|history|creden
 const SKILLS_SIGNAL = /\b(?:skills?|competenc(?:y|ies)|capabilit(?:y|ies)|expertise|strengths|proficienc(?:y|ies)|tools?(?:\s*&\s*technolog(?:y|ies))?|technolog(?:y|ies))\b/i;
 const CERT_SIGNAL = /\b(?:certifications?|certificates?|credentials?|licen[cs]es?|professional\s+development)\b/i;
 const LANGUAGE_SIGNAL = /\b(?:languages?|language\s+proficiency)\b/i;
+const VOLUNTEER_SIGNAL = /\b(?:volunteer(?:ing|\s+experience|\s+leadership)?|community\s+(?:experience|involvement|service)|pro\s+bono)\b/i;
 const ACTION_START = /^(?:assessed|analyzed|analysed|built|created|delivered|designed|developed|directed|drove|established|evaluated|expanded|implemented|improved|increased|launched|led|managed|negotiated|oversaw|prepared|reduced|restructured|supported|trained|transformed|updated|worked|coordinated|conducted|administered|achieved|maintained|monitored|introduced|streamlined|supervised|assisted|answered|handled|served|processed|scheduled|collaborated|facilitated|provided|resolved|organized|organised|performed|ensured|promoted|advised|partnered)\b/i;
 const MONTH = '(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)';
 const YEAR = '(?:19|20)\\d{2}';
@@ -52,7 +54,8 @@ export function looksLikeResumeSectionHeading(value: unknown): boolean {
   const labelLike = /[:|]\s*$/.test(raw);
   const signal = SECTION_SIGNAL.test(raw);
   const thematicSignals = raw.match(/\b(?:governance|advisory|engagement|leadership|skills?|competenc(?:y|ies)|capabilit(?:y|ies)|expertise|experience|education|certifications?|languages?)\b/gi) || [];
-  const multiSignalThematic = thematicSignals.length >= 2 && /[,/&]/.test(raw);
+  const sentenceConnector = /,\s*(?:and|or|with|including|while|which|that)\b/i.test(raw);
+  const multiSignalThematic = thematicSignals.length >= 2 && /[,/&]/.test(raw) && !sentenceConnector;
 
   return Boolean(signal && (allUpper || labelLike || multiSignalThematic));
 }
@@ -65,6 +68,7 @@ export function resumeHeadingKind(value: unknown): ResumeHeadingKind | null {
   if (!looksHeading) return null;
 
   if (LANGUAGE_SIGNAL.test(raw)) return 'languages';
+  if (VOLUNTEER_SIGNAL.test(raw)) return 'volunteer';
   if (EDUCATION_SIGNAL.test(raw)) return 'education';
   if (CERT_SIGNAL.test(raw)) return 'certifications';
   if (SKILLS_SIGNAL.test(raw)) return 'skills';
@@ -84,6 +88,8 @@ export function looksLikeResumeNarrativeFragment(value: unknown): boolean {
   if (ACTION_START.test(text)) return true;
   if (/^(?:responsible\s+for|accountable\s+for|duties\s+included|key\s+responsibilities\s+included)\b/i.test(text)) return true;
   if (/^\p{Ll}/u.test(text) && (/[.,;:!?]$/.test(text) || words.length >= 4)) return true;
+  if (words.length >= 5 && /,\s*(?:and|or|with|including|while|which|that)\b/i.test(text)) return true;
+  if (/^(?:governance|policy|program|programme|operational|strategic|stakeholder|community)\s+(?:discussions?|activities|engagement|coordination|support|work|initiatives?)\b/i.test(text) && words.length >= 4) return true;
   if (/[.!?]$/.test(text) && words.length >= 5) return true;
   if (words.length >= 10 && /[,;:]/.test(text)) return true;
   return false;
@@ -106,6 +112,7 @@ export function normalizeEducationLocationMeta(value: unknown): {
   let location = raw
     .replace(/\([^)]*\b(?:in\s+progress|ongoing|expected|anticipated|graduation|completion)\b[^)]*\)/gi, ' ')
     .replace(/\b(?:in\s+progress|ongoing|expected|anticipated|graduation\s+expected|completion\s+expected)\b.*$/i, ' ')
+    .replace(/\s*[([{][^\])}]*$/u, ' ')
     .replace(/[;|]+\s*$/g, ' ')
     .replace(/\s+/g, ' ')
     .replace(/^[,;|\s]+|[,;|\s]+$/g, '')
