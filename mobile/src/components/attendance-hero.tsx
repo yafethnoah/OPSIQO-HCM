@@ -236,7 +236,7 @@ export function AttendanceHero({
     ? `${new Date(active.startAt).toLocaleTimeString([], {
         hour: "numeric",
         minute: "2-digit",
-      })} Â· ${elapsedLabel(active.startAt, nowMs)}`
+      })} · ${elapsedLabel(active.startAt, nowMs)}`
     : "Ready for your next work period.";
 
   const successful =
@@ -263,7 +263,7 @@ export function AttendanceHero({
       {canClock ? (
         <>
           <Button
-            title={busy ? "Please waitâ€¦" : active ? "Clock out" : "Clock in"}
+            title={busy ? "Please wait..." : active ? "Clock out" : "Clock in"}
             onPress={() => void clock(active ? "clock_out" : "clock_in")}
             disabled={busy}
           />
@@ -307,7 +307,7 @@ export function AttendanceHero({
           Background location tracking remains disabled.
         </Muted>
       ) : (
-        <Text style={s.privacy}>Location only at attendance action Â· no background tracking</Text>
+        <Text style={s.privacy}>Location only at attendance action · no background tracking</Text>
       )}
     </Card>
   );

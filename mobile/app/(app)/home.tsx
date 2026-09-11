@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { useAuth } from "@/auth/provider";
 import { useBootstrap } from "@/hooks/use-bootstrap";
 import { AttendanceHero } from "@/components/attendance-hero";
+import { AttendancePulseMonitor } from "@/components/attendance-pulse-monitor";
 import { OpsiqoBannerAd } from "@/components/ad-banner";
 import { useAttendanceReminders } from "@/notifications/attendance-reminders";
 import { Card, H1, H2, Loading, Muted, Screen } from "@/components/ui";
@@ -66,6 +67,7 @@ export default function Home() {
         </Card>
       ) : null}
 
+      <AttendancePulseMonitor />
       <AttendanceHero
         data={data}
         activeOrgId={activeOrgId}
