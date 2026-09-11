@@ -141,10 +141,17 @@ export async function parsePublicCandidateResume(token:string,form:FormData){
    const current=structuredResume.parse(currentRaw);
    const currentMerged=mergeStructuredResume(current,deterministicStructuredResume(parsed.profile),source);
    const before=candidateVerificationGate(currentMerged,source);
+   let clientRepairIssues:string[]=[];
+   try{
+     const rawIssues=JSON.parse(String(form.get('repairIssues')||'[]'));
+     if(Array.isArray(rawIssues))clientRepairIssues=rawIssues.map((value)=>String(value||'').trim()).filter(Boolean).slice(0,40);
+   }catch{
+     clientRepairIssues=[];
+   }
    const proposed=await governedStructuredResumeRepair(a,{
      sourceText:source,
      current:currentMerged,
-     issues:[...before.criticalIssues,...before.issues].slice(0,40),
+     issues:[...new Set([...clientRepairIssues,...before.criticalIssues,...before.issues])].slice(0,40),
    });
 
    if(proposed){
@@ -223,6 +230,8 @@ export async function submitPublicCandidateApplication(token:string,form:FormDat
  const x=await resolve(token);let raw:any;try{raw=JSON.parse(String(form.get('application')||''))}catch{throw new ApiError(400,'Application information could not be read.','invalid_application_payload')}const i=submission.parse(raw);answers(x.link,i.screeningAnswers);
  const rf=form.get('resume');if(!(rf instanceof File)||rf.size<=0)throw new ApiError(400,'Resume file is required.','resume_required');
  const a=actor(x.orgId,x.link.id),parsed=await parseResumeFile(a,rf,{requireStructuredPrefill:false}),rd=await extractRecruitingDocumentFile(rf);if(parsed.sourceMeta.sha256!==rd.sourceMeta.sha256)throw new ApiError(409,'Resume changed during processing.','resume_changed_during_processing');
+ const candidateEnteredVerification=candidateVerificationGate(i.structuredResume,parsed.profile.sourceText);
+ if(parsed.profile.sourceText?.trim()&&!candidateEnteredVerification.canFinalize)throw new ApiError(422,'Resume verification cannot be finalized while candidate-reviewed records still contain entity-purity, duplicate, current-status, education or other critical structure issues.','resume_structural_review_required');
  const verifiedStructuredResume=mergeStructuredResume(i.structuredResume,deterministicStructuredResume(parsed.profile),parsed.profile.sourceText);
  const verification=candidateVerificationGate(verifiedStructuredResume,parsed.profile.sourceText);
  const verifiedYearsOfExperience=deriveValidatedStructuredExperienceYears(verifiedStructuredResume.employmentHistory,parsed.profile.sourceText);

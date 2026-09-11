@@ -50,7 +50,7 @@ const NON_ORG_ROLE_HINT = /\b(?:practicum|internship|fellowship|placement|reside
 const ORGANIZATION_HINT = /\b(?:inc(?:orporated)?|ltd|limited|llc|corp(?:oration)?|company|group|ngo|foundation|association|society|clinic|hospital|university|college|ministry|agency|authority|bank|school|institute|atelier|pharmacy|room|network|council|coalition|forum)\b/i;
 const EXPLICIT_CURRENT_SIGNAL = /\b(?:present|current|currently|ongoing|to\s+date|date\s+to\s+present|now)\b/i;
 const VOLUNTEER_ROLE_HINT = /^(?:volunteer|voluntary|pro\s+bono)\b|\b(?:volunteer\s+leadership|volunteer\s+contributor|community\s+volunteer|pro\s+bono)\b/i;
-const ACTION_SENTENCE = /^(?:assessed|analyzed|analysed|built|created|delivered|designed|developed|directed|drove|established|evaluated|expanded|implemented|improved|increased|launched|led|managed|negotiated|oversaw|prepared|reduced|restructured|supported|trained|transformed|updated|worked|coordinated|conducted|administered|achieved|maintained|monitored|introduced|streamlined|supervised)\b/i;
+const ACTION_SENTENCE = /^(?:assessed|analyzed|analysed|built|co-founded|cofounded|founded|created|delivered|designed|developed|directed|drove|established|evaluated|expanded|implemented|improved|increased|launched|led|managed|negotiated|oversaw|prepared|reduced|restructured|supported|trained|transformed|updated|worked|coordinated|conducted|administered|achieved|maintained|monitored|introduced|streamlined|supervised)\b/i;
 const DATE_TOKEN = /\b(?:(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+)?(?:19|20)\d{2}\b/i;
 const DATE_RANGE = new RegExp(`${DATE_TOKEN.source}\\s*(?:-|–|—|to)\\s*(?:(?:present|current|now)|${DATE_TOKEN.source})`, 'i');
 const LOCATION_HINT = /(?:,\s*[A-Z]{2}\b)|\b(?:ontario|canada|jordan|syria|damascus|amman|toronto|mississauga|ottawa|montreal|vancouver|remote|hybrid)\b/i;
@@ -266,18 +266,63 @@ function evidenceLineNeighborhood(anchors: string[], source: string, radius = 4)
 }
 
 function hasExplicitCurrentEvidence(anchors: string[], source: string) {
-  return evidenceLineNeighborhood(anchors, source, 3).some((line) => EXPLICIT_CURRENT_SIGNAL.test(line));
+  const lines = String(source || '').replace(/\r\n/g, '\n').split('\n');
+  const needles = anchors.map(normalizeEvidence).filter(Boolean);
+  if (!needles.length) return false;
+
+  const anchorIndexes: number[] = [];
+  lines.forEach((line, index) => {
+    const normalized = normalizeEvidence(line);
+    if (!normalized) return;
+    if (needles.some((needle) => normalized.includes(needle) || needle.includes(normalized))) {
+      anchorIndexes.push(index);
+    }
+  });
+
+  for (const anchorIndex of anchorIndexes) {
+    const start = Math.max(0, anchorIndex - 1);
+    const end = Math.min(lines.length - 1, anchorIndex + 3);
+
+    for (let index = start; index <= end; index += 1) {
+      const line = String(lines[index] || '');
+      if (!EXPLICIT_CURRENT_SIGNAL.test(line)) continue;
+
+      // "Current" must be explicit employment-status evidence, not an ordinary
+      // responsibility sentence that happens to contain words such as
+      // "current priorities" or "currently supporting".
+      if (looksLikeResponsibilitySentence(line)) continue;
+
+      // "Current" must be part of the local employment date/status block, not
+      // a responsibility sentence elsewhere in the record.
+      const sameLineHasDate = DATE_TOKEN.test(line) || DATE_RANGE.test(line);
+      const adjacentHasDate =
+        DATE_TOKEN.test(String(lines[index - 1] || '')) ||
+        DATE_RANGE.test(String(lines[index - 1] || '')) ||
+        DATE_TOKEN.test(String(lines[index + 1] || '')) ||
+        DATE_RANGE.test(String(lines[index + 1] || ''));
+
+      if (sameLineHasDate || adjacentHasDate) return true;
+    }
+  }
+
+  return false;
 }
 
 function nearbyExpectedEducationDate(anchors: string[], source: string) {
   const month = '(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)';
-  const expected = new RegExp('\\b(?:expected|anticipated|graduation(?:\\s+expected)?|completion(?:\\s+expected)?)\\b[^\\n]{0,50}?(' + month + '\\s+(?:19|20)\\d{2}|(?:19|20)\\d{2})', 'i');
+  const expected = new RegExp('\\b(?:expected|anticipated|graduation(?:\\s+expected)?|completion(?:\\s+expected)?)\\b[\\s\\S]{0,80}?(' + month + '\\s+(?:19|20)\\d{2}|(?:19|20)\\d{2})', 'i');
+  const neighborhood = evidenceLineNeighborhood(anchors, source, 5);
 
-  for (const line of evidenceLineNeighborhood(anchors, source, 4)) {
+  for (const line of neighborhood) {
     const match = line.match(expected);
     if (match?.[1]) return clean(match[1], 80);
   }
-  return undefined;
+
+  // PDF/text extraction frequently wraps "expected" and the date onto
+  // separate physical lines. Rejoin only the local education neighborhood.
+  const joined = neighborhood.join(' ').replace(/\s+/g, ' ').trim();
+  const joinedMatch = joined.match(expected);
+  return joinedMatch?.[1] ? clean(joinedMatch[1], 80) : undefined;
 }
 
 function nearbyVolunteerSection(anchor: string, source: string) {
@@ -533,7 +578,7 @@ function employerCandidate(line: string) {
   const value = clean(line, 260);
   const lexical = stripBullet(value);
   if (!lexical || isStructuralNoise(lexical)) return false;
-  if (looksLikeResumeSectionHeading(lexical) || looksLikeResumeNarrativeFragment(lexical)) return false;
+  if (looksLikeResumeSectionHeading(lexical) || looksLikeResumeNarrativeFragment(lexical) || looksLikeResponsibilitySentence(lexical)) return false;
   if (DATE_TOKEN.test(lexical) || LOCATION_HINT.test(lexical)) return false;
   if (ROLE_DESCRIPTOR.test(lexical)) return false;
   if (TITLE_HINT.test(lexical) && lexical.split(/\s+/).length <= 8) return false;
@@ -549,6 +594,7 @@ function titleCandidate(line: string) {
     !isStructuralNoise(value) &&
     !looksLikeResumeSectionHeading(value) &&
     !looksLikeResumeNarrativeFragment(value) &&
+    !looksLikeResponsibilitySentence(value) &&
     TITLE_HINT.test(value) &&
     !DATE_TOKEN.test(value)
   );
@@ -833,6 +879,7 @@ function safeEmployment(items: StructuredResumeProfile['employmentHistory'], sou
     if (
       looksLikeResumeSectionHeading(positionTitle) ||
       looksLikeResumeNarrativeFragment(positionTitle) ||
+      looksLikeResponsibilitySentence(positionTitle) ||
       isStructuralNoise(positionTitle)
     ) positionTitle = '';
 
@@ -841,6 +888,7 @@ function safeEmployment(items: StructuredResumeProfile['employmentHistory'], sou
       looksLikeRolePlacedAsEmployer(employer) ||
       looksLikeResumeSectionHeading(employer) ||
       looksLikeResumeNarrativeFragment(employer) ||
+      looksLikeResponsibilitySentence(employer) ||
       isStructuralNoise(employer)
     ) employer = '';
 
@@ -1002,24 +1050,77 @@ function safeVolunteer(items: StructuredResumeProfile['volunteerExperience'], so
   });
 }
 
+function volunteerTokenSet(value: unknown) {
+  return new Set(canonicalRecordValue(value).split(/\s+/).filter((token) => token.length >= 3));
+}
+
+function volunteerOrganizationSimilarity(a: unknown, b: unknown) {
+  const left = canonicalRecordValue(a);
+  const right = canonicalRecordValue(b);
+  if (!left || !right) return false;
+  if (left === right || left.includes(right) || right.includes(left)) return true;
+
+  const leftTokens = volunteerTokenSet(left);
+  const rightTokens = volunteerTokenSet(right);
+  if (!leftTokens.size || !rightTokens.size) return false;
+  const intersection = [...leftTokens].filter((token) => rightTokens.has(token)).length;
+  return intersection / Math.min(leftTokens.size, rightTokens.size) >= 0.75;
+}
+
+function sameVolunteerRecord(a: ResumeVolunteerEntry, b: ResumeVolunteerEntry) {
+  const roleA = canonicalRecordValue(a.role);
+  const roleB = canonicalRecordValue(b.role);
+  if (!roleA || !roleB) return false;
+
+  const roleSame =
+    roleA === roleB ||
+    roleA.includes(roleB) ||
+    roleB.includes(roleA);
+
+  if (!roleSame || !volunteerOrganizationSimilarity(a.organization, b.organization)) return false;
+
+  const startA = recordYear(a.startDate);
+  const startB = recordYear(b.startDate);
+  return !startA || !startB || startA === startB;
+}
+
+function cleanerVolunteerOrganization(a: string, b: string) {
+  const left = clean(a, 260);
+  const right = clean(b, 260);
+  const leftCanonical = canonicalRecordValue(left);
+  const rightCanonical = canonicalRecordValue(right);
+
+  if (leftCanonical.includes(rightCanonical) && rightCanonical.length < leftCanonical.length) return right;
+  if (rightCanonical.includes(leftCanonical) && leftCanonical.length < rightCanonical.length) return left;
+
+  // Prefer the less punctuated/shorter organization when both are otherwise
+  // strongly similar; this removes appended narrative or affiliation tails.
+  const leftPenalty = (left.match(/[|—–-]/g) || []).length * 20 + left.length;
+  const rightPenalty = (right.match(/[|—–-]/g) || []).length * 20 + right.length;
+  return leftPenalty <= rightPenalty ? left : right;
+}
+
+function mergeVolunteerPair(primary: ResumeVolunteerEntry, fallback: ResumeVolunteerEntry) {
+  return {
+    ...fallback,
+    ...primary,
+    organization: cleanerVolunteerOrganization(primary.organization, fallback.organization),
+    role: clean(primary.role || fallback.role, 220),
+    startDate: primary.startDate || fallback.startDate,
+    endDate: primary.endDate || fallback.endDate,
+    description: primary.description || fallback.description,
+  } satisfies ResumeVolunteerEntry;
+}
+
 function dedupeVolunteerRecords(items: ResumeVolunteerEntry[]) {
   const out: ResumeVolunteerEntry[] = [];
   for (const item of items) {
-    const key = canonicalRecordValue(item.role) + '|' + canonicalRecordValue(item.organization);
-    const existing = out.findIndex((candidate) =>
-      canonicalRecordValue(candidate.role) + '|' + canonicalRecordValue(candidate.organization) === key
-    );
+    const existing = out.findIndex((candidate) => sameVolunteerRecord(item, candidate));
     if (existing < 0) {
       out.push(item);
       continue;
     }
-    out[existing] = {
-      ...out[existing]!,
-      ...item,
-      description: item.description || out[existing]!.description,
-      startDate: item.startDate || out[existing]!.startDate,
-      endDate: item.endDate || out[existing]!.endDate,
-    };
+    out[existing] = mergeVolunteerPair(item, out[existing]!);
   }
   return out.slice(0, 50);
 }
@@ -1289,10 +1390,75 @@ function categoryHints(source: string) {
   };
 }
 
-export function assessStructuredResume(input: StructuredResumeProfile, source: string): StructuredResumeAssessment {
-  const sr = sanitizeStructuredResume(input, source);
+function semanticIntegrityIssues(input: StructuredResumeProfile, source: string) {
+  const critical: string[] = [];
   const issues: string[] = [];
-  const criticalIssues: string[] = [];
+
+  (input.employmentHistory || []).forEach((record, index) => {
+    const title = clean(record.positionTitle, 500);
+    const employer = clean(record.employer, 500);
+
+    if (title && (looksLikeResumeSectionHeading(title) || looksLikeResumeNarrativeFragment(title) || looksLikeResponsibilitySentence(title))) {
+      critical.push(`Employment ${index + 1}: position title is responsibility/narrative text, not a reliable role entity.`);
+    }
+    if (employer && (looksLikeResumeSectionHeading(employer) || looksLikeResumeNarrativeFragment(employer) || looksLikeResponsibilitySentence(employer))) {
+      critical.push(`Employment ${index + 1}: employer is responsibility/narrative text, not a reliable organization entity.`);
+    }
+    if (record.current && !hasExplicitCurrentEvidence([title, employer].filter(Boolean), source)) {
+      critical.push(`Employment ${index + 1}: Current status is not supported by explicit local Present/Current/Ongoing evidence.`);
+    }
+  });
+
+  for (let i = 0; i < (input.employmentHistory || []).length; i += 1) {
+    for (let j = i + 1; j < (input.employmentHistory || []).length; j += 1) {
+      if (sameEmploymentRecord(input.employmentHistory[i]!, input.employmentHistory[j]!)) {
+        critical.push(`Employment ${j + 1}: probable duplicate/partial duplicate of Employment ${i + 1}.`);
+      }
+    }
+  }
+
+  for (let i = 0; i < (input.volunteerExperience || []).length; i += 1) {
+    const item = input.volunteerExperience[i]!;
+    const organization = clean(item.organization, 500);
+    if (organization && looksLikeResponsibilitySentence(organization)) {
+      critical.push(`Volunteer ${i + 1}: organization contains responsibility/narrative text.`);
+    }
+    for (let j = i + 1; j < (input.volunteerExperience || []).length; j += 1) {
+      if (sameVolunteerRecord(item, input.volunteerExperience[j]!)) {
+        critical.push(`Volunteer ${j + 1}: probable duplicate/contaminated organization record of Volunteer ${i + 1}.`);
+      }
+    }
+  }
+
+  (input.educationHistory || []).forEach((record, index) => {
+    const anchors = [clean(record.degree, 260), clean(record.institution, 280)].filter(Boolean);
+    const expected = nearbyExpectedEducationDate(anchors, source);
+    const locationMeta = normalizeEducationLocationMeta(record.location || '');
+
+    if (locationMeta.status || locationMeta.expectedDate || /[([{]\s*$/.test(String(record.location || ''))) {
+      critical.push(`Education ${index + 1}: location contains study-status or wrapped metadata.`);
+    }
+    if (expected && !record.graduationDate && !record.endDate) {
+      critical.push(`Education ${index + 1}: expected graduation ${expected} is source-supported but missing from the structured record.`);
+    }
+  });
+
+  const skills = normalizeResumeSkills(input.skills || [], source);
+  if (skills.length < (input.skills || []).filter(Boolean).length) {
+    issues.push('Skills: redundant or fragmentary competency entries were normalized.');
+  }
+
+  return {
+    critical: [...new Set(critical)].slice(0, 40),
+    issues: [...new Set(issues)].slice(0, 40),
+  };
+}
+
+export function assessStructuredResume(input: StructuredResumeProfile, source: string): StructuredResumeAssessment {
+  const integrity = semanticIntegrityIssues(input, source);
+  const sr = sanitizeStructuredResume(input, source);
+  const issues: string[] = [...integrity.issues];
+  const criticalIssues: string[] = [...integrity.critical];
   const scores: number[] = [];
 
   for (const [i, x] of sr.employmentHistory.entries()) {

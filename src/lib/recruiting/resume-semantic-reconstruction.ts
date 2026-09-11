@@ -152,13 +152,30 @@ export function normalizeResumeSkills(values: unknown[], source = ''): string[] 
   }
 
   const seen = new Set<string>();
-  return merged.filter((value) => {
+  const exact = merged.filter((value) => {
     const key = canonical(value);
     const tokens = key.split(/\s+/).filter(Boolean);
     if (!key || seen.has(key)) return false;
     if (tokens.length === 1 && SKILL_FRAGMENT_STOPWORDS.has(key)) return false;
     seen.add(key);
     return true;
+  });
+
+  return exact.filter((value, index, all) => {
+    const key = canonical(value);
+    const tokens = key.split(/\s+/).filter(Boolean);
+    if (tokens.length < 2) return true;
+
+    return !all.some((other, otherIndex) => {
+      if (otherIndex === index) return false;
+      const otherKey = canonical(other);
+      if (!otherKey || otherKey.length <= key.length) return false;
+      return (
+        otherKey.endsWith(` ${key}`) ||
+        otherKey.startsWith(`${key} `) ||
+        otherKey.includes(` ${key} `)
+      );
+    });
   }).slice(0, 200);
 }
 

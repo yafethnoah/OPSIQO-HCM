@@ -48,6 +48,19 @@ const empty:Profile={
 };
 
 
+const ACTION_ENTITY=/^(?:assessed|analyzed|analysed|built|co-founded|cofounded|founded|created|delivered|designed|developed|directed|drove|established|evaluated|expanded|implemented|improved|increased|launched|led|managed|negotiated|oversaw|prepared|reduced|restructured|supported|trained|transformed|updated|worked|coordinated|conducted|administered|achieved|maintained|monitored|introduced|streamlined|supervised|provided|partnered|facilitated)\b/i;
+const canonicalReview=(value:unknown)=>String(value||'').normalize('NFKC').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,' ').replace(/\s+/g,' ').trim();
+const entityLooksNarrative=(value:string)=>looksLikeResumeSectionHeading(value)||looksLikeResumeNarrativeFragment(value)||ACTION_ENTITY.test(value.trim());
+const volunteerSimilar=(a:ResumeVolunteerEntry,b:ResumeVolunteerEntry)=>{
+  const roleA=canonicalReview(a.role),roleB=canonicalReview(b.role),orgA=canonicalReview(a.organization),orgB=canonicalReview(b.organization);
+  if(!roleA||!roleB||!orgA||!orgB)return false;
+  const roleSame=roleA===roleB||roleA.includes(roleB)||roleB.includes(roleA);
+  const orgSame=orgA===orgB||orgA.includes(orgB)||orgB.includes(orgA);
+  const year=(v:unknown)=>String(v||'').match(/\b(?:19|20)\d{2}\b/)?.[0]||'';
+  const yearA=year(a.startDate),yearB=year(b.startDate);
+  return roleSame&&orgSame&&(!yearA||!yearB||yearA===yearB);
+};
+
 function candidateResumeReviewIssues(resume:StructuredResumeProfile):string[]{
   const issues:string[]=[];
 
@@ -56,8 +69,27 @@ function candidateResumeReviewIssues(resume:StructuredResumeProfile):string[]{
     const employer=String(item.employer||'').trim();
     if(!title)issues.push(`Employment ${index+1}: add the position title.`);
     if(!employer)issues.push(`Employment ${index+1}: add the employer/organization.`);
-    if(title&&(looksLikeResumeSectionHeading(title)||looksLikeResumeNarrativeFragment(title)))issues.push(`Employment ${index+1}: position title looks like a heading or sentence fragment.`);
-    if(employer&&(looksLikeResumeSectionHeading(employer)||looksLikeResumeNarrativeFragment(employer)))issues.push(`Employment ${index+1}: employer looks like a heading or sentence fragment.`);
+    if(title&&entityLooksNarrative(title))issues.push(`Employment ${index+1}: position title is responsibility/narrative text, not a reliable role entity.`);
+    if(employer&&entityLooksNarrative(employer))issues.push(`Employment ${index+1}: employer is responsibility/narrative text, not a reliable organization entity.`);
+  });
+
+  for(let i=0;i<(resume.employmentHistory||[]).length;i+=1){
+    for(let j=i+1;j<(resume.employmentHistory||[]).length;j+=1){
+      const a=resume.employmentHistory[i]!,b=resume.employmentHistory[j]!;
+      const titleA=canonicalReview(a.positionTitle),titleB=canonicalReview(b.positionTitle);
+      const employerA=canonicalReview(a.employer),employerB=canonicalReview(b.employer);
+      const year=(v:unknown)=>String(v||'').match(/\b(?:19|20)\d{2}\b/)?.[0]||'';
+      const same=(titleA&&titleB&&titleA===titleB)||(employerA&&employerB&&employerA===employerB);
+      if(same&&(!year(a.startDate)||!year(b.startDate)||year(a.startDate)===year(b.startDate)))issues.push(`Employment ${j+1}: probable duplicate/partial duplicate of Employment ${i+1}.`);
+    }
+  }
+
+  (resume.volunteerExperience||[]).forEach((item,index)=>{
+    const organization=String(item.organization||'').trim();
+    if(organization&&entityLooksNarrative(organization))issues.push(`Volunteer ${index+1}: organization contains responsibility/narrative text.`);
+    for(let j=index+1;j<(resume.volunteerExperience||[]).length;j+=1){
+      if(volunteerSimilar(item,resume.volunteerExperience[j]!))issues.push(`Volunteer ${j+1}: probable duplicate/contaminated organization record of Volunteer ${index+1}.`);
+    }
   });
 
   (resume.educationHistory||[]).forEach((item,index)=>{
@@ -114,10 +146,16 @@ export function CandidateApplicationPortal({token}:{token:string}){
   const set=(k:Exclude<keyof Profile,'customResumeSections'>,v:string)=>setP(x=>({...x,[k]:v}));
   const localReviewIssues=candidateResumeReviewIssues(structured);
   const skillsExpected=Boolean(parseAssurance?.structuredCriticalIssues?.some(x=>/skills/i.test(x)));
+  const serverCriticalIssues=parseAssurance?.structuredCriticalIssues||[];
   const reviewIssues=[...new Set([
     ...localReviewIssues,
+    ...serverCriticalIssues,
     ...(skillsExpected&&!structured.skills.length?['Skills: add at least one source-supported skill or competency.']:[]),
   ])];
+  const repairableIssues=[...new Set([
+    ...reviewIssues,
+    ...(parseAssurance?.structuredIssues||[]),
+  ])].slice(0,40);
   const structurallyReady=reviewIssues.length===0;
   const candidateReviewComplete=resumeReviewed&&structurallyReady;
 
@@ -144,7 +182,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
   async function parse(f:File,targetStep=2,repair=false){
     setBusy('parse');setError('');setParseNote('');setParseAssurance(null);setResumeReviewed(false);
     try{
-      const d=new FormData();d.set('file',f);if(repair){d.set('mode','repair');d.set('structuredResume',JSON.stringify(structured));}
+      const d=new FormData();d.set('file',f);if(repair){d.set('mode','repair');d.set('structuredResume',JSON.stringify(structured));d.set('repairIssues',JSON.stringify(repairableIssues));}
       const r=await call<{data:{profile:any;structuredResume:StructuredResumeProfile;assurance:ParseAssurance;note:string}}>(
         `/api/public/recruiting/apply/${encodeURIComponent(token)}/parse`,
         {method:'POST',body:d},
@@ -175,7 +213,7 @@ export function CandidateApplicationPortal({token}:{token:string}){
       if(r.data.assurance.repairOutcome){
         const o=r.data.assurance.repairOutcome;
         setNotice(o.accepted
-          ?`AI repair accepted: ${o.resolvedCritical} critical issue(s) resolved; ${o.afterCritical} remain.`
+          ?`AI repair accepted: ${o.resolvedCritical>0?`${o.resolvedCritical} critical issue(s) resolved; ${o.afterCritical} remain.`:'structural quality improved without introducing new critical issues.'}`
           :'AI repair made no safe structural improvement. Your previous source-grounded review draft was retained.');
       }
       setStep(targetStep);
@@ -299,7 +337,9 @@ export function CandidateApplicationPortal({token}:{token:string}){
 
       {step===3&&<section className="prehireCard stack" data-h50-5g-resume-editor="true" data-h50-5i-structured-resume="true">
         <div className="toolbar"><div><h2>3. Resume review & edit</h2><p className="muted">OPSIQO extracted your resume into structured application records. Review every card; edit, add or remove records before submitting.</p></div><span className="badge">Structured resume</span></div>
-        {reviewIssues.length?<div className="error"><strong>{reviewIssues.length} critical resume structure issue(s) need correction.</strong><ul>{reviewIssues.slice(0,8).map(issue=><li key={issue}>{issue}</li>)}</ul>{resume&&<button type="button" className="button secondary" disabled={busy==='parse'} onClick={()=>void parse(resume,3,true)}>{busy==='parse'?'AI repairing affected records…':'Improve these records with AI'}</button>}</div>:<div className="success"><strong>No client-side critical structure issues detected.</strong> Final source-grounded verification will still run when you submit.</div>}
+        {reviewIssues.length
+          ?<div className="error"><strong>{reviewIssues.length} critical resume structure issue(s) need correction.</strong><ul>{reviewIssues.slice(0,8).map(issue=><li key={issue}>{issue}</li>)}</ul>{resume&&<button type="button" className="button secondary" disabled={busy==='parse'} onClick={()=>void parse(resume,3,true)}>{busy==='parse'?'AI repairing affected records…':'Improve these records with AI'}</button>}</div>
+          :<div className="success"><strong>Structural readiness checks passed for the records currently shown.</strong> Final source-grounded verification will still run when you submit.{repairableIssues.length>0&&resume?<><br/><button type="button" className="button secondary" disabled={busy==='parse'} onClick={()=>void parse(resume,3,true)}>{busy==='parse'?'AI reviewing quality anomalies…':'Improve quality with AI'}</button></>:null}</div>}
         <F label="Estimated years of experience from resume · review" type="number" value={p.yearsOfExperience} onChange={v=>set('yearsOfExperience',v)}/>
 
         <SectionTitle title="Professional experience" hint="Employment History"/>
