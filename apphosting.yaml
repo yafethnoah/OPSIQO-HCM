@@ -111,13 +111,16 @@ env:
     value: "18000"
     availability: [RUNTIME]
   - variable: OPSIQO_RECRUITING_AI_PASS1_TIMEOUT_MS
-    value: "16000"
+    value: "20000"
     availability: [RUNTIME]
   - variable: OPSIQO_RECRUITING_AI_PASS2_TIMEOUT_MS
     value: "12000"
     availability: [RUNTIME]
   - variable: OPSIQO_RECRUITING_AI_PASS3_TIMEOUT_MS
     value: "8000"
+    availability: [RUNTIME]
+  - variable: OPSIQO_RECRUITING_AI_RECOVERY_TIMEOUT_MS
+    value: "10000"
     availability: [RUNTIME]
   - variable: OPSIQO_RECRUITING_DOCUMENT_AI_OCR_PROCESSOR
     secret: OPSIQO_RECRUITING_DOCUMENT_AI_OCR_PROCESSOR

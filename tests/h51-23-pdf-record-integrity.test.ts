@@ -167,7 +167,7 @@ describe('OPSIQO H51.23 PDF resume record integrity', () => {
     expect(provider).toContain("const sourceEvidence=String(text||'')");
     expect(provider).toContain("const aiEvidenceText=raw?.evidenceText");
     expect(provider).toContain("const evidenceText=sourceEvidence||aiEvidenceText");
-    expect(provider).toContain('RECRUITING_RESUME_PARSE_V8_BOUNDED_LATENCY');
+    expect(provider).toContain('RECRUITING_RESUME_PARSE_V9_ADAPTIVE_RECOVERY');
     const intelligence = fs.readFileSync(
       'src/lib/recruiting/resume-document-intelligence.ts',
       'utf8',

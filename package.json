@@ -335,7 +335,8 @@
     "test:h51:control-plane": "vitest run tests/h51-control-plane.test.ts",
     "h51:control-plane:verify": "npm run h51:control-plane:audit && npm run test:h51:control-plane",
     "test:h51-25": "vitest run tests/h51-25-advanced-resume-intelligence.test.ts",
-    "test:h51-26": "vitest run tests/h51-26-bounded-resume-latency.test.ts"
+    "test:h51-26": "vitest run tests/h51-26-bounded-resume-latency.test.ts",
+    "test:h51-27": "vitest run tests/h51-27-adaptive-resume-recovery.test.ts"
   },
   "dependencies": {
     "firebase": "12.16.0",

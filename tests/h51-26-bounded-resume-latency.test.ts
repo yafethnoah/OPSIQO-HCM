@@ -51,10 +51,16 @@ describe("H51.26 bounded recruiting latency", () => {
     const intelligence = fs.readFileSync("src/lib/recruiting/resume-document-intelligence.ts", "utf8");
     const hosting = fs.readFileSync("apphosting.yaml", "utf8");
 
-    expect(provider).toContain("RECRUITING_RESUME_PARSE_V8_BOUNDED_LATENCY");
+    expect(
+      provider.includes("RECRUITING_RESUME_PARSE_V8_BOUNDED_LATENCY") ||
+      provider.includes("RECRUITING_RESUME_PARSE_V9_ADAPTIVE_RECOVERY"),
+    ).toBe(true);
     expect(provider).toContain("maxAttempts:2");
     expect(provider).toContain("ai_provider_timeout");
-    expect(provider).toContain("aiJson(profile,pass1Prompt,attachment,pass1TimeoutMs)");
+    expect(
+      provider.includes("aiJson(profile,pass1Prompt,attachment,pass1TimeoutMs)") ||
+      provider.includes("aiJson(profile,pass1Prompt,pass1Attachment,pass1TimeoutMs)"),
+    ).toBe(true);
     expect(provider).toContain("aiJson(profile,verifyPrompt,attachment,pass2TimeoutMs)");
     expect(provider).toContain("aiJson(profile,semanticPrompt,undefined,pass3TimeoutMs)");
     expect(provider).toContain("sourceEvidence||aiEvidenceText");
@@ -65,5 +71,8 @@ describe("H51.26 bounded recruiting latency", () => {
     expect(hosting).toContain("OPSIQO_RECRUITING_AI_PASS1_TIMEOUT_MS");
     expect(hosting).toContain("OPSIQO_RECRUITING_AI_PASS2_TIMEOUT_MS");
     expect(hosting).toContain("OPSIQO_RECRUITING_AI_PASS3_TIMEOUT_MS");
+    if (provider.includes("RECRUITING_RESUME_PARSE_V9_ADAPTIVE_RECOVERY")) {
+      expect(hosting).toContain("OPSIQO_RECRUITING_AI_RECOVERY_TIMEOUT_MS");
+    }
   });
 });
