@@ -51,7 +51,32 @@ function clean(v: unknown, max = 5000): string {
 }
 
 function cleanHeading(v: string) {
-  return clean(v, 160).toLowerCase().replace(/[:|]+$/g, '').replace(/\s+/g, ' ').trim();
+  return clean(v, 160)
+    .toLowerCase()
+    .replace(/^\s*page\s+\d+(?:\s+of\s+\d+)?\s*[-–—|:]\s*/i, '')
+    .replace(/\s*(?:[-–—|:])\s*(?:continued|cont\.?)\s*$/i, '')
+    .replace(/[:|]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isStructuralNoise(v: string) {
+  const raw = clean(v, 220);
+  const heading = cleanHeading(raw);
+  if (!raw) return true;
+  if (ALL_HEADINGS.has(heading)) return true;
+  if (/^page\s+\d+(?:\s+of\s+\d+)?$/i.test(raw)) return true;
+  if (/\b(?:professional\s+experience|work\s+experience|education|skills|core\s+competencies|certifications?|languages?)\b.*\b(?:continued|cont\.?)\b/i.test(raw)) return true;
+  return false;
+}
+
+function looksLikeResponsibilitySentence(v: string) {
+  const value = stripBullet(clean(v, 1200));
+  if (!value) return false;
+  if (ACTION_SENTENCE.test(value)) return true;
+  if (/^(?:assisted|answered|handled|served|processed|scheduled|collaborated|facilitated|provided|resolved|organized|organised|performed|ensured|promoted|advised|partnered)\b/i.test(value)) return true;
+  const words = value.split(/\s+/).filter(Boolean);
+  return words.length >= 10 && /[,;.!?]/.test(value);
 }
 
 function stripBullet(v: string) {
@@ -72,7 +97,10 @@ function sectionBody(source: string, aliases: string[]): string {
   const out: string[] = [];
   for (let i = start; i < lines.length; i++) {
     const raw = lines[i] || '';
-    if (ALL_HEADINGS.has(cleanHeading(raw))) break;
+    const heading = cleanHeading(raw);
+    if (wanted.has(heading)) continue;
+    if (ALL_HEADINGS.has(heading)) break;
+    if (isStructuralNoise(raw)) continue;
     out.push(raw);
   }
   return out.join('\n').trim();
@@ -119,6 +147,52 @@ function splitParts(line: string) {
     .filter(Boolean);
 }
 
+function splitEducationDegree(value: string) {
+  const text = clean(value, 320);
+  const parts = text.split(/\s*,\s*/).map((v) => clean(v, 220)).filter(Boolean);
+  if (parts.length >= 2 && DEGREE_HINT.test(parts[0]!) && !INSTITUTION_HINT.test(parts[1]!)) {
+    return {
+      degree: parts[0]!,
+      fieldOfStudy: parts.slice(1).join(', '),
+    };
+  }
+  return { degree: text, fieldOfStudy: undefined as string | undefined };
+}
+
+function splitInstitutionMeta(value: string) {
+  let text = clean(value, 360);
+  let dateText: string | undefined;
+  let location: string | undefined;
+
+  const dateMatch = text.match(DATE_RANGE)?.[0];
+  if (dateMatch) {
+    const idx = text.toLowerCase().lastIndexOf(dateMatch.toLowerCase());
+    if (idx >= 0 && idx + dateMatch.length >= text.length - 2) {
+      dateText = dateMatch;
+      text = text.slice(0, idx).replace(/[\s,;|·•-]+$/u, '').trim();
+    }
+  }
+
+  text = text
+    .replace(/\s*\((?:in\s+progress|expected|anticipated)[^)]*\)?\s*$/i, '')
+    .trim();
+
+  const commaParts = text.split(/\s*,\s*/).filter(Boolean);
+  if (commaParts.length >= 2) {
+    const tail = commaParts[commaParts.length - 1]!;
+    if (LOCATION_HINT.test(tail) && !INSTITUTION_HINT.test(tail)) {
+      location = tail;
+      text = commaParts.slice(0, -1).join(', ');
+    }
+  }
+
+  return {
+    institution: clean(text, 280),
+    dateText,
+    location,
+  };
+}
+
 function parseEducation(source: string): ResumeEducationEntry[] {
   const body = sectionBody(source, EDUCATION_HEADINGS);
   if (!body) return [];
@@ -163,13 +237,23 @@ function parseEducation(source: string): ResumeEducationEntry[] {
       }
     }
 
+    const degreeMeta = splitEducationDegree(degree);
+    degree = degreeMeta.degree;
+    if (!fieldOfStudy && degreeMeta.fieldOfStudy) fieldOfStudy = degreeMeta.fieldOfStudy;
+
+    const institutionMeta = splitInstitutionMeta(institution);
+    institution = institutionMeta.institution;
+    if (!dateText && institutionMeta.dateText) dateText = institutionMeta.dateText;
+
     if (!degree || !institution) continue;
-    if (ACTION_SENTENCE.test(degree) || ACTION_SENTENCE.test(institution)) continue;
+    if (looksLikeResponsibilitySentence(degree) || looksLikeResponsibilitySentence(institution)) continue;
+    if (isStructuralNoise(degree) || isStructuralNoise(institution)) continue;
 
     const record: ResumeEducationEntry = {
       degree: clean(degree, 260),
       institution: clean(institution, 280),
     };
+    if (institutionMeta.location) record.location = clean(institutionMeta.location, 180);
     if (fieldOfStudy && !INSTITUTION_HINT.test(fieldOfStudy) && !ACTION_SENTENCE.test(fieldOfStudy)) {
       record.fieldOfStudy = clean(fieldOfStudy, 260);
     }
@@ -202,7 +286,8 @@ function dedupeEducation(items: ResumeEducationEntry[]) {
 function employerCandidate(line: string) {
   const value = clean(line, 260);
   const lexical = stripBullet(value);
-  if (!lexical || DATE_TOKEN.test(lexical) || LOCATION_HINT.test(lexical) || ACTION_SENTENCE.test(lexical)) return false;
+  if (!lexical || isStructuralNoise(lexical)) return false;
+  if (DATE_TOKEN.test(lexical) || LOCATION_HINT.test(lexical) || looksLikeResponsibilitySentence(lexical)) return false;
   if (ROLE_DESCRIPTOR.test(lexical)) return false;
   if (TITLE_HINT.test(lexical) && lexical.split(/\s+/).length <= 8) return false;
   return lexical.length <= 140;
@@ -210,7 +295,13 @@ function employerCandidate(line: string) {
 
 function titleCandidate(line: string) {
   const value = clean(line, 240);
-  return Boolean(value && TITLE_HINT.test(value) && !ACTION_SENTENCE.test(value) && !DATE_TOKEN.test(value));
+  return Boolean(
+    value &&
+    !isStructuralNoise(value) &&
+    TITLE_HINT.test(value) &&
+    !looksLikeResponsibilitySentence(value) &&
+    !DATE_TOKEN.test(value)
+  );
 }
 
 function parseEmploymentBlock(lines: string[]): ResumeEmploymentEntry | null {
@@ -235,30 +326,41 @@ function parseEmploymentBlock(lines: string[]): ResumeEmploymentEntry | null {
   }
 
   const metaEnd = dateIndex >= 0 ? dateIndex : Math.min(values.length, 4);
-  const metadata = values.slice(0, metaEnd);
-  positionTitle = metadata.find(titleCandidate) || '';
-  const titleIndex = metadata.indexOf(positionTitle);
-  const employerPool = metadata.filter((v, idx) => idx !== titleIndex);
+  const metadata = values.slice(0, metaEnd).filter((v) => !isStructuralNoise(v));
+  const metadataParts = metadata
+    .flatMap((v) => splitParts(v))
+    .map((v) => stripBullet(v))
+    .filter((v) => v && !isStructuralNoise(v));
+
+  positionTitle = metadataParts.find(titleCandidate) || '';
+  const titleIndex = metadataParts.indexOf(positionTitle);
+  const employerPool = metadataParts.filter((v, idx) => idx !== titleIndex);
   employer = stripBullet(employerPool.find(employerCandidate) || '');
 
-  if (!positionTitle && values[0] && titleCandidate(values[0])) positionTitle = values[0];
-  if (!employer && positionTitle) {
-    const idx = values.indexOf(positionTitle);
-    const nearby = [values[idx + 1], values[idx - 1]].filter((v): v is string => Boolean(v));
-    employer = stripBullet(nearby.find(employerCandidate) || '');
+  if (!positionTitle && values[0]) {
+    const firstParts = splitParts(values[0]).filter((v) => !isStructuralNoise(v));
+    positionTitle = firstParts.find(titleCandidate) || '';
   }
 
-  const locationLine = values.find((v, idx) => idx !== dateIndex && LOCATION_HINT.test(v) && !ACTION_SENTENCE.test(v));
-  if (locationLine) location = locationLine;
+  if (!employer && positionTitle) {
+    const rawTitleParts = splitParts(values[0] || '').filter((v) => !isStructuralNoise(v));
+    employer = stripBullet(rawTitleParts.find((v) => employerCandidate(v)) || '');
+  }
+
+  const locationLine =
+    metadataParts.find((v) => LOCATION_HINT.test(v) && !looksLikeResponsibilitySentence(v)) ||
+    values.find((v, idx) => idx !== dateIndex && LOCATION_HINT.test(v) && !looksLikeResponsibilitySentence(v));
+  if (locationLine) location = clean(locationLine, 240);
 
   const responsibilities = values
     .slice(dateIndex >= 0 ? dateIndex + 1 : Math.min(metadata.length, 3))
-    .filter((v) => ACTION_SENTENCE.test(stripBullet(v)) || /^[•·▪◦‣●○►▸*-]/u.test(v))
+    .filter((v) => !isStructuralNoise(v))
+    .filter((v) => looksLikeResponsibilitySentence(v) || /^[•·▪◦‣●○►▸*-]/u.test(v))
     .map((v) => v.replace(/^[•·▪◦*-]\s*/, '').trim())
     .filter(Boolean)
     .slice(0, 40);
 
-  if (!positionTitle || !employer) return null;
+  if (!positionTitle && !employer && !responsibilities.length) return null;
   return { positionTitle, employer, current, startDate, endDate, location, responsibilities };
 }
 
@@ -296,10 +398,14 @@ function parseEmployment(source: string): ResumeEmploymentEntry[] {
   }).slice(0, 60);
 }
 
-function sectionLines(source: string, headings: string[], max: number) {
+function sectionLines(source: string, headings: string[], max: number, splitCommas = false) {
+  const delimiter = splitCommas
+    ? /\n|;|,|\||•|·|▪|◦|‣|●|○|►|▸/u
+    : /\n|;|\||•|·|▪|◦|‣|●|○|►|▸/u;
+
   return uniqueStrings(
     sectionBody(source, headings)
-      .split(/\n|;|,|\||•|·|▪|◦|‣|●|○|►|▸/u)
+      .split(delimiter)
       .map((v) => v.replace(/^[•·▪◦*-]\s*/, '').trim())
       .filter((v) => v && !ACTION_SENTENCE.test(v)),
   ).slice(0, max);
@@ -307,7 +413,7 @@ function sectionLines(source: string, headings: string[], max: number) {
 
 export function deterministicStructuredResume(profile: Pick<ParsedResumeProfile, 'sourceText'|'skills'|'certifications'>): StructuredResumeProfile {
   const source = String(profile.sourceText || '');
-  const skillsFromSection = sectionLines(source, SKILLS_HEADINGS, 200);
+  const skillsFromSection = sectionLines(source, SKILLS_HEADINGS, 200, true);
   const certificationsFromSection = sectionLines(source, CERTIFICATION_HEADINGS, 60);
   const languages = normalizeResumeLanguages(
     sectionLines(source, LANGUAGE_HEADINGS, 40),
@@ -332,9 +438,23 @@ export function deterministicStructuredResume(profile: Pick<ParsedResumeProfile,
 
 function safeEmployment(items: StructuredResumeProfile['employmentHistory'], source: string) {
   return (items || []).flatMap((raw) => {
-    const positionTitle = supported(raw.positionTitle, source, 0.72) || '';
-    let employer = supported(raw.employer, source, 0.72) || '';
-    if (ROLE_DESCRIPTOR.test(stripBullet(employer)) || ACTION_SENTENCE.test(stripBullet(employer))) employer = '';
+    const titleParts = splitParts(String(raw.positionTitle || ''))
+      .map((v) => stripBullet(v))
+      .filter((v) => v && !isStructuralNoise(v));
+
+    const titleSeed = titleParts.find(titleCandidate) || String(raw.positionTitle || '');
+    const employerSeed =
+      (employerCandidate(String(raw.employer || '')) ? String(raw.employer || '') : '') ||
+      titleParts.find(employerCandidate) ||
+      '';
+
+    const positionTitle = supported(titleSeed, source, 0.72) || '';
+    let employer = supported(employerSeed, source, 0.72) || '';
+    if (
+      ROLE_DESCRIPTOR.test(stripBullet(employer)) ||
+      looksLikeResponsibilitySentence(employer) ||
+      isStructuralNoise(employer)
+    ) employer = '';
     if (positionTitle && employer && !coLocated(positionTitle, employer, source, 1300)) employer = '';
     const responsibilities = (raw.responsibilities || [])
       .flatMap((v) => {
@@ -361,9 +481,12 @@ function safeEmployment(items: StructuredResumeProfile['employmentHistory'], sou
 
 function safeEducation(items: StructuredResumeProfile['educationHistory'], source: string) {
   return (items || []).flatMap((raw) => {
-    let degree = supported(raw.degree, source, 0.72) || '';
-    let institution = supported(raw.institution, source, 0.72) || '';
-    let fieldOfStudy = supported(raw.fieldOfStudy, source, 0.72);
+    const degreeMeta = splitEducationDegree(String(raw.degree || ''));
+    const institutionMeta = splitInstitutionMeta(String(raw.institution || ''));
+
+    let degree = supported(degreeMeta.degree, source, 0.72) || '';
+    let institution = supported(institutionMeta.institution, source, 0.72) || '';
+    let fieldOfStudy = supported(raw.fieldOfStudy || degreeMeta.fieldOfStudy, source, 0.72);
     if (ACTION_SENTENCE.test(stripBullet(degree)) && !DEGREE_HINT.test(stripBullet(degree))) degree = '';
     if (ACTION_SENTENCE.test(stripBullet(institution))) institution = '';
     if (degree && institution && !coLocated(degree, institution, source, 1000)) institution = '';
@@ -373,10 +496,10 @@ function safeEducation(items: StructuredResumeProfile['educationHistory'], sourc
       degree,
       institution,
       fieldOfStudy,
-      startDate: supported(raw.startDate, source, 0.7),
-      endDate: supported(raw.endDate, source, 0.7),
+      startDate: supported(raw.startDate || institutionMeta.dateText?.match(DATE_RANGE)?.[0]?.split(/\s*(?:-|–|—|to)\s*/i)[0], source, 0.7),
+      endDate: supported(raw.endDate || institutionMeta.dateText?.match(DATE_RANGE)?.[0]?.split(/\s*(?:-|–|—|to)\s*/i)[1], source, 0.7),
       graduationDate: supported(raw.graduationDate, source, 0.7),
-      location: supported(raw.location, source, 0.7),
+      location: supported(raw.location || institutionMeta.location, source, 0.7),
     }];
   });
 }
@@ -436,8 +559,14 @@ export function mergeStructuredResume(
 }
 
 function categoryHints(source: string) {
-  const normalized = String(source || '').toLowerCase();
-  const hasHeading = (headings: string[]) => headings.some((h) => new RegExp(`(?:^|\\n)\\s*${h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*:?(?:\\n|$)`, 'i').test(normalized));
+  const headingSet = new Set(
+    String(source || '')
+      .replace(/\r\n/g, '\n')
+      .split('\n')
+      .map(cleanHeading)
+      .filter(Boolean),
+  );
+  const hasHeading = (headings: string[]) => headings.some((h) => headingSet.has(cleanHeading(h)));
   return {
     employmentHistory: hasHeading(EXPERIENCE_HEADINGS),
     educationHistory: hasHeading(EDUCATION_HEADINGS),

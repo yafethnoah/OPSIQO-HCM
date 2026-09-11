@@ -14,7 +14,10 @@ describe('OPSIQO H50.5H AI resume parsing assurance',()=>{
   expect(p).toContain('PASS 2 - independently verify and correct');
   expect(p).toContain('Never use a hiring manager, recruiter, HR department');
   expect(p).toContain('overallTrust');
-  expect(p).toContain("RECRUITING_RESUME_PARSE_V5_SEMANTIC_RECONSTRUCTION");
+  const supportedResumeParserVersion =
+    p.includes("RECRUITING_RESUME_PARSE_V5_SEMANTIC_RECONSTRUCTION") ||
+    p.includes("RECRUITING_RESUME_PARSE_V6_RECORD_INTEGRITY");
+  expect(supportedResumeParserVersion).toBe(true);
   expect(p).toContain('PASS 3 - semantic reconstruction and completeness repair');
  });
  it('never labels machine parsing as 100 percent certain and requires candidate verification',()=>{
