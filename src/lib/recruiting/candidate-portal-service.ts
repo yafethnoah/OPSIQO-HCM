@@ -125,9 +125,11 @@ export async function enforceCandidatePortalRateLimit(token:string,request:Reque
 export async function parsePublicCandidateResume(token:string,form:FormData){
  const x=await resolve(token),file=form.get('file');
  if(!(file instanceof File))throw new ApiError(400,'Resume file is required.','resume_required');
- // Public candidate parsing is fail-closed. Weak structured data must never
- // be converted into editable candidate records merely because a strict gate failed.
- const parsed=await parseResumeFile(actor(x.orgId,x.link.id),file);
+ // Public parsing may expose a source-backed REVIEW DRAFT when machine prefill
+ // is incomplete. This is not final acceptance: candidate edits remain subject to
+ // candidateVerificationGate() during submission, and unresolved critical structure
+ // still fails closed before the application can be finalized.
+ const parsed=await parseResumeFile(actor(x.orgId,x.link.id),file,{requireStructuredPrefill:false});
  const structuredResume=structuredResumeFromProfile(parsed.profile);
  const {sourceText:_,...profile}=parsed.profile;
  const machineTrust=Number(parsed.profile.parseTrust??parsed.profile.parseQuality??0);
@@ -154,7 +156,11 @@ export async function parsePublicCandidateResume(token:string,form:FormData){
    structuredRecordCount,
    structuredIssues,
   },
-  note:parsed.profile.sourceText?.trim()?'Resume was parsed into editable structured application fields. Review every section before final confirmation.':'Recruiting AI is temporarily unavailable or the file has no readable text layer. Continue in manual review mode, complete the application fields, and confirm accuracy before submission.'
+  note:parsed.profile.sourceText?.trim()
+   ?(structuredIssues.length||unresolvedFields.length
+      ?'Resume was recovered as an editable review draft. Correct every highlighted or missing employment, education, skills and identity field before final confirmation. Final submission remains blocked while critical structured issues remain.'
+      :'Resume was parsed into editable structured application fields. Review every section before final confirmation.')
+   :'Recruiting AI is temporarily unavailable or the file has no readable text layer. Continue in manual review mode, complete the application fields, and confirm accuracy before submission.'
  };
 }
 

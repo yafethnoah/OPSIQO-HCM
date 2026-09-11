@@ -196,7 +196,7 @@ describe('OPSIQO H51.24 strict record reconciliation', () => {
     expect(years).toBe(22);
   });
 
-  it('keeps public candidate parsing fail-closed while leaving recruiter draft mode available', () => {
+  it('keeps H51.29 candidate review recovery fail-closed at final submission', () => {
     const candidateService = fs.readFileSync(
       'src/lib/recruiting/candidate-portal-service.ts',
       'utf8',
@@ -206,14 +206,43 @@ describe('OPSIQO H51.24 strict record reconciliation', () => {
       'utf8',
     );
 
-    const start = candidateService.indexOf('export async function parsePublicCandidateResume');
-    const end = candidateService.indexOf('export async function', start + 20);
-    const block = candidateService.slice(start, end > start ? end : undefined);
+    const parseStart = candidateService.indexOf('export async function parsePublicCandidateResume');
+    const parseEnd = candidateService.indexOf('export async function', parseStart + 20);
+    const parseBlock = candidateService.slice(
+      parseStart,
+      parseEnd > parseStart ? parseEnd : undefined,
+    );
 
-    expect(block).not.toContain('humanReviewFallback');
-    expect(block).not.toContain('requireStructuredPrefill:false');
-    expect(block).toContain('parseResumeFile(actor(x.orgId,x.link.id),file)');
+    expect(parseBlock).not.toContain('humanReviewFallback');
+    expect(parseBlock).toContain(
+      'parseResumeFile(actor(x.orgId,x.link.id),file,{requireStructuredPrefill:false})',
+    );
+    expect(parseBlock).toContain('requiresCandidateReview:true');
+    expect(parseBlock).toContain('structuredIssues');
+    expect(parseBlock).toContain('editable review draft');
 
+    const submitStart = candidateService.indexOf(
+      'export async function submitPublicCandidateApplication',
+    );
+    const submitEnd = candidateService.indexOf(
+      'export async function',
+      submitStart + 20,
+    );
+    const submitBlock = candidateService.slice(
+      submitStart,
+      submitEnd > submitStart ? submitEnd : undefined,
+    );
+
+    expect(submitBlock).toContain(
+      'parseResumeFile(a,rf,{requireStructuredPrefill:false})',
+    );
+    expect(submitBlock).toContain(
+      'candidateVerificationGate(verifiedStructuredResume,parsed.profile.sourceText)',
+    );
+    expect(submitBlock).toContain('!verification.canFinalize');
+    expect(submitBlock).toContain('resume_structural_review_required');
+
+    expect(atsService).toContain('!coverage.prefillReady');
     expect(atsService).toContain(
       'parseResumeFile(actor, file, { requireStructuredPrefill: false })',
     );

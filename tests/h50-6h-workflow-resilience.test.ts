@@ -13,12 +13,21 @@ describe('H50.6H workflow resilience',()=>{
   const publicParseBlock=source.slice(start,end>start?end:undefined);
 
   expect(start).toBeGreaterThanOrEqual(0);
-  expect(publicParseBlock).toContain('parseResumeFile(actor(x.orgId,x.link.id),file)');
+  expect(publicParseBlock).toContain(
+   'parseResumeFile(actor(x.orgId,x.link.id),file,{requireStructuredPrefill:false})',
+  );
   expect(publicParseBlock).not.toContain('humanReviewFallback');
-  expect(publicParseBlock).not.toContain('requireStructuredPrefill:false');
+  expect(publicParseBlock).toContain('requiresCandidateReview:true');
+  expect(publicParseBlock).toContain('editable review draft');
 
-  expect(source.match(/requireStructuredPrefill:false/g)?.length).toBeGreaterThanOrEqual(1);
+  expect(source.match(/requireStructuredPrefill:false/g)?.length).toBeGreaterThanOrEqual(2);
   expect(source).toContain('manual review mode');
+  expect(source).toContain(
+   'candidateVerificationGate(verifiedStructuredResume,parsed.profile.sourceText)',
+  );
+  expect(source).toContain('!verification.canFinalize');
+  expect(source).toContain('resume_structural_review_required');
+  expect(ats).toContain('!coverage.prefillReady');
   expect(ats).toContain('parseResumeFile(actor, file, { requireStructuredPrefill: false })');
  });
 });

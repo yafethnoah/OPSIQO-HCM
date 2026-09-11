@@ -60,7 +60,9 @@ describe('OPSIQO H50.5J resume parsing accuracy closure',()=>{
   expect(service).toContain('options.requireStructuredPrefill!==false&&!coverage.prefillReady');
   expect(service).toContain('parseResumeFile(actor, file, { requireStructuredPrefill: false })');
   const candidate=read('src/lib/recruiting/candidate-portal-service.ts');
-  expect(candidate).toContain('parseResumeFile(actor(x.orgId,x.link.id),file)');
+  expect(candidate).toContain('parseResumeFile(actor(x.orgId,x.link.id),file,{requireStructuredPrefill:false})');
+  expect(candidate).toContain('candidateVerificationGate(verifiedStructuredResume,parsed.profile.sourceText)');
+  expect(candidate).toContain('resume_structural_review_required');
  });
  it('keeps source ATS evidence immutable and no automatic employment decision',()=>{
   const fit=read('src/lib/recruiting/candidate-fit-service.ts');
