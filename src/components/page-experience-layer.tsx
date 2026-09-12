@@ -95,6 +95,27 @@ export function PageExperienceLayer({ publicMode = false }: Readonly<{ publicMod
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  useEffect(() => {
+    const onProgress = (event: Event) => {
+      const detail = (event as CustomEvent<{ step?: number; steps?: number[] }>).detail;
+      const requested = Array.isArray(detail?.steps)
+        ? detail.steps
+        : Number.isInteger(detail?.step)
+          ? [detail.step as number]
+          : [];
+      const valid = requested.filter(
+        (value) => Number.isInteger(value) && value >= 0 && value < experience.steps.length,
+      );
+      if (!valid.length) return;
+      setCompleted((current) =>
+        Array.from(new Set([...current, ...valid])).sort((a, b) => a - b),
+      );
+    };
+
+    window.addEventListener('opsiqo:guide-progress', onProgress as EventListener);
+    return () => window.removeEventListener('opsiqo:guide-progress', onProgress as EventListener);
+  }, [experience.steps.length]);
+
   const title = arabic ? experience.titleAr : experience.titleEn;
   const purpose = arabic ? experience.purposeAr : experience.purposeEn;
   const next = arabic ? experience.nextAr : experience.nextEn;
@@ -208,7 +229,7 @@ export function PageExperienceLayer({ publicMode = false }: Readonly<{ publicMod
               <small className="muted">
                 {arabic
                   ? 'يتم حفظ تقدم الدليل محلياً في هذا المتصفح. هذا لا يعني اكتمال سير العمل أو الموافقة على الإجراء.'
-                  : 'Guide progress is saved locally in this browser. It does not mark the actual workflow complete or approve an action.'}
+                  : 'Guide progress is saved locally and may advance after successful governed actions. It can also be checked manually; guide progress never approves a consequential action.'}
               </small>
               <div className="notice">{example}</div>
             </>

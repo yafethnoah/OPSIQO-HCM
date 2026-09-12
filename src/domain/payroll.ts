@@ -2,6 +2,9 @@ export type PayrollProviderStatus='draft'|'configured'|'active'|'suspended';
 export type PayrollRunStatus='draft'|'calculated'|'review'|'approved'|'exported'|'reconciled'|'completed'|'reversed'|'cancelled';
 export type PayrollRunKind='regular'|'off_cycle'|'correction'|'termination';
 export type PayrollRunMode='uat'|'production';
+export type PayrollPayDateSource='run_default'|'profile_rule'|'worker_override';
+export type PayrollPayDateRule='run_default'|'offset_days'|'fixed_day_of_month';
+export type PayrollWeekendAdjustment='none'|'previous_weekday'|'next_weekday';
 export type PayrollAdjustmentStatus='submitted'|'approved'|'rejected'|'consumed';
 export type PayrollAdjustmentType='bonus'|'commission'|'vacation'|'stat_holiday'|'taxable_benefit'|'pre_tax_deduction'|'other_deduction'|'additional_tax'|'retro'|'termination';
 export type PayrollRegulatoryState='reference_only'|'validated_pending_certification'|'certified';
@@ -12,7 +15,7 @@ export interface PayrollCalculationInput{workerId:string;province:'AB'|'BC'|'MB'
 export interface PayrollCalculationResult{workerId:string;province:string;payDate:string;gross:number;taxable:number;cppOrQpp:number;cpp2OrQpp2:number;ei:number;qpip:number;federalTax:number;provincialTax:number;otherDeductions:number;net:number;ruleVersion:string;authoritativeSources:string[];warnings:string[];independentReferenceValidationRequired:boolean}
 
 export interface PayrollWorkerProfile{
-  id:string;workerId:string;province:PayrollCalculationInput['province'];payPeriodsPerYear:number;
+  id:string;workerId:string;province:PayrollCalculationInput['province'];payPeriodsPerYear:number;payDateRule?:PayrollPayDateRule;payDateOffsetDays?:number;payDayOfMonth?:number;weekendAdjustment?:PayrollWeekendAdjustment;
   federalClaimAmount:number;provincialClaimAmount:number;additionalTax:number;
   recurringTaxableBenefits:number;recurringPreTaxDeductions:number;recurringOtherDeductions:number;paymentMethodRef?:string;
   enabled:boolean;createdBy:string;createdAt:string;updatedBy:string;updatedAt:string;
@@ -26,7 +29,7 @@ export interface PayrollAdjustment{
 export interface PayrollInputSnapshot{
   id:string;runId:string;workerId:string;employeeNumber:string;displayName:string;currency:string;
   compensationRecordId:string;timesheetIds:string[];leaveRequestIds:string[];adjustmentIds:string[];
-  regularHours:number;overtimeHours:number;paidLeaveHours:number;baseRate:number;overtimeMultiplier:number;paymentMethodRef?:string;
+  regularHours:number;overtimeHours:number;paidLeaveHours:number;baseRate:number;overtimeMultiplier:number;paymentMethodRef?:string;payDate:string;payDateSource:PayrollPayDateSource;
   input:PayrollCalculationInput;sourceHash:string;sourceUpdatedAts:string[];warnings:string[];
   immutableAt:string;createdBy:string;
 }
@@ -37,7 +40,7 @@ export interface PayrollCalculationRecord{
 export interface PayrollRunTotals{workers:number;gross:number;employeeDeductions:number;net:number}
 export interface PayrollRun{
   id:string;name:string;payDate:string;periodStart:string;periodEnd:string;status:PayrollRunStatus;
-  kind?:PayrollRunKind;mode?:PayrollRunMode;workerIds?:string[];providerId?:string;sourceRunId?:string;reason?:string;
+  kind?:PayrollRunKind;mode?:PayrollRunMode;workerIds?:string[];workerPayDates?:Record<string,string>;resolvedWorkerPayDates?:Record<string,string>;providerId?:string;sourceRunId?:string;reason?:string;
   idempotencyKey?:string;requestHash?:string;calculationIds:string[];snapshotIds?:string[];totals?:PayrollRunTotals;
   providerBatchId?:string;reconciliationId?:string;createdBy:string;createdAt:string;
   calculatedBy?:string;calculatedAt?:string;reviewedBy?:string;reviewedAt?:string;reviewNote?:string;
