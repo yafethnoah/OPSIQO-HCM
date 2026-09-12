@@ -1,0 +1,2 @@
+import{NextResponse}from'next/server';import{actorFromRequest}from'@/lib/auth/session';import{apiErrorResponse}from'@/lib/http/errors';import{actCompensationCorrection}from'@/lib/compensation/controls';
+export async function POST(r:Request,c:{params:Promise<{orgId:string;correctionId:string}>}){try{const{orgId,correctionId}=await c.params,a=await actorFromRequest(r,orgId);return NextResponse.json({data:await actCompensationCorrection(a,correctionId,await r.json())})}catch(e){return apiErrorResponse(e)}}

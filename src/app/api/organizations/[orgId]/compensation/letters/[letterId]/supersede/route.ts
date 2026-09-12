@@ -1,0 +1,2 @@
+import{NextResponse}from'next/server';import{actorFromRequest}from'@/lib/auth/session';import{apiErrorResponse}from'@/lib/http/errors';import{supersedeCompensationLetter}from'@/lib/compensation/controls';
+export async function POST(r:Request,c:{params:Promise<{orgId:string;letterId:string}>}){try{const{orgId,letterId}=await c.params,a=await actorFromRequest(r,orgId);return NextResponse.json({data:await supersedeCompensationLetter(a,letterId,await r.json())},{status:201})}catch(e){return apiErrorResponse(e)}}

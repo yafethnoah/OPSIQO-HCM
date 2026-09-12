@@ -1,2 +1,2 @@
 import{NextResponse}from'next/server';import{actorFromRequest,requirePermission}from'@/lib/auth/session';import{apiErrorResponse}from'@/lib/http/errors';import{payrollDashboard}from'@/lib/payroll/service';
-export async function GET(r:Request,c:{params:Promise<{orgId:string}>}){try{const{orgId}=await c.params,a=await actorFromRequest(r,orgId);requirePermission(a,'payroll.export');return NextResponse.json({data:await payrollDashboard(a)});}catch(e){return apiErrorResponse(e)}}
+export async function GET(r:Request,c:{params:Promise<{orgId:string}>}){try{const{orgId}=await c.params,a=await actorFromRequest(r,orgId);requirePermission(a,'payroll.read');return NextResponse.json({data:await payrollDashboard(a)});}catch(e){return apiErrorResponse(e)}}

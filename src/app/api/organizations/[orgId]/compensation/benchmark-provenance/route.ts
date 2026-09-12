@@ -1,0 +1,2 @@
+import{NextResponse}from'next/server';import{actorFromRequest}from'@/lib/auth/session';import{apiErrorResponse}from'@/lib/http/errors';import{saveBenchmarkProvenance}from'@/lib/compensation/controls';
+export async function PUT(r:Request,c:{params:Promise<{orgId:string}>}){try{const{orgId}=await c.params,a=await actorFromRequest(r,orgId);return NextResponse.json({data:await saveBenchmarkProvenance(a,await r.json())})}catch(e){return apiErrorResponse(e)}}

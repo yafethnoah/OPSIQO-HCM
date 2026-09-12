@@ -1,0 +1,2 @@
+import{NextResponse}from'next/server';import{actorFromRequest}from'@/lib/auth/session';import{apiErrorResponse}from'@/lib/http/errors';import{certifyPayrollReferencePack,validatePayrollReferencePack}from'@/lib/payroll/control-plane';
+export async function POST(r:Request,c:{params:Promise<{orgId:string}>}){try{const{orgId}=await c.params,a=await actorFromRequest(r,orgId),body=await r.json();return NextResponse.json({data:body?.action==='certify'?await certifyPayrollReferencePack(a,body):await validatePayrollReferencePack(a,body)})}catch(e){return apiErrorResponse(e)}}

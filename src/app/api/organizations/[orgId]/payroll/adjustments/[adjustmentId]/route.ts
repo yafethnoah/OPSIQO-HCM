@@ -1,0 +1,2 @@
+import{NextResponse}from'next/server';import{actorFromRequest}from'@/lib/auth/session';import{apiErrorResponse}from'@/lib/http/errors';import{actPayrollAdjustment}from'@/lib/payroll/control-plane';
+export async function POST(r:Request,c:{params:Promise<{orgId:string;adjustmentId:string}>}){try{const{orgId,adjustmentId}=await c.params,a=await actorFromRequest(r,orgId);return NextResponse.json({data:await actPayrollAdjustment(a,adjustmentId,await r.json())})}catch(e){return apiErrorResponse(e)}}
