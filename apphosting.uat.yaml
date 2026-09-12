@@ -1,4 +1,4 @@
-﻿# OPSIQO H48.1
+# OPSIQO H48.1
 # Firebase App Hosting environment: uat
 # Target: https://uat.opsiqo.ca
 #
@@ -84,3 +84,12 @@ env:
 
   - variable: OPSIQO_DR_EXERCISE_EVIDENCE_REF
     value: PENDING
+  - variable: RESEND_API_KEY
+    secret: RESEND_API_KEY
+    availability:
+      - RUNTIME
+
+  - variable: INVITATION_FROM_EMAIL
+    value: "OPSIQO <noreply@opsiqo.ca>"
+    availability:
+      - RUNTIME
