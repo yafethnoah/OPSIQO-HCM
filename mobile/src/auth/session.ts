@@ -5,6 +5,8 @@ import { NativeAuthStageError } from "./diagnostic";
 const SESSION_KEY = "opsiqo.mobile.firebase.session.v1";
 const ORG_KEY = "opsiqo.mobile.activeOrg.v1";
 
+export const MOBILE_SESSION_POLICY = "persistent_until_sign_out_or_revocation" as const;
+
 type FirebaseSession = {
   idToken: string;
   refreshToken: string;
@@ -208,10 +210,20 @@ async function refreshSession(
   }
 
   if (!response.ok) {
+    const refreshCode = String(payload?.error?.message || "").toUpperCase();
+    const terminal = [
+      "INVALID_REFRESH_TOKEN",
+      "TOKEN_EXPIRED",
+      "USER_DISABLED",
+      "USER_NOT_FOUND",
+    ].some((code) => refreshCode.includes(code));
+
     throw new NativeAuthStageError(
       "firebase_auth",
-      "PULSE-AUTH-A04-REFRESH",
-      "Your OPSIQO session has expired. Please sign in again.",
+      terminal ? "PULSE-AUTH-A04-REAUTH" : "PULSE-AUTH-A03-REFRESH",
+      terminal
+        ? "Your saved sign-in was revoked or is no longer authorized. Please sign in again."
+        : "Your saved sign-in remains on this device, but access could not be refreshed. Check your connection and try again.",
     );
   }
 

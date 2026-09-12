@@ -9,7 +9,9 @@ describe("H50.1T attendance reminder alarms", () => {
 
     expect(source).toContain('"clock_in" | "clock_out"');
     expect(source).toContain("SchedulableTriggerInputTypes.DATE");
-    expect(source).toContain('sound: "default"');
+    expect(source).toContain('clockInSound: "default"');
+    expect(source).toContain('clockOutSound: "default"');
+    expect(source).toContain("sound,");
     expect(source).toContain('"Time to clock in"');
     expect(source).toContain('"Time to clock out"');
     expect(source).toContain("shift.startAt");
@@ -32,7 +34,8 @@ describe("H50.1T attendance reminder alarms", () => {
     expect(source).toContain("getPermissionsAsync");
     expect(source).toContain("requestPermissionsAsync");
     expect(source).toContain("AndroidImportance.HIGH");
-    expect(source).toContain('"attendance-reminders"');
+    expect(source).toContain("channelId(sound)");
+    expect(source).toContain('return `attendance-reminders-${sound.replace');
   });
 
   it("shows and sounds reminders while the app is foregrounded", () => {

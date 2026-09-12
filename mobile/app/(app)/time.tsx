@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "@/auth/provider";
 import { useBootstrap } from "@/hooks/use-bootstrap";
 import { AttendanceHero } from "@/components/attendance-hero";
+import { AttendanceAlarmSettings } from "@/components/attendance-alarm-settings";
 import { Card, H1, H2, Loading, Muted } from "@/components/ui";
 import { colors } from "@/theme/tokens";
 
@@ -12,7 +13,7 @@ export default function Time() {
   if (loading && !data) {
     return (
       <View style={s.loading}>
-        <Loading label="Loading attendanceâ€¦" />
+        <Loading label="Loading attendance..." />
       </View>
     );
   }
@@ -43,7 +44,7 @@ export default function Time() {
             <View key={shift.id} style={s.shift}>
               <Text style={s.shiftTitle}>{shift.title}</Text>
               <Muted>
-                {new Date(shift.startAt).toLocaleString()} â†’{" "}
+                {new Date(shift.startAt).toLocaleString()} →{" "}
                 {new Date(shift.endAt).toLocaleTimeString([], {
                   hour: "numeric",
                   minute: "2-digit",
@@ -55,6 +56,8 @@ export default function Time() {
           <Muted>No scheduled shifts found.</Muted>
         )}
       </Card>
+
+      <AttendanceAlarmSettings shifts={data?.shifts || []} />
 
       <Card>
         <H2>Attendance privacy</H2>

@@ -65,7 +65,16 @@
           "cameraPermission": "Allow OPSIQO Pulse to take receipt or attendance evidence photos selected by you."
         }
       ],
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "sounds": [
+            "./assets/sounds/opsiqo-pulse.wav",
+            "./assets/sounds/opsiqo-chime.wav",
+            "./assets/sounds/opsiqo-bell.wav"
+          ]
+        }
+      ],
       [
         "@react-native-firebase/app",
         {
@@ -97,7 +106,8 @@
       "eas": {
         "projectId": "3412f1c1-d7d5-4d3c-b0e6-f7f06b59d5ea"
       },
-      "h50ReliabilityTrack": "h50.1r-session-attendance-reliability"
+      "h50ReliabilityTrack": "h50.1r-session-attendance-reliability",
+      "h50UserControlsTrack": "h50.1w-global-safe-area-alarm-preferences-persistent-session"
     },
     "owner": "auranitis-life-line",
     "runtimeVersion": {

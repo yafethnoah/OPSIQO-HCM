@@ -4,11 +4,20 @@ import { describe, expect, it } from "vitest";
 const read = (p: string) => readFileSync(p, "utf8");
 
 describe("H50.1V safe area and live attendance compatibility", () => {
-  it("uses one safe-area-aware ScrollView content style", () => {
+  it("preserves one governed top safe area while avoiding Home double padding", () => {
+    const root = read("mobile/app/_layout.tsx");
     const home = read("mobile/app/(app)/home.tsx");
-    expect(home).toContain("useSafeAreaInsets");
-    expect(home).toContain("const insets = useSafeAreaInsets();");
-    expect(home).toContain("contentContainerStyle={[s.content, { paddingTop: Math.max(insets.top + 8, 24) }]}");
+
+    expect(root).toContain("SafeAreaProvider, SafeAreaView");
+    expect(root).toContain('edges={["top"]}');
+    expect(root).toContain('<Stack.Screen name="sign-in" />');
+    expect(root).toContain('<Stack.Screen name="select-organization" />');
+    expect(root).toContain('<Stack.Screen name="(app)" />');
+
+    expect(home).not.toContain("useSafeAreaInsets");
+    expect(home).not.toContain("Math.max(insets.top");
+    expect(home).toContain("contentContainerStyle={s.content}");
+
     const start = home.indexOf("<ScrollView");
     const end = home.indexOf(">", start);
     const opening = home.slice(start, end + 1);

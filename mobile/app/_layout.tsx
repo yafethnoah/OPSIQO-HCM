@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import { Stack, router } from "expo-router";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import * as Notifications from "expo-notifications";
 import mobileAds from "react-native-google-mobile-ads";
 import { AuthProvider } from "@/auth/provider";
+import { colors } from "@/theme/tokens";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -36,14 +37,19 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="sign-in" />
-          <Stack.Screen name="select-organization" />
-          <Stack.Screen name="(app)" />
-        </Stack>
-      </AuthProvider>
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: colors.bg }}
+        edges={["top"]}
+      >
+        <AuthProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="sign-in" />
+            <Stack.Screen name="select-organization" />
+            <Stack.Screen name="(app)" />
+          </Stack>
+        </AuthProvider>
+      </SafeAreaView>
     </SafeAreaProvider>
   );
 }

@@ -1,5 +1,4 @@
 import { Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import { useAuth } from "@/auth/provider";
 import { useBootstrap } from "@/hooks/use-bootstrap";
@@ -25,7 +24,6 @@ const fmt = (iso: string) => {
 };
 
 export default function Home() {
-  const insets = useSafeAreaInsets();
   const { activeOrgId } = useAuth();
   const { data, loading, error, reload } = useBootstrap();
   const reminders = useAttendanceReminders(data?.shifts || []);
@@ -47,7 +45,7 @@ export default function Home() {
   return (
     <ScrollView
       style={{ backgroundColor: colors.bg }}
-      contentContainerStyle={[s.content, { paddingTop: Math.max(insets.top + 8, 24) }]}
+      contentContainerStyle={s.content}
       refreshControl={
         <RefreshControl refreshing={loading} onRefresh={() => void reload()} />
       }
