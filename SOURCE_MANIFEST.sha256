@@ -1099,6 +1099,11 @@ af21a31f8bd557ca913baafef887100127bd8c0993d3e5edb9097f73bace6667  src/app/api/or
 e7d1fc5a07666a8db19b5a2c8434b95210c1b2e1bfd135206d761f2422f708f6  src/app/api/organizations/[orgId]/service/tickets/[ticketId]/route.ts
 a23b1effb3d97e75b84da04ae1f5ab502fdd6f0474efefeb9c6e6782efb32d96  src/app/api/organizations/[orgId]/service/tickets/[ticketId]/satisfaction/route.ts
 62d83297072204a2432c9a2847a52279bdacfdb2a884f2f466e4c0581bcfe905  src/app/api/organizations/[orgId]/service/tickets/route.ts
+88ffbf56949ecea0c06919b99a3c00802bc7ad3cf02ee675a13f63322e72c203  src/app/api/organizations/[orgId]/strategic/agent-controls/route.ts
+1946708411c3f5f2aa152ad0aaef9c89798ca9a2bf6a92518b0586512b76bee0  src/app/api/organizations/[orgId]/strategic/country-packs/[country]/route.ts
+9db00295523f9472702d44e1273e1a29bff3b96766be742c3ff520fb60ec4577  src/app/api/organizations/[orgId]/strategic/country-packs/route.ts
+e80bbd2e5348c0e91edb58e6ae72564640067fc860458403a809cb2db74dd75d  src/app/api/organizations/[orgId]/strategic/five-phase/route.ts
+b4179145e07b27a3ccc72f1cca44c6b12c4e16ac086fc9b14b76d140eed155ce  src/app/api/organizations/[orgId]/strategic/metrics/route.ts
 9a2b11e72e6f8cb4a43f1e417590161293974424c9f1a3541ef16c9cd47ffefd  src/app/api/organizations/[orgId]/strategy/capability-gaps/[gapId]/route.ts
 010d81256f36a8509255bb5de8c58676f2d020bda1dc44efecce5bd92794efb3  src/app/api/organizations/[orgId]/strategy/capability-gaps/route.ts
 205bca2095484209800cff20fa8f9cc33265ecba81df3389e9b9ee5dd342da59  src/app/api/organizations/[orgId]/strategy/dashboard/route.ts
@@ -1301,6 +1306,7 @@ f0037eef7f8aa5528d90f6ac3eab08ee686927f3fcefe6d127ee9a33eb365cf8  src/components
 b54bac01143efc30f35e9299eb333a2eee3a5b9a30d67eee937d0158371b0807  src/components/evidence-center-summary.tsx
 5325065d47b464c2dd450875632c0d8152137ba4c0608ff43b8078d754bad81a  src/components/experience-readiness-workspace.tsx
 f7d3b5dc580507d14c2b4a4b8c792862ba210c0bd1b69bd451a123e7ea5741f3  src/components/experience-workspace.tsx
+4ed745360548feb1f68b785d16eaaabf1f7afda278ee04e1ee101b11e3ef56ff  src/components/five-phase-control-tower.tsx
 f354bae8444981e940ed9db798a77c267289eba82404e029490efa738e00649f  src/components/frontline-operations-panel.tsx
 8bdd8f110690e5a1c045c8a8d2153dc53b6f479f763f199827fa912b8fbba923  src/components/governance-control-center.tsx
 8f6bc17007d47390f3ab5eefa91ac55b884910ef4a6d0c27a89b51788d4a0e34  src/components/governed-ai-readiness-card.tsx
@@ -1376,7 +1382,7 @@ ad58396539071a4249ff98d8d2b104f6c028b4279fa00438ecc95fd8ed57748b  src/components
 73dad4beafb1793c36561bce1f44bc6ec34b4e14041348740185d152b45ccfc8  src/components/session-card.tsx
 b12f3ad18e84ee630632692612a16c1419b99c5da81dbf0c315351b656391760  src/components/settings-workspace.tsx
 a778446f2f2f4c96b7899cf14857aa65f72da5b0587b29d6514b926db5b63ce5  src/components/skills-passport-workspace.tsx
-1ab10eec1f454360c08cb62f0de297bcb2a4ea99acce7fdfe620d8b4fa28e5bb  src/components/strategy-center.tsx
+7748217f36178a6d747f98e99b19cca74815368acdb211494149f93e0c154eb9  src/components/strategy-center.tsx
 ad2c675279837f359345b3f6763871027557451a7b731561a02b2f08a2aebb8f  src/components/superapp-workspace.tsx
 0b5f63f51befb02958435d0a7fc080ef090ad6416e11baf98fb93b61115f8f64  src/components/talent-marketplace-workspace.tsx
 0f3ca68c6f719549bfa313282bea8eb72c7b8662e0a78bd43e7556e0e160b1c3  src/components/time-location-map.tsx
@@ -1437,6 +1443,7 @@ aa83e120d135f6eaf386e0c4901d9fc6f7bfc3e3f767562a1452c2bfd144fab2  src/domain/saf
 3567b3487bbb5cadf4a5f9debc8d15a86e8266708f617f76ae899af6797efd22  src/domain/security-operations.ts
 d363af646b1e95d66199e22a82a5f64317de587b28047176c933971b2a28c861  src/domain/security.ts
 bf402d53b49af459086f2a5e946b70ed6a4ce000f075400bbaff654525bdedf1  src/domain/separation.ts
+55c2a7cb50df6f9fe9baf6417768808d21b56335e74de5873daad8ee1ff58ff3  src/domain/strategic-five-phase.ts
 3b04d59c07a8ba41176cbe75518d1ef388ac57e0c169124f133846a9deed67e3  src/domain/strategy.ts
 a7bf08b3463f5d8942b7ef72f272dab06f49f0bbb436d4dfd181320c57ff1c2d  src/domain/structured-resume.ts
 d22d7efd58978f563ec698a72dddf250d7d7c8316cdaf85ff08e530884508461  src/domain/superapp.ts
@@ -1780,6 +1787,8 @@ dd833648dabcca1503e8ece410a7b151e6a3329c6afb858a789f8c526f7c8997  src/lib/strate
 3b82499f43c7b453456adea2f2f7d2599b2340899a34266b6c8ba11734689c33  src/lib/strategic/domain-bindings.ts
 ee1b2e75bdad75c7a100870f2b03eab6e70a8892b828f332256da1c5797a63ec  src/lib/strategic/enterprise-domain-bindings.ts
 65de2f9e49d8bf22e8b08fdb20dfc6fac94e7217d02862ba92c527a09048caac  src/lib/strategic/enterprise-object-graph.ts
+fb5b03e183ca55694ea526081d67e26ba0386183e61e17eb68f3cc8ff808de3c  src/lib/strategic/five-phase-core.ts
+2519860b19d682ad7d528bc478247d63c037c4c3d09771871979252d334bc2f0  src/lib/strategic/five-phase-service.ts
 39508f10b613c6f6256141bd12bd4e49805e6b5bd5ecbe27c771ed0945a257f5  src/lib/strategic/h50-closure.ts
 861f90e703c37de96a9529ee36198d9e3c233dd2611c92cf641c898dd52739e6  src/lib/strategic/h50-foundation.ts
 7ed96768ead307d5f6cc8c482576e639f4010212110e76bd0d5913db525ba62e  src/lib/strategic/h50-intelligence.ts
@@ -1951,6 +1960,7 @@ bd6018b6836243d188f91412c65be63025ea2cd7970ffa3b146b4a95cc820287  tests/h51-34-r
 9c603faad1aa6213f2cfdd24583225244380150391e0a149e220fd65272b51f0  tests/h51-35-payroll-compensation-controls.test.ts
 dd3d76abb4d7abffd7a19ca3cf521f8b9afe629794e43eb28aa59f63ad43464d  tests/h51-36-comp-pay-orchestrator.test.ts
 cd62cdd871a00742ff373f5ab73b7a3269ef45925c116176c688741c3aaec212  tests/h51-37-comp-pay-uat-closure.test.ts
+0806c3775931f3fadf797d15b8cd00a8b5dd8ca095e8309a8b61782a2888d8b1  tests/h51-38-five-phase-runtime-foundation.test.ts
 fb1711839c8e379c323940163b09511d204e7bd8fd71fb6d273c38e14df0dda9  tests/h51-control-plane.test.ts
 ba667d484c279c58f50bd531f554b9e938372fe84886795901b059844d84d9db  tests/h51-fix.test.ts
 6414f01681558206149d7fb7c058bbf3ff11855c6f6ba494fb158accadf0e9f9  tests/hr-diagnostic.schemas.test.ts
