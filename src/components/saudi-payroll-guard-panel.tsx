@@ -86,7 +86,7 @@ export function SaudiPayrollGuardPanel() {
     try {
       setError('');
       const response = await apiFetch<{ data: GuardData }>(
-        `/api/organizations/${activeOrgId()}/payroll/saudi-guard`,
+        `/api/organizations/${activeOrgId()}/country-compliance/saudi/payroll-guard`,
       );
       setData(response.data);
       setEvidence(response.data.evidence || { id: 'current' });
@@ -129,7 +129,7 @@ export function SaudiPayrollGuardPanel() {
   const saveEvidence = async () => {
     setBusy('evidence'); setError(''); setMessage('');
     try {
-      await apiFetch(`/api/organizations/${activeOrgId()}/payroll/saudi-guard`, {
+      await apiFetch(`/api/organizations/${activeOrgId()}/country-compliance/saudi/payroll-guard`, {
         method: 'POST',
         body: JSON.stringify({ action: 'save_evidence', input: evidence }),
       });
@@ -144,7 +144,7 @@ export function SaudiPayrollGuardPanel() {
     if (!selectedWorkerId) return;
     setBusy('worker'); setError(''); setMessage('');
     try {
-      await apiFetch(`/api/organizations/${activeOrgId()}/payroll/saudi-guard`, {
+      await apiFetch(`/api/organizations/${activeOrgId()}/country-compliance/saudi/payroll-guard`, {
         method: 'POST',
         body: JSON.stringify({ action: 'save_worker_review', workerId: selectedWorkerId, input: review }),
       });

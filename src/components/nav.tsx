@@ -50,6 +50,7 @@ const allItems: Item[] = [
   { label:'Compensation',href:'/compensation',permission:'compensation.read',icon:'$',keywords:['pay','salary','rewards'],area:'work',priority:80 },
   { label:'Benefits',href:'/benefits',permission:'compensation.read',icon:'B',keywords:['benefits','enrollment','coverage'],area:'work',priority:79 },
   { label:'Payroll',href:'/payroll',permission:'payroll.export',icon:'P',keywords:['payroll','cpp','ei','qpp','qpip'],area:'work',priority:78 },
+  { label:'Country Compliance',href:'/country-compliance',permission:'regulatory.read',icon:'§',keywords:['country rules','ontario','canada','saudi','gosi','saned','employment standards','regulatory'],area:'work',priority:77.5 },
   { label:'E-Signatures',href:'/esign',permission:'documents.manage',icon:'S',keywords:['signature','esign','agreement'],area:'work',priority:77 },
   { label:'Workflows',href:'/workflows',permission:'workflow.read',icon:'⌁',keywords:['process','approval'],area:'work',priority:75 },
 
