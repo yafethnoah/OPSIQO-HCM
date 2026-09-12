@@ -3,7 +3,7 @@ import type {
   StrategicFivePhaseAssessment,
 } from '@/domain/strategic-five-phase';
 
-export type TowerTab = 'overview' | 'gcc' | 'saudi' | 'metrics' | 'agents';
+export type TowerTab = 'overview' | 'gcc' | 'saudi' | 'saudi_rules' | 'metrics' | 'agents';
 
 export interface CapabilityPresentation {
   owner: string;
@@ -23,7 +23,7 @@ const capabilityMap: Record<string, CapabilityPresentation> = {
   release: { owner: 'Release Engineering', nextAction: 'Maintain exact-SHA release certification.' },
 
   framework: { owner: 'GCC Product & Compliance', nextAction: 'Maintain evidence-gated country-pack lifecycle.', targetTab: 'gcc' },
-  ksa: { owner: 'Saudi Compliance & Payroll', nextAction: 'Load independently verified Saudi statutory rules and golden payroll evidence.', targetTab: 'gcc' },
+  ksa: { owner: 'Saudi Compliance & Payroll', nextAction: 'Review verified Saudi social-insurance and employment-rule foundations, then close legal/payroll validation and golden-test evidence.', targetTab: 'gcc' },
   uae: { owner: 'UAE Compliance & Payroll', nextAction: 'Load independently verified UAE statutory/free-zone rules and golden payroll evidence.', targetTab: 'gcc' },
   connectors: { owner: 'Integration Engineering', nextAction: 'Bind verified GCC government/payroll adapters through the integration runtime.', targetTab: 'gcc' },
   guard: { owner: 'Payroll & Regulatory', nextAction: 'Extend Payroll Guard with GCC statutory pre-flight controls.', targetTab: 'gcc' },

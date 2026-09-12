@@ -11,6 +11,7 @@ import type {
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import { LoadingState } from '@/components/data-states';
 import { SaudiCountryPackFoundation } from '@/components/saudi-country-pack-foundation';
+import { SaudiEmploymentRulesFoundation } from '@/components/saudi-employment-rules-foundation';
 import {
   SCORE_METHODOLOGY,
   capabilityPresentation,
@@ -88,8 +89,8 @@ export function FivePhaseControlTower() {
         <div className="badge">Strategic blueprint implementation {dashboard.overallScore}%</div>
       </div>
       <div className="tabs">
-        {(['overview', 'gcc', 'saudi', 'metrics', 'agents'] as const).map((item) =>
-          <button key={item} className={`tab ${tab === item ? 'active' : ''}`} onClick={() => setTab(item)}>{item === 'gcc' ? 'GCC packs' : item === 'saudi' ? 'Saudi foundation' : item}</button>
+        {(['overview', 'gcc', 'saudi', 'saudi_rules', 'metrics', 'agents'] as const).map((item) =>
+          <button key={item} className={`tab ${tab === item ? 'active' : ''}`} onClick={() => setTab(item)}>{item === 'gcc' ? 'GCC packs' : item === 'saudi' ? 'Saudi foundation' : item === 'saudi_rules' ? 'Saudi rules' : item}</button>
         )}
       </div>
     </section>
@@ -97,6 +98,7 @@ export function FivePhaseControlTower() {
     {tab === 'overview' && <Overview dashboard={dashboard} onNavigate={setTab} />}
     {tab === 'gcc' && <GccPacks packs={dashboard.countryPacks} canManage={canManageRegulatory} busy={busy} run={run} />}
     {tab === 'saudi' && <SaudiCountryPackFoundation />}
+    {tab === 'saudi_rules' && <SaudiEmploymentRulesFoundation />}
     {tab === 'metrics' && <Metrics metrics={metrics} canManage={canManageMetrics} busy={busy} run={run} />}
     {tab === 'agents' && <AgentControls dashboard={dashboard} canManage={canManageAi} busy={busy} run={run} />}
   </div>;

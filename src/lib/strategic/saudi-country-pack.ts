@@ -291,7 +291,7 @@ export function saudiFoundationPayload() {
       'Approved golden payroll test evidence is not yet attached.',
       'Arabic/RTL critical-flow QA evidence is not yet attached.',
       'Official government connector certification is not yet attached.',
-      'EOSB, leave, working-time, localization and contract rule sets remain outside this H51.40 foundation.',
+      'H51.41 now adds read-only EOSB, leave, working-time and overtime foundations; independent legal validation and live workflow integration remain required.',
     ],
   };
 }
