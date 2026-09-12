@@ -1,11 +1,14 @@
 export type OntarioOrgType = 'private' | 'nonprofit' | 'public' | 'unknown';
 export type OntarioApplicability = 'required' | 'not_applicable' | 'review_required';
 export type OntarioReadinessState = 'complete' | 'open' | 'review_required';
+export type OntarioOperationalStatus = 'complete' | 'not_applicable' | 'review_required' | 'overdue' | 'due_soon' | 'open';
 
 export interface OntarioComplianceProfile {
   id: 'current';
   orgType: OntarioOrgType;
   ontarioEmployeeCount: number;
+  ontarioEmployeesOnJan1: number;
+  jan1EmployeeCountReviewed: boolean;
   workplaceWorkerCount: number;
   usesPublicJobPostings: boolean;
   usesAiInRecruiting: boolean;
@@ -21,6 +24,12 @@ export interface OntarioComplianceProfile {
   disconnectingPolicyRef?: string;
   electronicMonitoringPolicyRef?: string;
   jobPostingProcedureRef?: string;
+  jobPostingCompensationRef?: string;
+  jobPostingAiDisclosureRef?: string;
+  jobPostingVacancyRef?: string;
+  jobPostingCanadianExperienceRef?: string;
+  interviewStatusProcedureRef?: string;
+  jobPostingRetentionRef?: string;
   aodaComplianceReportRef?: string;
   accessibilityPlanRef?: string;
   hsrOrJhscRef?: string;
@@ -40,11 +49,16 @@ export interface OntarioReadinessObligation {
   category: string;
   applicability: OntarioApplicability;
   state: OntarioReadinessState;
+  operationalStatus: OntarioOperationalStatus;
   reason: string;
   sourceId: string;
   evidenceField?: keyof OntarioComplianceProfile;
   dueDate?: string;
   severity: 'green' | 'amber' | 'red';
+  owner: string;
+  nextAction: string;
+  daysPastDue?: number;
+  daysUntilDue?: number;
 }
 
 export interface OntarioComplianceSource {
@@ -216,6 +230,45 @@ export const ONTARIO_RECRUITING_2026_FOUNDATION = {
   canadianExperienceRequirementProhibited: true,
   sourceId: 'ON-ESA-JOB-POSTINGS-2026',
 } as const;
+
+export const ONTARIO_RECRUITING_2026_CONTROLS = [
+  {
+    id: 'job-posting-compensation',
+    label: 'Expected compensation / compensation-range control',
+    evidenceField: 'jobPostingCompensationRef' as const,
+    detail: 'Public postings generally require expected compensation information unless the >$200,000 prescribed exception applies. A displayed range must not span more than $50,000 annually.',
+  },
+  {
+    id: 'job-posting-ai',
+    label: 'AI-use disclosure control',
+    evidenceField: 'jobPostingAiDisclosureRef' as const,
+    detail: 'Where AI is used to screen, assess or select applicants, the public posting must disclose that use.',
+  },
+  {
+    id: 'job-posting-vacancy',
+    label: 'Existing-vacancy disclosure control',
+    evidenceField: 'jobPostingVacancyRef' as const,
+    detail: 'Public postings must state whether the posting is for an existing vacancy.',
+  },
+  {
+    id: 'job-posting-canadian-experience',
+    label: 'Canadian-experience prohibition control',
+    evidenceField: 'jobPostingCanadianExperienceRef' as const,
+    detail: 'Public postings and associated application forms must not include Canadian-experience requirements.',
+  },
+  {
+    id: 'job-posting-interview-status',
+    label: 'Interviewed-applicant status control',
+    evidenceField: 'interviewStatusProcedureRef' as const,
+    detail: 'Interviewed applicants must be informed whether a hiring decision has been made within 45 days after the interview or last interview.',
+  },
+  {
+    id: 'job-posting-retention',
+    label: 'Public-posting and interview-status retention control',
+    evidenceField: 'jobPostingRetentionRef' as const,
+    detail: 'Public job postings/application forms and prescribed interview-status information have three-year retention foundations.',
+  },
+] as const;
 
 export const ONTARIO_EHT_FOUNDATION = {
   exemptionCad: 1_000_000,
@@ -435,6 +488,34 @@ export const ONTARIO_CHANGE_CALENDAR = [
 
 const hasEvidence = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
 
+function parseDate(value: string) {
+  const [year, month, day] = value.split('-').map(Number);
+  return Date.UTC(year, month - 1, day);
+}
+
+function dateDeltaDays(asOfDate: string, dueDate: string) {
+  return Math.round((parseDate(dueDate) - parseDate(asOfDate)) / 86_400_000);
+}
+
+function operationalStatus(
+  state: OntarioReadinessState,
+  applicability: OntarioApplicability,
+  asOfDate: string,
+  dueDate?: string,
+): Pick<OntarioReadinessObligation, 'operationalStatus' | 'daysPastDue' | 'daysUntilDue'> {
+  if (applicability === 'not_applicable') return { operationalStatus: 'not_applicable' };
+  if (state === 'complete') return { operationalStatus: 'complete' };
+  if (applicability === 'review_required') return { operationalStatus: 'review_required' };
+
+  if (dueDate) {
+    const delta = dateDeltaDays(asOfDate, dueDate);
+    if (delta < 0) return { operationalStatus: 'overdue', daysPastDue: Math.abs(delta) };
+    if (delta <= 30) return { operationalStatus: 'due_soon', daysUntilDue: delta };
+    return { operationalStatus: 'open', daysUntilDue: delta };
+  }
+  return { operationalStatus: 'open' };
+}
+
 function obligation(
   id: string,
   label: string,
@@ -446,16 +527,34 @@ function obligation(
   evidencePresent: boolean,
   severity: 'green' | 'amber' | 'red' = 'amber',
   dueDate?: string,
+  owner = 'People & Culture',
+  nextAction = 'Review applicability and attach governed evidence.',
+  asOfDate = new Date().toISOString().slice(0, 10),
 ): OntarioReadinessObligation {
   const state: OntarioReadinessState =
     applicability === 'not_applicable'
       ? 'complete'
-      : applicability === 'review_required'
-        ? 'review_required'
-        : evidencePresent
-          ? 'complete'
+      : evidencePresent
+        ? 'complete'
+        : applicability === 'review_required'
+          ? 'review_required'
           : 'open';
-  return { id, label, category, applicability, state, reason, sourceId, evidenceField, dueDate, severity };
+
+  return {
+    id,
+    label,
+    category,
+    applicability,
+    state,
+    reason,
+    sourceId,
+    evidenceField,
+    dueDate,
+    severity,
+    owner,
+    nextAction,
+    ...operationalStatus(state, applicability, asOfDate, dueDate),
+  };
 }
 
 export function defaultOntarioComplianceProfile(): OntarioComplianceProfile {
@@ -463,6 +562,8 @@ export function defaultOntarioComplianceProfile(): OntarioComplianceProfile {
     id: 'current',
     orgType: 'unknown',
     ontarioEmployeeCount: 0,
+    ontarioEmployeesOnJan1: 0,
+    jan1EmployeeCountReviewed: false,
     workplaceWorkerCount: 0,
     usesPublicJobPostings: false,
     usesAiInRecruiting: false,
@@ -478,26 +579,45 @@ export function defaultOntarioComplianceProfile(): OntarioComplianceProfile {
   };
 }
 
-export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfile) {
+export function assessOntarioComplianceReadiness(
+  profile: OntarioComplianceProfile,
+  asOfDate = new Date().toISOString().slice(0, 10),
+) {
   const obligations: OntarioReadinessObligation[] = [];
   const count = Math.max(0, Number(profile.ontarioEmployeeCount) || 0);
+  const jan1Count = Math.max(0, Number(profile.ontarioEmployeesOnJan1) || 0);
   const workers = Math.max(0, Number(profile.workplaceWorkerCount) || 0);
+  const year = asOfDate.slice(0, 4);
+  const policyDueDate = `${year}-03-01`;
 
-  const policyThreshold = count >= 25;
+  const policyApplicability: OntarioApplicability =
+    !profile.jan1EmployeeCountReviewed
+      ? 'review_required'
+      : jan1Count >= 25
+        ? 'required'
+        : 'not_applicable';
+
   obligations.push(
     obligation(
       'disconnecting-policy',
       'Written policy on disconnecting from work',
       'ESA policy governance',
-      policyThreshold ? 'required' : 'not_applicable',
-      policyThreshold
-        ? '25 or more Ontario employees triggers the annual written-policy threshold.'
-        : 'Below the 25-employee threshold on the current profile.',
+      policyApplicability,
+      !profile.jan1EmployeeCountReviewed
+        ? 'The January 1 Ontario employee-count snapshot has not been human-reviewed.'
+        : jan1Count >= 25
+          ? `The reviewed January 1 snapshot is ${jan1Count}; 25+ employees triggers the annual written-policy requirement.`
+          : `The reviewed January 1 snapshot is ${jan1Count}; the general 25-employee threshold is not met for this calendar year.`,
       'ON-ESA-DISCONNECT',
       'disconnectingPolicyRef',
       hasEvidence(profile.disconnectingPolicyRef),
-      policyThreshold ? 'red' : 'green',
-      policyThreshold ? '2026-03-01' : undefined,
+      policyApplicability === 'required' ? 'red' : 'amber',
+      policyApplicability === 'required' ? policyDueDate : undefined,
+      'People & Culture',
+      policyApplicability === 'required'
+        ? 'Confirm the current written policy, distribution evidence and retention record; attach the governed policy reference.'
+        : 'Review and confirm the January 1 Ontario employee-count snapshot.',
+      asOfDate,
     ),
   );
 
@@ -506,34 +626,76 @@ export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfi
       'electronic-monitoring-policy',
       'Written policy on electronic monitoring',
       'ESA policy governance',
-      policyThreshold ? 'required' : 'not_applicable',
-      policyThreshold
-        ? '25 or more Ontario employees triggers the written-policy requirement, whether monitoring occurs or not.'
-        : 'Below the 25-employee threshold on the current profile.',
+      policyApplicability,
+      !profile.jan1EmployeeCountReviewed
+        ? 'The January 1 Ontario employee-count snapshot has not been human-reviewed.'
+        : jan1Count >= 25
+          ? `The reviewed January 1 snapshot is ${jan1Count}; 25+ employees triggers the written-policy requirement whether or not monitoring is used.`
+          : `The reviewed January 1 snapshot is ${jan1Count}; the general 25-employee threshold is not met for this calendar year.`,
       'ON-ESA-E-MONITORING',
       'electronicMonitoringPolicyRef',
       hasEvidence(profile.electronicMonitoringPolicyRef),
-      policyThreshold ? 'red' : 'green',
-      policyThreshold ? '2026-03-01' : undefined,
+      policyApplicability === 'required' ? 'red' : 'amber',
+      policyApplicability === 'required' ? policyDueDate : undefined,
+      'People & Culture / Privacy',
+      policyApplicability === 'required'
+        ? 'Confirm policy content, employee distribution and three-year retention evidence; attach the governed policy reference.'
+        : 'Review and confirm the January 1 Ontario employee-count snapshot.',
+      asOfDate,
     ),
   );
 
-  const postingApplies = count >= ONTARIO_RECRUITING_2026_FOUNDATION.employerThreshold && profile.usesPublicJobPostings;
-  obligations.push(
-    obligation(
-      'public-job-postings',
-      '2026 publicly advertised job-posting controls',
-      'Recruiting',
-      postingApplies ? 'required' : 'not_applicable',
-      postingApplies
-        ? 'Employer has 25+ Ontario employees and uses publicly advertised job postings.'
-        : 'Threshold/use conditions are not both met in the current profile.',
-      'ON-ESA-JOB-POSTINGS-2026',
-      'jobPostingProcedureRef',
-      hasEvidence(profile.jobPostingProcedureRef),
-      postingApplies ? 'red' : 'green',
-    ),
-  );
+  const postingApplies =
+    count >= ONTARIO_RECRUITING_2026_FOUNDATION.employerThreshold &&
+    profile.usesPublicJobPostings;
+
+  if (postingApplies) {
+    for (const control of ONTARIO_RECRUITING_2026_CONTROLS) {
+      const aiControl = control.id === 'job-posting-ai';
+      const applicable = aiControl && !profile.usesAiInRecruiting ? 'not_applicable' : 'required';
+      const evidence = hasEvidence(profile[control.evidenceField]);
+
+      obligations.push(
+        obligation(
+          control.id,
+          control.label,
+          'Recruiting',
+          applicable,
+          aiControl && !profile.usesAiInRecruiting
+            ? 'The current profile says AI is not used to screen, assess or select applicants.'
+            : control.detail,
+          'ON-ESA-JOB-POSTINGS-2026',
+          control.evidenceField,
+          evidence,
+          applicable === 'required' ? 'red' : 'green',
+          undefined,
+          'Talent Acquisition / People & Culture',
+          applicable === 'required'
+            ? `Validate the recruiting workflow against this control and attach evidence: ${control.detail}`
+            : 'Reassess if AI recruiting use changes.',
+          asOfDate,
+        ),
+      );
+    }
+  } else {
+    obligations.push(
+      obligation(
+        'public-job-postings',
+        '2026 publicly advertised job-posting controls',
+        'Recruiting',
+        'not_applicable',
+        'Current employee-count/public-posting conditions do not both trigger the general 2026 public-posting foundation.',
+        'ON-ESA-JOB-POSTINGS-2026',
+        'jobPostingProcedureRef',
+        hasEvidence(profile.jobPostingProcedureRef),
+        'green',
+        undefined,
+        'Talent Acquisition / People & Culture',
+        'Reassess when Ontario employee count or public-posting practices change.',
+        asOfDate,
+      ),
+    );
+  }
 
   obligations.push(
     obligation(
@@ -542,18 +704,23 @@ export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfi
       'Recruiting',
       profile.usesRecruitersOrTempAgencies ? 'required' : 'not_applicable',
       profile.usesRecruitersOrTempAgencies
-        ? 'Employers must not knowingly use unlicensed recruiters or temporary-help agencies where licensing rules apply.'
+        ? 'Recruiter/temporary-help agency use is recorded and licence verification is required where Ontario licensing rules apply.'
         : 'No recruiter/temporary-help-agency use is recorded.',
       'ON-ESA-RECRUITER-LICENSING',
       'recruiterLicenseReviewRef',
       hasEvidence(profile.recruiterLicenseReviewRef),
       profile.usesRecruitersOrTempAgencies ? 'red' : 'green',
+      undefined,
+      'Talent Acquisition / Procurement',
+      'Verify the current Ontario licence status before engagement and retain the verification evidence.',
+      asOfDate,
     ),
   );
 
   const privateAoda = profile.orgType === 'private' || profile.orgType === 'nonprofit';
   const publicAoda = profile.orgType === 'public';
   const aodaReportApplies = publicAoda || (privateAoda && count >= 20);
+
   obligations.push(
     obligation(
       'aoda-report',
@@ -563,15 +730,20 @@ export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfi
       profile.orgType === 'unknown'
         ? 'Organization type is required to determine AODA reporting applicability.'
         : publicAoda
-          ? 'Public-sector organizations have accessibility reporting obligations.'
+          ? 'Public-sector organization: accessibility reporting obligations require sector-specific deadline review.'
           : count >= 20
-            ? 'Business/non-profit has 20 or more Ontario employees.'
+            ? 'Business/non-profit has 20 or more Ontario employees; the 2026 compliance-report foundation applies.'
             : 'Private/non-profit profile is below the 20-employee reporting threshold.',
       'ON-AODA-REPORT-2026',
       'aodaComplianceReportRef',
       hasEvidence(profile.aodaComplianceReportRef),
       aodaReportApplies ? 'red' : 'amber',
       aodaReportApplies && privateAoda ? '2026-12-31' : undefined,
+      'Accessibility Lead / Operations',
+      aodaReportApplies
+        ? 'Complete the applicable accessibility compliance report and retain filing evidence.'
+        : 'Confirm organization type and reporting threshold.',
+      asOfDate,
     ),
   );
 
@@ -591,11 +763,17 @@ export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfi
       'accessibilityPlanRef',
       hasEvidence(profile.accessibilityPlanRef),
       multiYearPlanApplies ? 'red' : 'amber',
+      undefined,
+      'Accessibility Lead / Operations',
+      'Confirm documented accessibility policies and the multi-year accessibility plan; attach governed evidence.',
+      asOfDate,
     ),
   );
 
   const hsrRequired = workers >= 6 && workers <= 19;
   const jhscRequired = workers >= 20;
+  const committeeMinimumMembers = workers >= 50 ? 4 : workers >= 20 ? 2 : 0;
+
   obligations.push(
     obligation(
       'ohsa-representation',
@@ -603,24 +781,31 @@ export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfi
       'Health and safety',
       hsrRequired || jhscRequired ? 'required' : workers === 0 ? 'review_required' : 'not_applicable',
       hsrRequired
-        ? 'Most Ontario workplaces with 6–19 workers require an HSR.'
+        ? 'Most Ontario workplaces with 6–19 workers require one worker-selected HSR.'
         : jhscRequired
-          ? workers >= 50
-            ? 'Most workplaces with 50+ workers require a JHSC with at least four members.'
-            : 'Most workplaces with 20–49 workers require a JHSC with at least two members.'
+          ? `Most workplaces with ${workers >= 50 ? '50+' : '20–49'} workers require a JHSC with at least ${committeeMinimumMembers} members.`
           : workers === 0
             ? 'Workplace worker count is required to determine HSR/JHSC applicability.'
-            : 'Current worker count is below the general HSR/JHSC threshold; designated-substance and special rules still require review.',
+            : '1–5 workers: no general HSR/JHSC requirement, subject to designated-substance and other special rules.',
       'ON-OHSA-CAMPAIGN-2026',
       'hsrOrJhscRef',
       hasEvidence(profile.hsrOrJhscRef),
       hsrRequired || jhscRequired ? 'red' : 'amber',
+      undefined,
+      'Health & Safety',
+      hsrRequired
+        ? 'Confirm the worker-selected HSR and retain appointment/training evidence.'
+        : jhscRequired
+          ? `Confirm a JHSC with at least ${committeeMinimumMembers} members, worker representation and certification requirements; attach evidence.`
+          : 'Confirm whether designated-substance or other special OHSA rules change the general threshold.',
+      asOfDate,
     ),
   );
 
   const payEquityApplies =
     profile.orgType === 'public' ||
     ((profile.orgType === 'private' || profile.orgType === 'nonprofit') && count >= 10);
+
   obligations.push(
     obligation(
       'pay-equity',
@@ -636,6 +821,10 @@ export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfi
       'payEquityReviewRef',
       hasEvidence(profile.payEquityReviewRef),
       payEquityApplies ? 'red' : 'amber',
+      undefined,
+      'People & Culture / Compensation',
+      'Complete applicability/maintenance review and retain governed pay-equity evidence.',
+      asOfDate,
     ),
   );
 
@@ -650,6 +839,10 @@ export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfi
       'wsibCoverageReviewRef',
       hasEvidence(profile.wsibCoverageReviewRef),
       'amber',
+      undefined,
+      'Health & Safety / Finance',
+      'Confirm WSIB coverage, classification and account evidence for the organization.',
+      asOfDate,
     ),
   );
 
@@ -668,6 +861,10 @@ export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfi
       'ehtReviewRef',
       hasEvidence(profile.ehtReviewRef),
       'amber',
+      undefined,
+      'Finance / Payroll',
+      'Complete governed EHT eligibility/remuneration review and retain supporting evidence.',
+      asOfDate,
     ),
   );
 
@@ -683,6 +880,10 @@ export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfi
         'collectiveAgreementReviewRef',
         hasEvidence(profile.collectiveAgreementReviewRef),
         'red',
+        undefined,
+        'Labour Relations / People & Culture',
+        'Review the collective agreement against applicable ESA/OHSA obligations and retain the governed review.',
+        asOfDate,
       ),
     );
   }
@@ -698,6 +899,10 @@ export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfi
       'specialRulesReviewRef',
       profile.specialRulesOrExemptionsReviewed && hasEvidence(profile.specialRulesReviewRef),
       'red',
+      undefined,
+      'People & Culture / Compliance',
+      'Complete the ESA special-rules/exemptions review and attach the governed review reference.',
+      asOfDate,
     ),
   );
 
@@ -707,16 +912,41 @@ export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfi
 
   const openRed = obligations.filter((item) => item.state !== 'complete' && item.severity === 'red');
   const openAmber = obligations.filter((item) => item.state !== 'complete' && item.severity === 'amber');
+  const overdue = obligations.filter((item) => item.operationalStatus === 'overdue');
+  const dueSoon = obligations.filter((item) => item.operationalStatus === 'due_soon');
+
+  const priorityRank: Record<OntarioOperationalStatus, number> = {
+    overdue: 0,
+    due_soon: 1,
+    review_required: 2,
+    open: 3,
+    complete: 4,
+    not_applicable: 5,
+  };
+
+  const remediationQueue = obligations
+    .filter((item) => item.state !== 'complete')
+    .sort((a, b) => {
+      const status = priorityRank[a.operationalStatus] - priorityRank[b.operationalStatus];
+      if (status !== 0) return status;
+      const severity = { red: 0, amber: 1, green: 2 } as const;
+      return severity[a.severity] - severity[b.severity];
+    });
 
   return {
     certification: 'NOT_CERTIFIED' as const,
     liveEffect: 'NONE' as const,
+    asOfDate,
     readinessPercent,
     completedObligations: completed,
     actionableObligations: actionable.length,
     openRed: openRed.length,
     openAmber: openAmber.length,
+    overdueCount: overdue.length,
+    dueSoonCount: dueSoon.length,
     obligations,
+    remediationQueue,
+    recruitingControls: ONTARIO_RECRUITING_2026_CONTROLS,
     sourceFreshness: ONTARIO_INTELLIGENCE_SOURCES.map((source) => ({
       ...source,
       status: source.observedAt === '2026-09-12' ? 'CURRENT_BASELINE' as const : 'REVIEW' as const,
@@ -728,8 +958,10 @@ export function assessOntarioComplianceReadiness(profile: OntarioComplianceProfi
     recruiting2026: ONTARIO_RECRUITING_2026_FOUNDATION,
     ehtFoundation: ONTARIO_EHT_FOUNDATION,
     blockers: [
-      ...openRed.map((item) => item.label),
+      ...overdue.map((item) => `${item.label} is overdue${item.daysPastDue ? ` by ${item.daysPastDue} days` : ''}.`),
+      ...openRed.filter((item) => item.operationalStatus !== 'overdue').map((item) => item.label),
       ...(profile.orgType === 'unknown' ? ['Organization type is unresolved.'] : []),
+      ...(!profile.jan1EmployeeCountReviewed ? ['January 1 Ontario employee-count snapshot is unresolved.'] : []),
     ],
     warnings: [
       'Readiness scoring is implementation/evidence readiness only; it is not legal certification.',

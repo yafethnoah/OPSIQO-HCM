@@ -5,7 +5,6 @@ import { LoadingState } from '@/components/data-states';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import type {
   OntarioComplianceProfile,
-  OntarioReadinessObligation,
 } from '@/lib/country-compliance/ontario-readiness';
 
 type Data = {
@@ -17,9 +16,6 @@ type Data = {
 const askAi = (prompt: string) =>
   window.dispatchEvent(new CustomEvent('opsiqo:ai-assist', { detail: { prompt } }));
 
-function StatusBadge({ obligation }: { obligation: OntarioReadinessObligation }) {
-  return <span className="badge">{obligation.state.replaceAll('_', ' ')}</span>;
-}
 
 export function OntarioComplianceReadiness() {
   const [data, setData] = useState<Data | null>(null);
@@ -82,7 +78,13 @@ export function OntarioComplianceReadiness() {
   const evidenceFields: Array<[keyof OntarioComplianceProfile, string]> = [
     ['disconnectingPolicyRef', 'Disconnecting-from-work policy evidence'],
     ['electronicMonitoringPolicyRef', 'Electronic-monitoring policy evidence'],
-    ['jobPostingProcedureRef', '2026 job-posting procedure evidence'],
+    ['jobPostingProcedureRef', '2026 job-posting governance / master procedure'],
+    ['jobPostingCompensationRef', 'Compensation disclosure / range evidence'],
+    ['jobPostingAiDisclosureRef', 'AI-use disclosure evidence'],
+    ['jobPostingVacancyRef', 'Existing-vacancy disclosure evidence'],
+    ['jobPostingCanadianExperienceRef', 'Canadian-experience prohibition control evidence'],
+    ['interviewStatusProcedureRef', '45-day interviewed-applicant status procedure'],
+    ['jobPostingRetentionRef', '3-year posting / interview-status retention evidence'],
     ['aodaComplianceReportRef', 'AODA compliance report evidence'],
     ['accessibilityPlanRef', 'Accessibility policies / multi-year plan'],
     ['hsrOrJhscRef', 'HSR / JHSC evidence'],
@@ -115,7 +117,7 @@ export function OntarioComplianceReadiness() {
       <div className="grid4">
         <div className="metricCard"><div className="metricLabel">Readiness</div><div className="metricValue">{assessment.readinessPercent}%</div><div className="metricFoot">implementation/evidence only</div></div>
         <div className="metricCard"><div className="metricLabel">Open red</div><div className="metricValue">{assessment.openRed}</div></div>
-        <div className="metricCard"><div className="metricLabel">Open amber</div><div className="metricValue">{assessment.openAmber}</div></div>
+        <div className="metricCard"><div className="metricLabel">Overdue</div><div className="metricValue">{assessment.overdueCount}</div><div className="metricFoot">{assessment.dueSoonCount} due soon</div></div>
         <div className="metricCard"><div className="metricLabel">Certification</div><div className="metricValue">NOT CERTIFIED</div><div className="metricFoot">Live effect: NONE</div></div>
       </div>
 
@@ -131,7 +133,9 @@ export function OntarioComplianceReadiness() {
         <label><span>Organization type</span><select className="input" value={profile.orgType} onChange={(e) => update('orgType', e.target.value as OntarioComplianceProfile['orgType'])}>
           <option value="unknown">Requires review</option><option value="private">Private</option><option value="nonprofit">Non-profit</option><option value="public">Public sector</option>
         </select></label>
-        <label><span>Ontario employee count</span><input className="input" type="number" min={0} value={profile.ontarioEmployeeCount} onChange={(e) => update('ontarioEmployeeCount', Number(e.target.value))} /></label>
+        <label><span>Current Ontario employee count</span><input className="input" type="number" min={0} value={profile.ontarioEmployeeCount} onChange={(e) => update('ontarioEmployeeCount', Number(e.target.value))} /></label>
+        <label><span>Ontario employees on January 1</span><input className="input" type="number" min={0} value={profile.ontarioEmployeesOnJan1} onChange={(e) => update('ontarioEmployeesOnJan1', Number(e.target.value))} /></label>
+        <label><span>January 1 employee-count snapshot reviewed</span><select className="input" value={profile.jan1EmployeeCountReviewed ? 'yes' : 'no'} onChange={(e) => update('jan1EmployeeCountReviewed', e.target.value === 'yes')}><option value="no">No / requires review</option><option value="yes">Yes</option></select></label>
         <label><span>Workers at this workplace</span><input className="input" type="number" min={0} value={profile.workplaceWorkerCount} onChange={(e) => update('workplaceWorkerCount', Number(e.target.value))} /></label>
         <label><span>Annual Ontario payroll (CAD)</span><input className="input" type="number" min={0} step={0.01} value={profile.annualOntarioPayrollCad} onChange={(e) => update('annualOntarioPayrollCad', Number(e.target.value))} /></label>
         <label><span>Associated-group Ontario payroll (CAD)</span><input className="input" type="number" min={0} step={0.01} value={profile.associatedGroupOntarioPayrollCad} onChange={(e) => update('associatedGroupOntarioPayrollCad', Number(e.target.value))} /></label>
@@ -156,13 +160,45 @@ export function OntarioComplianceReadiness() {
         <span className="badge">{red.length} red open</span>
       </div>
       <table>
-        <thead><tr><th>Obligation</th><th>Applicability</th><th>Status</th><th>Reason</th><th>Due</th></tr></thead>
+        <thead><tr><th>Obligation</th><th>Applicability</th><th>Operational status</th><th>Owner</th><th>Reason / next action</th><th>Due</th></tr></thead>
         <tbody>{assessment.obligations.map((item) => <tr key={item.id}>
           <td><strong>{item.label}</strong><div className="muted">{item.category} · {item.sourceId}</div></td>
           <td>{item.applicability.replaceAll('_', ' ')}</td>
-          <td><StatusBadge obligation={item} /></td>
-          <td>{item.reason}</td>
+          <td><span className="badge">{item.operationalStatus.replaceAll('_', ' ')}</span>{item.daysPastDue ? <div className="muted">{item.daysPastDue} days overdue</div> : item.daysUntilDue !== undefined ? <div className="muted">{item.daysUntilDue} days remaining</div> : null}</td>
+          <td>{item.owner}</td>
+          <td><div>{item.reason}</div><div className="muted"><strong>Next:</strong> {item.nextAction}</div></td>
           <td>{item.dueDate || '—'}</td>
+        </tr>)}</tbody>
+      </table>
+    </section>
+
+    <section className="card tableWrap">
+      <div className="rowBetween">
+        <div>
+          <h3 className="sectionTitle">Priority remediation queue</h3>
+          <p className="muted">Overdue and high-risk items are ranked before ordinary open items.</p>
+        </div>
+        <span className="badge">As of {assessment.asOfDate}</span>
+      </div>
+      <table>
+        <thead><tr><th>Priority item</th><th>Status</th><th>Owner</th><th>Next action</th></tr></thead>
+        <tbody>{assessment.remediationQueue.slice(0, 10).map((item) => <tr key={item.id}>
+          <td><strong>{item.label}</strong></td>
+          <td>{item.operationalStatus.replaceAll('_', ' ')}{item.daysPastDue ? ` · ${item.daysPastDue} days overdue` : ''}</td>
+          <td>{item.owner}</td>
+          <td>{item.nextAction}</td>
+        </tr>)}</tbody>
+      </table>
+    </section>
+
+    <section className="card tableWrap">
+      <h3 className="sectionTitle">2026 recruiting compliance controls</h3>
+      <p className="muted">These controls are evaluated separately when the general public-job-posting foundation applies.</p>
+      <table>
+        <thead><tr><th>Control</th><th>Foundation</th></tr></thead>
+        <tbody>{assessment.recruitingControls.map((control) => <tr key={control.id}>
+          <td><strong>{control.label}</strong></td>
+          <td>{control.detail}</td>
         </tr>)}</tbody>
       </table>
     </section>

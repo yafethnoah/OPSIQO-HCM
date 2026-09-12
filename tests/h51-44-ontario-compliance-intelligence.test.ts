@@ -58,13 +58,24 @@ describe('H51.44 Ontario compliance intelligence', () => {
       ...defaultOntarioComplianceProfile(),
       orgType: 'private' as const,
       ontarioEmployeeCount: 25,
+      ontarioEmployeesOnJan1: 25,
+      jan1EmployeeCountReviewed: true,
       workplaceWorkerCount: 12,
       usesPublicJobPostings: true,
     };
     const result = assessOntarioComplianceReadiness(profile);
     expect(result.obligations.find((item) => item.id === 'disconnecting-policy')?.applicability).toBe('required');
     expect(result.obligations.find((item) => item.id === 'electronic-monitoring-policy')?.applicability).toBe('required');
-    expect(result.obligations.find((item) => item.id === 'public-job-postings')?.applicability).toBe('required');
+    for (const id of [
+      'job-posting-compensation',
+      'job-posting-vacancy',
+      'job-posting-canadian-experience',
+      'job-posting-interview-status',
+      'job-posting-retention',
+    ]) {
+      expect(result.obligations.find((item) => item.id === id)?.applicability).toBe('required');
+    }
+    expect(result.obligations.find((item) => item.id === 'job-posting-ai')?.applicability).toBe('not_applicable');
     expect(result.certification).toBe('NOT_CERTIFIED');
     expect(result.liveEffect).toBe('NONE');
   });
