@@ -8,6 +8,7 @@ import{buildDomainEvent}from'@/lib/events/build';
 import{calculateCanada2026,canada2026RuleMetadata}from'./canada-2026';
 import{EvidenceSandboxPayrollAdapter,type PayrollOutboundRecord}from'./provider-adapter';
 import{payrollAdjustmentActionSchema,payrollAdjustmentSchema,payrollRunActionSchema,payrollRunCreateSchema,referenceCertificationSchema,referenceValidationSchema,workerProfileSchema}from'./schemas';
+import{normalizeStoredCompensation}from'@/lib/compensation/pay-normalization';
 
 const now=()=>new Date().toISOString(),today=()=>now().slice(0,10),money=(n:number)=>Math.round(n*100)/100;
 const hash=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
@@ -70,9 +71,9 @@ async function buildRunRows(a:ActorContext,run:PayrollRun){
     const regularHours=sum(ts,t=>Number(t.regularMinutes||0)/60),overtimeHours=sum(ts,t=>Number(t.overtimeMinutes||0)/60),paidLeaveHours=sum(ts,t=>Number(t.paidLeaveMinutes||0)/60);
     const tp=timeProfileMap[w.id],policy=tp?.timePolicyId?policyMap[tp.timePolicyId]:undefined,otMultiplier=Number(policy?.overtimeMultiplier||0);
     if(overtimeHours>0&&!otMultiplier)throw new ApiError(409,`Overtime exists for ${w.displayName||w.id} but no authoritative overtime multiplier is configured.`,'overtime_policy_missing');
-    const periods=p.payPeriodsPerYear,baseRate=c.payBasis==='hourly'?Number(c.basePay):money(Number(c.annualizedBasePay||c.basePay)/2080);
-    let grossRegular=c.payBasis==='hourly'?money((regularHours+paidLeaveHours)*baseRate):money(Number(c.annualizedBasePay||c.basePay)/periods);
-    if(c.payBasis==='annual_salary')grossRegular=money(grossRegular+Number(c.allowancesAnnual||0)/periods);
+    const periods=p.payPeriodsPerYear,normalizedPay=normalizeStoredCompensation(c),baseRate=normalizedPay.hourlyRate;
+    let grossRegular=c.payBasis==='hourly'?money((regularHours+paidLeaveHours)*baseRate):money(normalizedPay.annualPay/periods);
+    if(c.payBasis!=='hourly')grossRegular=money(grossRegular+Number(c.allowancesAnnual||0)/periods);
     if(c.payBasis==='hourly'&&!ts.length&&!ads.some(x=>['bonus','commission','vacation','stat_holiday','retro','termination'].includes(x.type)))throw new ApiError(409,`Approved time is missing for hourly worker ${w.displayName||w.id}.`,'approved_time_missing');
     const overtime=money(overtimeHours*baseRate*(otMultiplier||0));
     const by=(type:string)=>sum(ads,x=>x.type===type?x.amount:0);
