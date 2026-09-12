@@ -107,9 +107,10 @@
         "projectId": "3412f1c1-d7d5-4d3c-b0e6-f7f06b59d5ea"
       },
       "h50ReliabilityTrack": "h50.1r-session-attendance-reliability",
-      "h50UserControlsTrack": "h50.1w-global-safe-area-alarm-preferences-persistent-session"
+      "h50UserControlsTrack": "h50.1w-global-safe-area-alarm-preferences-persistent-session",
+      "h50OwnerTransferTrack": "h50.1x-eas-owner-transfer"
     },
-    "owner": "auranitis-life-line",
+    "owner": "shadykutaifan",
     "runtimeVersion": {
       "policy": "appVersion"
     },
