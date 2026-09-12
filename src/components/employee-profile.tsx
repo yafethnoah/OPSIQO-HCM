@@ -17,6 +17,8 @@ type AccountAccess = {
   membership:{role:string;status:string}|null;
   invitation:{id:string;status:string;accountStatus?:string;deliveryStatus?:string;expiresAt:string;sendCount?:number}|null;
   downloadUrl:string;
+  timeLeaveUrl:string;
+  invitationSettingsUrl:string;
 };
 type AssignmentDetail = {id:string;primary:boolean;assignmentType?:string;allocationFte?:number;startDate:string;endDate?:string;current:boolean;position?:{id:string;title:string};orgUnit?:{id:string;name:string};manager?:{displayName:string}};
 type Detail = {
@@ -43,6 +45,7 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
   const [message,setMessage]=useState('');
   const [canManage,setCanManage]=useState(false);
   const [canInvite,setCanInvite]=useState(false);
+  const [canManageInvitationSettings,setCanManageInvitationSettings]=useState(false);
   const [access,setAccess]=useState<AccountAccess|null>(null);
   const [accessRole,setAccessRole]=useState('employee');
   const [accessBusy,setAccessBusy]=useState('');
@@ -56,7 +59,7 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
         apiFetch<{data:Worker[]}>(`/api/organizations/${activeOrgId()}/employees`),
         apiFetch<{actor:{permissions:string[]}}>('/api/me'),
       ]);
-      setDetail(d.data);setPositions(p.data);setUnits(u.data);setWorkers(w.data);setCanManage(me.actor.permissions.includes('people.manage'));setCanInvite(me.actor.permissions.includes('membership.invite'));
+      setDetail(d.data);setPositions(p.data);setUnits(u.data);setWorkers(w.data);setCanManage(me.actor.permissions.includes('people.manage'));setCanInvite(me.actor.permissions.includes('membership.invite'));setCanManageInvitationSettings(me.actor.permissions.includes('membership.manage'));
       if(me.actor.permissions.includes('membership.read')){
         try{
           const accessResult=await apiFetch<{data:AccountAccess}>(`/api/organizations/${activeOrgId()}/employees/${workerId}/access`);
@@ -120,7 +123,7 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
     setError('');setMessage('');setAccessBusy('invite');
     try{
       const result=await apiFetch<{data:{delivery:string;deliveryError?:string}}>(`/api/organizations/${activeOrgId()}/invitations`,{method:'POST',body:JSON.stringify({email:detail.worker.workEmail,role:accessRole,workerId,expiresInDays:7})});
-      setMessage(result.data.delivery==='email'?'OPSIQO access was provisioned and the invitation email was sent.':'OPSIQO access was provisioned. Email delivery is not configured, so use Members & Invitations for the secure manual setup links.');
+      setMessage(result.data.delivery==='email'?'OPSIQO access was provisioned. The invitation email includes mobile app links and direct Time & Leave access.':'OPSIQO access was provisioned. Email delivery is not configured, so use Members & Invitations for the secure setup, mobile download and Time & Leave links.');
       await load();
     }catch(e){setError(e instanceof Error?e.message:'Unable to provision OPSIQO access.');}
     finally{setAccessBusy('')}
@@ -132,7 +135,7 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
     setError('');setMessage('');setAccessBusy(action);
     try{
       await apiFetch(`/api/organizations/${activeOrgId()}/invitations/${invitationId}`,{method:'POST',body:JSON.stringify(action==='resend'?{action:'resend',expiresInDays:7}:{action:'revoke',reason:'Revoked from employee profile'})});
-      setMessage(action==='resend'?'Invitation and password-setup access were resent.':'Pending invitation was revoked and invitation-provisioned organization access was deactivated.');
+      setMessage(action==='resend'?'Invitation, mobile app access and Time & Leave entry were resent.':'Pending invitation was revoked and invitation-provisioned organization access was deactivated.');
       await load();
     }catch(e){setError(e instanceof Error?e.message:`Unable to ${action} invitation.`);}
     finally{setAccessBusy('')}
@@ -165,7 +168,7 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
       <div className="toolbar"><div><h2 className="sectionTitle">Account & app access</h2><div className="muted">H48 provisions Firebase identity, organization membership, password setup and mobile download access from the employee record.</div></div>{access&&<span className="badge">{access.status.replaceAll('_',' ')}</span>}</div>
       {!detail.worker.workEmail?<div className="notice">Add a valid work email before inviting this employee to OPSIQO.</div>:<div className="grid4"><div><div className="metricLabel">Work email</div><strong>{detail.worker.workEmail}</strong></div><div><div className="metricLabel">Firebase identity</div><strong>{access?.firebaseIdentity||'not checked'}</strong></div><div><div className="metricLabel">Membership</div><strong>{access?.membership?`${access.membership.role.replaceAll('_',' ')} · ${access.membership.status}`:'not provisioned'}</strong></div><div><div className="metricLabel">Last sign-in</div><strong>{access?.lastSignInAt?new Date(access.lastSignInAt).toLocaleString():'Not yet'}</strong></div></div>}
       {canInvite&&detail.worker.workEmail&&<div className="row wrap"><label className="field"><span>Access role</span><select className="input" value={accessRole} onChange={e=>setAccessRole(e.target.value)}><option value="employee">Employee</option><option value="manager">Manager</option><option value="hr_partner">HR Partner</option><option value="hr_admin">HR Admin</option><option value="org_admin">Organization Admin</option></select></label>{(!access?.invitation||['accepted','revoked','expired'].includes(access.invitation.status))&&<button className="button" disabled={!!accessBusy} onClick={inviteEmployeeAccess}>{accessBusy==='invite'?'Provisioning…':access?.status==='active'?'Send new access email':'Provision access & send invitation'}</button>}{access?.invitation?.status==='pending'&&<><button className="button secondary" disabled={!!accessBusy} onClick={()=>accessInvitationAction('resend')}>{accessBusy==='resend'?'Sending…':'Resend invitation'}</button><button className="button dangerButton" disabled={!!accessBusy} onClick={()=>accessInvitationAction('revoke')}>{accessBusy==='revoke'?'Revoking…':'Revoke pending access'}</button></>}</div>}
-      {access?.downloadUrl&&<div className="notice">Employee download page: <a className="textLink" href={access.downloadUrl} target="_blank" rel="noreferrer">Open OPSIQO download page</a>. Android/iOS store links can be configured later without changing the invitation workflow.</div>}
+      {access&&<div className="notice"><div className="row wrap"><a className="textLink" href={access.downloadUrl} target="_blank" rel="noreferrer">Open OPSIQO download page</a><a className="textLink" href={access.timeLeaveUrl} target="_blank" rel="noreferrer">Open Time & Leave</a>{canManageInvitationSettings&&<a className="textLink" href={access.invitationSettingsUrl}>Edit invitation & app links</a>}</div><div className="muted">Future invitations use the organization mobile links and route employees to the configured landing page (Time & Leave by default).</div></div>}
     </section>
 
     <section className="card stack">

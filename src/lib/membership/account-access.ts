@@ -1,7 +1,8 @@
 import { adminAuth, adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
 import type { ActorContext, Invitation, Membership } from '@/domain/security';
-import { invitationDownloadUrl } from './invitation-email';
+import { invitationDownloadUrl, invitationSignInUrl } from './invitation-email';
+import { getPulseInvitationSettingsByOrgId } from './pulse-invitation-settings';
 
 const emailKey = (value: string) => encodeURIComponent(value.trim().toLowerCase());
 
@@ -87,6 +88,8 @@ export async function getEmployeeAccountAccess(actor: ActorContext, workerId: st
           ? 'invited'
           : 'not_invited';
 
+  const pulseSettings = await getPulseInvitationSettingsByOrgId(actor.orgId);
+
   return {
     workerId,
     email,
@@ -96,6 +99,8 @@ export async function getEmployeeAccountAccess(actor: ActorContext, workerId: st
     lastSignInAt,
     membership: membership ? { role: membership.role, status: membership.status } : null,
     invitation,
-    downloadUrl: invitationDownloadUrl(),
+    downloadUrl: invitationDownloadUrl(actor.orgId),
+    timeLeaveUrl: invitationSignInUrl(actor.orgId, pulseSettings.landingPath),
+    invitationSettingsUrl: '/settings/mobile-invitations',
   };
 }

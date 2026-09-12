@@ -26,6 +26,7 @@ type InviteResponse = {
   passwordSetupUrl?: string;
   downloadUrl?: string;
   signInUrl?: string;
+  timeLeaveUrl?: string;
   invitation: Invitation;
   deliveryError?: string;
   authIdentity?: string;
@@ -42,6 +43,7 @@ export function InvitationPanel() {
   const [inviteLink, setInviteLink] = useState('');
   const [passwordLink, setPasswordLink] = useState('');
   const [downloadLink, setDownloadLink] = useState('');
+  const [timeLeaveLink, setTimeLeaveLink] = useState('');
   const [delivery, setDelivery] = useState('');
   const [busy, setBusy] = useState('');
 
@@ -76,6 +78,7 @@ export function InvitationPanel() {
     setInviteLink(response.delivery === 'manual' ? response.inviteUrl || '' : '');
     setPasswordLink(response.delivery === 'manual' ? response.passwordSetupUrl || '' : '');
     setDownloadLink(response.downloadUrl || '');
+    setTimeLeaveLink(response.timeLeaveUrl || response.signInUrl || '');
     if (response.delivery === 'email') {
       setDelivery(`Invitation email delivered. Firebase identity ${response.authIdentity || 'prepared'}; organization access is already provisioned and activates automatically on first authenticated sign-in.`);
     } else {
@@ -92,6 +95,7 @@ export function InvitationPanel() {
     setInviteLink('');
     setPasswordLink('');
     setDownloadLink('');
+    setTimeLeaveLink('');
     setDelivery('');
     setBusy('create');
     const form = new FormData(e.currentTarget);
@@ -120,6 +124,7 @@ export function InvitationPanel() {
     setError('');
     setInviteLink('');
     setPasswordLink('');
+    setTimeLeaveLink('');
     setDelivery('');
     setBusy(`${invitation.id}:${actionName}`);
     try {
@@ -154,7 +159,7 @@ export function InvitationPanel() {
     <div className="grid2">
       <form className="card stack" onSubmit={invite}>
         <div>
-          <h2 className="sectionTitle">Invite employee to OPSIQO</h2>
+          <div className="toolbar"><h2 className="sectionTitle">Invite employee to OPSIQO</h2><a className="textLink" href="/settings/mobile-invitations">Edit invitation & app links</a></div>
           <div className="muted">The platform creates or reuses the Firebase identity, provisions organization membership, generates password setup, and sends the branded access email.</div>
         </div>
         <label className="field"><span>Email</span><input required type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
@@ -182,7 +187,7 @@ export function InvitationPanel() {
         {delivery && <div className="notice">{delivery}</div>}
         {passwordLink && <div><div className="metricLabel">Password setup link</div><div className="copyBox">{passwordLink}</div><button className="button secondary compact" onClick={() => copy(passwordLink, 'Password setup link')}>Copy password setup link</button></div>}
         {inviteLink && <div><div className="metricLabel">Secure invitation link</div><div className="copyBox">{inviteLink}</div><button className="button secondary compact" onClick={() => copy(inviteLink, 'Invitation link')}>Copy invitation link</button></div>}
-        {downloadLink && <div><div className="metricLabel">App download landing page</div><div className="copyBox">{downloadLink}</div><button className="button secondary compact" onClick={() => copy(downloadLink, 'App download link')}>Copy download link</button></div>}
+        {downloadLink && <div><div className="metricLabel">App download landing page</div><div className="copyBox">{downloadLink}</div><button className="button secondary compact" onClick={() => copy(downloadLink, 'App download link')}>Copy download link</button></div>}{timeLeaveLink && <div><div className="metricLabel">Time & Leave access</div><div className="copyBox">{timeLeaveLink}</div><button className="button secondary compact" onClick={() => copy(timeLeaveLink, 'Time & Leave link')}>Copy Time & Leave link</button></div>}
       </div>
     </div>
 

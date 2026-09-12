@@ -2,7 +2,8 @@ import { createHash, randomBytes, randomUUID } from 'crypto';
 import type { ActorContext, Invitation, Membership, Role } from '@/domain/security';
 import { adminDb } from '@/lib/firebase/admin';
 import { ensureInvitationIdentity, passwordSetupLink } from './account-access';
-import { buildInvitationEmailHtml, invitationAcceptUrl, invitationDownloadUrl, invitationSignInUrl } from './invitation-email';
+import { buildInvitationEmailHtml, invitationAcceptUrl, invitationDownloadUrl, invitationSignInUrl, pulseDistributionLinks, renderPulseTemplateText } from './invitation-email';
+import { getPulseInvitationSettingsByOrgId } from './pulse-invitation-settings';
 import { ApiError } from '@/lib/http/errors';
 import { buildAudit } from '@/lib/audit/service';
 import { invitationAcceptSchema, invitationActionSchema, invitationCreateSchema } from './schemas';
@@ -128,8 +129,17 @@ async function deliverInvitation(input: {
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.INVITATION_FROM_EMAIL;
-  const downloadUrl = invitationDownloadUrl();
-  const signInUrl = invitationSignInUrl(input.orgId);
+  const pulseSettings = await getPulseInvitationSettingsByOrgId(input.orgId);
+  const downloadUrl = invitationDownloadUrl(input.orgId);
+  const signInUrl = invitationSignInUrl(input.orgId, pulseSettings.landingPath);
+  const distribution = pulseDistributionLinks(pulseSettings);
+  const orgName = await organizationName(input.orgId);
+  const subject = renderPulseTemplateText(pulseSettings.emailSubject, {
+    organization: orgName,
+    role: input.role.replaceAll('_', ' '),
+    expires: new Date(input.expiresAt).toLocaleDateString('en-CA'),
+  });
+
   if (!apiKey || !from) {
     return {
       delivery: 'manual' as const,
@@ -137,17 +147,17 @@ async function deliverInvitation(input: {
       passwordSetupUrl: input.passwordSetupUrl,
       downloadUrl,
       signInUrl,
+      timeLeaveUrl: signInUrl,
     };
   }
 
-  const orgName = await organizationName(input.orgId);
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       from,
       to: [input.email],
-      subject: `${orgName} invited you to OPSIQO`,
+      subject,
       html: buildInvitationEmailHtml({
         organizationName: orgName,
         role: input.role,
@@ -156,9 +166,13 @@ async function deliverInvitation(input: {
         acceptUrl: input.inviteUrl,
         downloadUrl,
         expiresAt: input.expiresAt,
+        iosUrl: distribution.ios || downloadUrl,
+        androidUrl: distribution.android || downloadUrl,
+        pulseSettings,
       }),
     }),
   });
+
   if (!response.ok) {
     return {
       delivery: 'manual' as const,
@@ -166,10 +180,18 @@ async function deliverInvitation(input: {
       passwordSetupUrl: input.passwordSetupUrl,
       downloadUrl,
       signInUrl,
+      timeLeaveUrl: signInUrl,
       deliveryError: `Email provider returned ${response.status}.`,
     };
   }
-  return { delivery: 'email' as const, inviteUrl: input.inviteUrl, downloadUrl, signInUrl };
+
+  return {
+    delivery: 'email' as const,
+    inviteUrl: input.inviteUrl,
+    downloadUrl,
+    signInUrl,
+    timeLeaveUrl: signInUrl,
+  };
 }
 
 async function resolveInvitationWorker(orgId: string, invitation: Pick<Invitation, 'workerId' | 'email'>) {
@@ -195,7 +217,8 @@ async function provisionInvitationAccess(actor: ActorContext, invitation: Invita
   const timestamp = now();
   const worker = await resolveInvitationWorker(actor.orgId, invitation);
   const identity = await ensureInvitationIdentity(invitation.email, worker.displayName);
-  const signInUrl = invitationSignInUrl(actor.orgId);
+  const pulseSettings = await getPulseInvitationSettingsByOrgId(actor.orgId);
+  const signInUrl = invitationSignInUrl(actor.orgId, pulseSettings.landingPath);
   const setupUrl = await passwordSetupLink(invitation.email, signInUrl);
   let membershipCreatedByInvitation = false;
 
