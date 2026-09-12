@@ -10,6 +10,7 @@ import type {
 } from '@/domain/strategic-five-phase';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import { LoadingState } from '@/components/data-states';
+import { SaudiCountryPackFoundation } from '@/components/saudi-country-pack-foundation';
 import {
   SCORE_METHODOLOGY,
   capabilityPresentation,
@@ -87,14 +88,15 @@ export function FivePhaseControlTower() {
         <div className="badge">Strategic blueprint implementation {dashboard.overallScore}%</div>
       </div>
       <div className="tabs">
-        {(['overview', 'gcc', 'metrics', 'agents'] as const).map((item) =>
-          <button key={item} className={`tab ${tab === item ? 'active' : ''}`} onClick={() => setTab(item)}>{item === 'gcc' ? 'GCC packs' : item}</button>
+        {(['overview', 'gcc', 'saudi', 'metrics', 'agents'] as const).map((item) =>
+          <button key={item} className={`tab ${tab === item ? 'active' : ''}`} onClick={() => setTab(item)}>{item === 'gcc' ? 'GCC packs' : item === 'saudi' ? 'Saudi foundation' : item}</button>
         )}
       </div>
     </section>
 
     {tab === 'overview' && <Overview dashboard={dashboard} onNavigate={setTab} />}
     {tab === 'gcc' && <GccPacks packs={dashboard.countryPacks} canManage={canManageRegulatory} busy={busy} run={run} />}
+    {tab === 'saudi' && <SaudiCountryPackFoundation />}
     {tab === 'metrics' && <Metrics metrics={metrics} canManage={canManageMetrics} busy={busy} run={run} />}
     {tab === 'agents' && <AgentControls dashboard={dashboard} canManage={canManageAi} busy={busy} run={run} />}
   </div>;

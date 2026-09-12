@@ -1104,6 +1104,7 @@ a23b1effb3d97e75b84da04ae1f5ab502fdd6f0474efefeb9c6e6782efb32d96  src/app/api/or
 9db00295523f9472702d44e1273e1a29bff3b96766be742c3ff520fb60ec4577  src/app/api/organizations/[orgId]/strategic/country-packs/route.ts
 e80bbd2e5348c0e91edb58e6ae72564640067fc860458403a809cb2db74dd75d  src/app/api/organizations/[orgId]/strategic/five-phase/route.ts
 b4179145e07b27a3ccc72f1cca44c6b12c4e16ac086fc9b14b76d140eed155ce  src/app/api/organizations/[orgId]/strategic/metrics/route.ts
+f9ce7b01b7005688335923224e2f3be0249238f6d2478d6e9be29e8ef0104d81  src/app/api/organizations/[orgId]/strategic/saudi-foundation/route.ts
 9a2b11e72e6f8cb4a43f1e417590161293974424c9f1a3541ef16c9cd47ffefd  src/app/api/organizations/[orgId]/strategy/capability-gaps/[gapId]/route.ts
 010d81256f36a8509255bb5de8c58676f2d020bda1dc44efecce5bd92794efb3  src/app/api/organizations/[orgId]/strategy/capability-gaps/route.ts
 205bca2095484209800cff20fa8f9cc33265ecba81df3389e9b9ee5dd342da59  src/app/api/organizations/[orgId]/strategy/dashboard/route.ts
@@ -1306,7 +1307,7 @@ f0037eef7f8aa5528d90f6ac3eab08ee686927f3fcefe6d127ee9a33eb365cf8  src/components
 b54bac01143efc30f35e9299eb333a2eee3a5b9a30d67eee937d0158371b0807  src/components/evidence-center-summary.tsx
 5325065d47b464c2dd450875632c0d8152137ba4c0608ff43b8078d754bad81a  src/components/experience-readiness-workspace.tsx
 f7d3b5dc580507d14c2b4a4b8c792862ba210c0bd1b69bd451a123e7ea5741f3  src/components/experience-workspace.tsx
-5be23502ab8c12da43745ed9f6c40d46f41ea881075ed25d74f0008866651dd0  src/components/five-phase-control-tower.tsx
+ad1fe8d6061613d97d8b10d7c790938e9910bb844347f602855ff6066ea07db4  src/components/five-phase-control-tower.tsx
 f354bae8444981e940ed9db798a77c267289eba82404e029490efa738e00649f  src/components/frontline-operations-panel.tsx
 8bdd8f110690e5a1c045c8a8d2153dc53b6f479f763f199827fa912b8fbba923  src/components/governance-control-center.tsx
 8f6bc17007d47390f3ab5eefa91ac55b884910ef4a6d0c27a89b51788d4a0e34  src/components/governed-ai-readiness-card.tsx
@@ -1373,6 +1374,7 @@ bd2330543751c74ca06c43b4198eba0b4803cb74823df43d2cbf0539c44bb27c  src/components
 1d2d0bb574da687eccb7dccd562fd38f9fdc0f5417a6ca6b0fadfc96cc980d89  src/components/route-announcer.tsx
 1db7c5296a4dadcadcd836f1140300a040db256c7fc462af30586918dec84130  src/components/runtime-locale-bootstrap.tsx
 bfda3395be5c926bf84aa90d60fdfb1b09dbb15016ec7d05461f3f26dc516881  src/components/safety-workspace.tsx
+3ace370f1068f27773029704340654833ee375a18535fa59795a46a1ea0eb86c  src/components/saudi-country-pack-foundation.tsx
 c0f5924f78b9586a418dad5d3c0c93c50f6c3b0c60bd5f9525b51465a3c7e91a  src/components/scenario-lab-workspace.tsx
 fff0f1ea112a7f1210794bba5b7b2dbefdb815b645ac64e8aaf73d67ebfebbd8  src/components/security-operations-center.tsx
 b6e32ec6a0b30b6f8f70c412fbf7b4fccc564f5da84ba9329983df2c90708f64  src/components/security-posture.tsx
@@ -1787,8 +1789,8 @@ dd833648dabcca1503e8ece410a7b151e6a3329c6afb858a789f8c526f7c8997  src/lib/strate
 3b82499f43c7b453456adea2f2f7d2599b2340899a34266b6c8ba11734689c33  src/lib/strategic/domain-bindings.ts
 ee1b2e75bdad75c7a100870f2b03eab6e70a8892b828f332256da1c5797a63ec  src/lib/strategic/enterprise-domain-bindings.ts
 65de2f9e49d8bf22e8b08fdb20dfc6fac94e7217d02862ba92c527a09048caac  src/lib/strategic/enterprise-object-graph.ts
-fb5b03e183ca55694ea526081d67e26ba0386183e61e17eb68f3cc8ff808de3c  src/lib/strategic/five-phase-core.ts
-e357be236004b4e663b28b838aa871402b7a2dce48495661897848ac4aac6202  src/lib/strategic/five-phase-presentation.ts
+9932172bb4f10aff5afe2c1b442fb4943d28a0973749fde24cdc5f7c4b5b3bcb  src/lib/strategic/five-phase-core.ts
+4dab68e307ffeb485515268fafb20040ef228946e67bcbef806c91a6dc6a6c39  src/lib/strategic/five-phase-presentation.ts
 2519860b19d682ad7d528bc478247d63c037c4c3d09771871979252d334bc2f0  src/lib/strategic/five-phase-service.ts
 39508f10b613c6f6256141bd12bd4e49805e6b5bd5ecbe27c771ed0945a257f5  src/lib/strategic/h50-closure.ts
 861f90e703c37de96a9529ee36198d9e3c233dd2611c92cf641c898dd52739e6  src/lib/strategic/h50-foundation.ts
@@ -1803,6 +1805,7 @@ c3c47d43afcfc011ac7079b96eca7f243b9909395591445a58099e768e23b329  src/lib/strate
 5a6dd4ad26b474097d31767157b384c1d369a5473ebcac61197bf9f17ccc227f  src/lib/strategic/platform-convergence.ts
 0300432f9c49bfa506b375654ae376aa14a2f4be5176cec40b91a1c07cdbf4f9  src/lib/strategic/readiness.ts
 9fb17bcf36599c8927116850c3cd15c89f79ac57782b98397234791d13e22f8a  src/lib/strategic/runtime-gateway.ts
+c969fa0eb1dcacbbca0527e84293115d39762f60210765874eb9f7f3fd52eae3  src/lib/strategic/saudi-country-pack.ts
 c301464bd34d6f081f04844418d8ee0e54a2de97b8fa950ad5afb49826dcfebd  src/lib/strategic/types.ts
 e180215943b61f17056525ae789a1bd3a66af3c58d5e8619bc9294c3482aa80b  src/lib/strategic/voice-browser.ts
 1a554927dc944c3ec10c5883c70aff89395eff3807ad419f487bad279cc7a088  src/lib/strategic/voice-hr.ts
@@ -1963,6 +1966,7 @@ dd3d76abb4d7abffd7a19ca3cf521f8b9afe629794e43eb28aa59f63ad43464d  tests/h51-36-c
 cd62cdd871a00742ff373f5ab73b7a3269ef45925c116176c688741c3aaec212  tests/h51-37-comp-pay-uat-closure.test.ts
 0806c3775931f3fadf797d15b8cd00a8b5dd8ca095e8309a8b61782a2888d8b1  tests/h51-38-five-phase-runtime-foundation.test.ts
 f82b8c77d8f41716f64e31770f51f1704e165e75be4cec90736b1c10a9a12727  tests/h51-39-strategic-trust-ux.test.ts
+5c26353ace40e36e4553811ba60bcc27a760246069033f7bef1e3222237b5da9  tests/h51-40-saudi-country-pack-foundation.test.ts
 fb1711839c8e379c323940163b09511d204e7bd8fd71fb6d273c38e14df0dda9  tests/h51-control-plane.test.ts
 ba667d484c279c58f50bd531f554b9e938372fe84886795901b059844d84d9db  tests/h51-fix.test.ts
 6414f01681558206149d7fb7c058bbf3ff11855c6f6ba494fb158accadf0e9f9  tests/hr-diagnostic.schemas.test.ts

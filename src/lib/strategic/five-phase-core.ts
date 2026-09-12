@@ -51,7 +51,7 @@ export function baselineFivePhaseAssessment(): StrategicFivePhaseAssessment[] {
     ]),
     phase(2, 'GCC Dominance', 'Saudi- and UAE-native payroll, compliance, Arabic and government-integration packs.', [
       { id: 'framework', label: 'Versioned country-pack framework and activation gates', state: 'implemented', evidence: 'H51.38 country-pack registry refuses activation without independent evidence.' },
-      { id: 'ksa', label: 'Saudi statutory rule pack', state: 'missing' },
+      { id: 'ksa', label: 'Saudi statutory rule pack', state: 'partial', evidence: 'H51.40 registers current official HRSD/GOSI source provenance and a deterministic human-reviewed social-insurance simulation foundation. NOT CERTIFIED; independent legal/payroll validation, golden tests and broader Saudi rule sets remain.' },
       { id: 'uae', label: 'UAE statutory/free-zone rule pack', state: 'missing' },
       { id: 'connectors', label: 'Government connector/reconciliation architecture', state: 'partial', evidence: 'Generic integration runtime exists; official GCC adapters remain.' },
       { id: 'guard', label: 'Payroll Guard', state: 'partial', evidence: 'Payroll readiness/fail-closed controls exist; GCC statutory pre-flight remains.' },

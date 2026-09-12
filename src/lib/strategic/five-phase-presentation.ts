@@ -3,7 +3,7 @@ import type {
   StrategicFivePhaseAssessment,
 } from '@/domain/strategic-five-phase';
 
-export type TowerTab = 'overview' | 'gcc' | 'metrics' | 'agents';
+export type TowerTab = 'overview' | 'gcc' | 'saudi' | 'metrics' | 'agents';
 
 export interface CapabilityPresentation {
   owner: string;
