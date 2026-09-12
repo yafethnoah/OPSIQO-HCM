@@ -924,6 +924,7 @@ d8ffb6c2c0760cb92a5bda5b302cc24d5ef6e952051d2db58d79dedd4133c6b6  src/app/api/or
 0d445681e7297450ea9806f86fa482270dc615f435a755737234ff7d61c5ec63  src/app/api/organizations/[orgId]/payroll/reference-validation/route.ts
 30a3b5f7c1f52ead6fc2bbf06abe08c72a9f9f1307e5e2921fbbfc6e6a62e64c  src/app/api/organizations/[orgId]/payroll/runs/[runId]/route.ts
 b7eeea7a1804859afb9a5953d7d791806e49b08c70659ea0c77f1387cd87421a  src/app/api/organizations/[orgId]/payroll/runs/route.ts
+47cdcc53248b728ad4bd794baa40a072f93199f127969a2801daf40a66d5c79d  src/app/api/organizations/[orgId]/payroll/saudi-guard/route.ts
 dc40266f7225f598f7faf5bbdff92a5250e81d02ac055a1b9b83312eb1261044  src/app/api/organizations/[orgId]/payroll/statements/route.ts
 710e5e5b9d04c4bde7106112107caa9c544ac40dcefb244f99fb98e4a8f65bb2  src/app/api/organizations/[orgId]/people-analytics/bootstrap/route.ts
 49d54054366e9c19d4e9ae2c15da7ca71663a85252ba5d4ee83545d9d1bcbe75  src/app/api/organizations/[orgId]/people-analytics/dashboard/route.ts
@@ -1351,7 +1352,7 @@ d3dcecff9e5181bed9d278943c4e020ac04593efe1ef6b1024d44590e6a0fdcd  src/components
 635ecccae18f6e9440cbf81dd1511f9703da686e04cc9d7c8680dad0596c66a7  src/components/page-experience-layer.tsx
 0ee1ed1fec901d076e19985aadcf84a079f5851d813473d0946dd2bede78eb11  src/components/page-header.tsx
 6ff9649acf1c7e4c1ab84ea1ab2c01c5724e7424cd6805b1b7b17d1efe350205  src/components/parsing-assurance-panel.tsx
-1545e93c1195486b63df0664d042b7aaaf55b3597bc719fc8bc890214c340266  src/components/payroll-workspace.tsx
+b388c3960e3e0aa6b501680533c3d6103b668cf2bef6381a7f83e6533d4f3f66  src/components/payroll-workspace.tsx
 3484395182c0e512fdf5299ee74ed92bb887dbff68e7fefd0528c0f6130c0256  src/components/people-analytics-workspace.tsx
 ce84cccadf9aaed3fc29a14c0891d53652538a14eaba29f95b95020c8f51dec5  src/components/people-table.tsx
 0606ae4df2631a552af2ccb7e1333f78047f56fd167c8c8b0b2bd9772a713e3c  src/components/performance-workspace.tsx
@@ -1377,6 +1378,7 @@ bd2330543751c74ca06c43b4198eba0b4803cb74823df43d2cbf0539c44bb27c  src/components
 bfda3395be5c926bf84aa90d60fdfb1b09dbb15016ec7d05461f3f26dc516881  src/components/safety-workspace.tsx
 3ace370f1068f27773029704340654833ee375a18535fa59795a46a1ea0eb86c  src/components/saudi-country-pack-foundation.tsx
 39d6f80fa091085026bce8fa6ba6aa59fac76ef45d85e81c2c1d698c533b101b  src/components/saudi-employment-rules-foundation.tsx
+0bb6a2c098ab94219c5071ac7b2a96a4ac2720e00c7a924d642e1f400d64bed6  src/components/saudi-payroll-guard-panel.tsx
 c0f5924f78b9586a418dad5d3c0c93c50f6c3b0c60bd5f9525b51465a3c7e91a  src/components/scenario-lab-workspace.tsx
 fff0f1ea112a7f1210794bba5b7b2dbefdb815b645ac64e8aaf73d67ebfebbd8  src/components/security-operations-center.tsx
 b6e32ec6a0b30b6f8f70c412fbf7b4fccc564f5da84ba9329983df2c90708f64  src/components/security-posture.tsx
@@ -1720,6 +1722,7 @@ fea351e9268cd23923205b0a5e3004ddf9a25a9c1aec58fac00963182813d90e  src/lib/payrol
 f194cf75dc42eaafd338c6303e718a0915d0bd67a944d1e01d71c09b8104c7f0  src/lib/payroll/pay-date.ts
 550bef2cf351df0b7d3478dc8f490b37c94c151d2697ebf6b60554d0fbcb98c8  src/lib/payroll/provider-adapter.ts
 eda27dde423514ff491762a5159dbdc7803e7ed5d1e74fa18babad44e5f2454c  src/lib/payroll/readiness.ts
+2e25af9b4a7808c65c98c0643aa8b57aec64fdff5dfc5abba71f6510ac1a1cfd  src/lib/payroll/saudi-payroll-guard.ts
 5dda43184ec6683d4fe7fbd0cc399a06d7fac33cf7914bff70a230ee36e163f7  src/lib/payroll/schemas.ts
 faa138f03d661b0d3dc1089f687c5e31503f5163376b5204a53513154d9c3bf7  src/lib/payroll/service.ts
 a5ee5a74c967ac0e84afaa3c29753e8a1d881b7b63687417e3c76bee4de4df33  src/lib/people-analytics/forecast.ts
@@ -1791,7 +1794,7 @@ dd833648dabcca1503e8ece410a7b151e6a3329c6afb858a789f8c526f7c8997  src/lib/strate
 3b82499f43c7b453456adea2f2f7d2599b2340899a34266b6c8ba11734689c33  src/lib/strategic/domain-bindings.ts
 ee1b2e75bdad75c7a100870f2b03eab6e70a8892b828f332256da1c5797a63ec  src/lib/strategic/enterprise-domain-bindings.ts
 65de2f9e49d8bf22e8b08fdb20dfc6fac94e7217d02862ba92c527a09048caac  src/lib/strategic/enterprise-object-graph.ts
-3f8282c44937c2a66641ebfd643f7ad78da177005eb75e0b29a981ca5b3fcff6  src/lib/strategic/five-phase-core.ts
+8086715ff4532521ac0c4f12368254cea52c6a1fa7b5337181c0bfdd63bb182b  src/lib/strategic/five-phase-core.ts
 aeb4546b5e3fe0bd0db1089ba11b379e288c224d6e41b6bc34c6f69c10875ef9  src/lib/strategic/five-phase-presentation.ts
 2519860b19d682ad7d528bc478247d63c037c4c3d09771871979252d334bc2f0  src/lib/strategic/five-phase-service.ts
 39508f10b613c6f6256141bd12bd4e49805e6b5bd5ecbe27c771ed0945a257f5  src/lib/strategic/h50-closure.ts
@@ -1971,6 +1974,7 @@ cd62cdd871a00742ff373f5ab73b7a3269ef45925c116176c688741c3aaec212  tests/h51-37-c
 f82b8c77d8f41716f64e31770f51f1704e165e75be4cec90736b1c10a9a12727  tests/h51-39-strategic-trust-ux.test.ts
 5c26353ace40e36e4553811ba60bcc27a760246069033f7bef1e3222237b5da9  tests/h51-40-saudi-country-pack-foundation.test.ts
 9653e7920c76a03b8f78fcd69dce8e46c0284ffd0e71758d8dc405cd01c05d09  tests/h51-41-saudi-employment-rules-foundation.test.ts
+3cc26945f2f01b85fb72f41364dc40d1a3fe4804d5a4aab2e1062df0ff0952a6  tests/h51-42-saudi-payroll-guard.test.ts
 fb1711839c8e379c323940163b09511d204e7bd8fd71fb6d273c38e14df0dda9  tests/h51-control-plane.test.ts
 ba667d484c279c58f50bd531f554b9e938372fe84886795901b059844d84d9db  tests/h51-fix.test.ts
 6414f01681558206149d7fb7c058bbf3ff11855c6f6ba494fb158accadf0e9f9  tests/hr-diagnostic.schemas.test.ts

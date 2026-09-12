@@ -54,7 +54,7 @@ export function baselineFivePhaseAssessment(): StrategicFivePhaseAssessment[] {
       { id: 'ksa', label: 'Saudi statutory rule pack', state: 'partial', evidence: 'H51.40 adds verified-source social-insurance simulation and H51.41 adds verified-source EOSB, leave, working-time and overtime foundations. NOT CERTIFIED; independent Saudi legal/payroll validation, golden tests, Arabic/RTL QA and production workflow integration remain.' },
       { id: 'uae', label: 'UAE statutory/free-zone rule pack', state: 'missing' },
       { id: 'connectors', label: 'Government connector/reconciliation architecture', state: 'partial', evidence: 'Generic integration runtime exists; official GCC adapters remain.' },
-      { id: 'guard', label: 'Payroll Guard', state: 'partial', evidence: 'Payroll readiness/fail-closed controls exist; GCC statutory pre-flight remains.' },
+      { id: 'guard', label: 'Payroll Guard', state: 'partial', evidence: 'H51.42 adds Saudi worker-level GOSI/SANED readiness, WPS evidence gates, golden-case validation, Arabic critical-status preview, and hard blocks on AI payroll release/government submission. NOT CERTIFIED; independent validation and production connector certification remain.' },
       { id: 'arabic', label: 'Arabic/RTL critical-flow certification', state: 'partial', evidence: 'Arabic/translation readiness exists; GCC critical-flow RTL certification remains.' },
     ]),
     phase(3, 'Workforce Intelligence', 'Governed People, Skills and Compliance graphs plus explainable scenario intelligence.', [
