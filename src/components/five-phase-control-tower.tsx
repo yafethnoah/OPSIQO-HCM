@@ -10,6 +10,13 @@ import type {
 } from '@/domain/strategic-five-phase';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import { LoadingState } from '@/components/data-states';
+import {
+  SCORE_METHODOLOGY,
+  capabilityPresentation,
+  countryPackCertification,
+  displayPhaseName,
+  type TowerTab,
+} from '@/lib/strategic/five-phase-presentation';
 
 type Me = { actor: { permissions: string[] } };
 type AutomationPayload = { policy: { autopilotLevel: AutopilotLevel }; actions: StrategicAgentActionPolicy[] };
@@ -20,7 +27,7 @@ export function FivePhaseControlTower() {
   const [dashboard, setDashboard] = useState<StrategicFivePhaseDashboard | null>(null);
   const [metrics, setMetrics] = useState<StrategicMetricDefinition[]>([]);
   const [permissions, setPermissions] = useState<string[]>([]);
-  const [tab, setTab] = useState<'overview' | 'gcc' | 'metrics' | 'agents'>('overview');
+  const [tab, setTab] = useState<TowerTab>('overview');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -75,9 +82,9 @@ export function FivePhaseControlTower() {
       <div className="row between wrap">
         <div>
           <h2 className="sectionTitle">OPSIQO five-phase transformation control tower</h2>
-          <p className="muted">Live governance layer for Foundation, GCC Dominance, Workforce Intelligence, Agentic OPSIQO and Platform/Ecosystem execution.</p>
+          <p className="muted">Implementation governance for Foundation, GCC Platform Readiness, Workforce Intelligence, Agentic OPSIQO and Platform/Ecosystem execution. Scores are implementation coverage only.</p>
         </div>
-        <div className="badge">Overall blueprint {dashboard.overallScore}%</div>
+        <div className="badge">Strategic blueprint implementation {dashboard.overallScore}%</div>
       </div>
       <div className="tabs">
         {(['overview', 'gcc', 'metrics', 'agents'] as const).map((item) =>
@@ -86,38 +93,97 @@ export function FivePhaseControlTower() {
       </div>
     </section>
 
-    {tab === 'overview' && <Overview dashboard={dashboard} />}
+    {tab === 'overview' && <Overview dashboard={dashboard} onNavigate={setTab} />}
     {tab === 'gcc' && <GccPacks packs={dashboard.countryPacks} canManage={canManageRegulatory} busy={busy} run={run} />}
     {tab === 'metrics' && <Metrics metrics={metrics} canManage={canManageMetrics} busy={busy} run={run} />}
     {tab === 'agents' && <AgentControls dashboard={dashboard} canManage={canManageAi} busy={busy} run={run} />}
   </div>;
 }
 
-function Overview({ dashboard }: { dashboard: StrategicFivePhaseDashboard }) {
+function Overview({
+  dashboard,
+  onNavigate,
+}: {
+  dashboard: StrategicFivePhaseDashboard;
+  onNavigate: (tab: TowerTab) => void;
+}) {
+  const [phaseFilter, setPhaseFilter] = useState<'all' | string>('all');
+  const [stateFilter, setStateFilter] = useState<'all' | 'implemented' | 'partial' | 'missing'>('all');
+  const activeCountryPacks = dashboard.countryPacks.filter((pack) => pack.status === 'active').length;
+  const filteredRows = dashboard.phases.flatMap((phase) =>
+    phase.checklist
+      .filter((item) => phaseFilter === 'all' || String(phase.id) === phaseFilter)
+      .filter((item) => stateFilter === 'all' || item.state === stateFilter)
+      .map((item) => ({ phase, item, presentation: capabilityPresentation(item.id) })),
+  );
+
   return <div className="stack">
     <section className="metricGrid">
+      <div className="card"><div className="muted">Implementation readiness</div><strong>Strategic blueprint</strong><div style={{ fontSize: 28, fontWeight: 800 }}>{dashboard.overallScore}%</div><div className="muted">Implementation coverage only</div></div>
+      <div className="card"><div className="muted">Regulatory certification</div><strong>GCC country packs</strong><div style={{ fontSize: 28, fontWeight: 800 }}>{activeCountryPacks} / 2 active</div><div className="muted">Independent from blueprint score</div></div>
+      <div className="card"><div className="muted">UAT certification</div><strong>Release-specific</strong><div style={{ fontSize: 20, fontWeight: 800 }}>Tracked separately</div><div className="muted">Not inferred from roadmap coverage</div></div>
+      <div className="card"><div className="muted">Production certification</div><strong>Release-specific</strong><div style={{ fontSize: 20, fontWeight: 800 }}>Tracked separately</div><div className="muted">Not inferred from UAT or roadmap coverage</div></div>
+    </section>
+
+    <section className="metricGrid">
       {dashboard.phases.map((phase) =>
-        <div className="card" key={phase.id}>
+        <button
+          type="button"
+          className="card"
+          style={{ textAlign: 'left', cursor: 'pointer' }}
+          key={phase.id}
+          onClick={() => setPhaseFilter(String(phase.id))}
+          aria-label={`Filter capability matrix to Phase ${phase.id}`}
+        >
           <div className="muted">Phase {phase.id}</div>
-          <strong>{phase.name}</strong>
+          <strong>{displayPhaseName(phase)}</strong>
           <div style={{ fontSize: 28, fontWeight: 800 }}>{phase.score}%</div>
           <span className="badge">{phase.status.replaceAll('_', ' ')}</span>
-        </div>
+        </button>
       )}
     </section>
+
+    <section className="card">
+      <h2 className="sectionTitle">Score methodology and certification boundary</h2>
+      <p>{SCORE_METHODOLOGY}</p>
+    </section>
+
     <section className="card tableWrap">
-      <h2 className="sectionTitle">Capability closure matrix</h2>
+      <div className="row between wrap">
+        <h2 className="sectionTitle">Capability closure matrix</h2>
+        <div className="row wrap">
+          <label><span>Phase</span><select value={phaseFilter} onChange={(e) => setPhaseFilter(e.target.value)}>
+            <option value="all">All phases</option>
+            {dashboard.phases.map((phase) => <option key={phase.id} value={String(phase.id)}>Phase {phase.id} · {displayPhaseName(phase)}</option>)}
+          </select></label>
+          <label><span>State</span><select value={stateFilter} onChange={(e) => setStateFilter(e.target.value as typeof stateFilter)}>
+            <option value="all">All states</option><option value="missing">Missing only</option><option value="partial">Partial only</option><option value="implemented">Implemented only</option>
+          </select></label>
+          {(phaseFilter !== 'all' || stateFilter !== 'all') && <button type="button" className="button compact" onClick={() => { setPhaseFilter('all'); setStateFilter('all'); }}>Clear filters</button>}
+        </div>
+      </div>
       <table>
-        <thead><tr><th>Phase</th><th>Capability</th><th>State</th><th>Evidence / gap</th></tr></thead>
+        <thead><tr><th>Phase</th><th>Capability</th><th>State</th><th>Evidence / gap</th><th>Owner</th><th>Next action</th></tr></thead>
         <tbody>
-          {dashboard.phases.flatMap((phase) => phase.checklist.map((item) =>
+          {filteredRows.map(({ phase, item, presentation }) =>
             <tr key={`${phase.id}-${item.id}`}>
-              <td>{phase.id}</td><td>{item.label}</td><td><span className="badge">{item.state}</span></td><td>{item.evidence || 'Implementation evidence still required.'}</td>
+              <td>{phase.id}</td>
+              <td>{item.label}</td>
+              <td><span className="badge">{item.state}</span></td>
+              <td>{item.evidence || 'Implementation evidence still required.'}</td>
+              <td>{presentation.owner}</td>
+              <td>
+                <div>{presentation.nextAction}</div>
+                {presentation.targetTab && <button type="button" className="button compact" onClick={() => onNavigate(presentation.targetTab!)}>Take action</button>}
+                {!presentation.targetTab && presentation.href && <a className="button compact" href={presentation.href}>Take action</a>}
+              </td>
             </tr>
-          ))}
+          )}
+          {!filteredRows.length && <tr><td colSpan={6}>No capabilities match the selected filters.</td></tr>}
         </tbody>
       </table>
     </section>
+
     <div className="grid2">
       <section className="card">
         <h2 className="sectionTitle">Hard governance guardrails</h2>
@@ -142,7 +208,8 @@ function GccPacks({
   return <div className="stack">
     <section className="card">
       <h2 className="sectionTitle">GCC country-pack release gate</h2>
-      <p>No Saudi or UAE pack can be marked active merely because configuration exists. Activation requires official-source references, a versioned statutory rule-set, independent legal review, independent payroll validation, approved golden-test evidence, and Arabic/RTL QA evidence.</p>
+      <p><strong>No fabricated Saudi/UAE law:</strong> country-pack configuration and platform-readiness scores are never regulatory certification. Activation requires official-source references, a versioned statutory rule-set, independent legal review, independent payroll validation, approved golden-test evidence, and Arabic/RTL QA evidence.</p>
+      <p className="muted">Until a country pack is active with all release evidence recorded, OPSIQO displays NOT CERTIFIED.</p>
     </section>
     <div className="grid2">
       {packs.map((pack) => <CountryPackEditor key={pack.country} pack={pack} canManage={canManage} busy={busy} run={run} />)}
@@ -193,7 +260,14 @@ function CountryPackEditor({
   };
 
   return <section className="card">
-    <div className="row between wrap"><h2 className="sectionTitle">{pack.name}</h2><span className="badge">{pack.status}</span></div>
+    <div className="row between wrap">
+      <div><h2 className="sectionTitle">{pack.name}</h2><div className="muted">Pack lifecycle: {pack.status}</div></div>
+      <div className="stack" style={{ alignItems: 'flex-end' }}>
+        <span className="badge">{countryPackCertification(pack).label}</span>
+        <span className="muted">Release evidence {countryPackCertification(pack).evidenceComplete}/{countryPackCertification(pack).evidenceRequired}</span>
+      </div>
+    </div>
+    <p className="muted">{countryPackCertification(pack).detail}</p>
     <form className="formGrid" onSubmit={submit}>
       <Field label="Pack version" value={draft.version} set={(version) => setDraft({ ...draft, version })} disabled={!canManage} />
       <label><span>Status</span><select value={draft.status} disabled={!canManage} onChange={(e) => setDraft({ ...draft, status: e.target.value as StrategicCountryPack['status'] })}>
