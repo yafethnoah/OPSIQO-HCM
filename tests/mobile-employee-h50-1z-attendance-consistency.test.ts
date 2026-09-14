@@ -56,7 +56,7 @@ describe("H50.1Z self attendance consistency", () => {
   it("preserves H50.1Y App Store and EAS identity", () => {
     const app = JSON.parse(read("mobile/app.json"));
 
-    expect(app.expo.version).toBe("1.0.1");
+    expect(app.expo.version).toBe("1.0.2");
     expect(app.expo.owner).toBe("shadykutaifan");
     expect(app.expo.extra.eas.projectId).toBe(
       "3412f1c1-d7d5-4d3c-b0e6-f7f06b59d5ea",

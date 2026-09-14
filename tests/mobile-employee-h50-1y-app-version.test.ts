@@ -6,9 +6,9 @@ const read = (p: string) => readFileSync(p, "utf8");
 describe("H50.1Y App Store marketing version", () => {
   it("uses a marketing version above the previously approved 1.0.0", () => {
     const app = JSON.parse(read("mobile/app.json"));
-    expect(app.expo.version).toBe("1.0.1");
+    expect(app.expo.version).toBe("1.0.2");
     expect(app.expo.extra.h50AppVersionTrack).toBe(
-      "h50.1y-app-store-version-1.0.1",
+      "h50.2a-app-store-version-1.0.2",
     );
   });
 

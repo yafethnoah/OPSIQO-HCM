@@ -2,7 +2,7 @@
   "expo": {
     "name": "OPSIQO Pulse",
     "slug": "opsiqo-employee",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "scheme": "opsiqo",
     "userInterfaceStyle": "automatic",
@@ -109,8 +109,9 @@
       "h50ReliabilityTrack": "h50.1r-session-attendance-reliability",
       "h50UserControlsTrack": "h50.1w-global-safe-area-alarm-preferences-persistent-session",
       "h50OwnerTransferTrack": "h50.1x-eas-owner-transfer",
-      "h50AppVersionTrack": "h50.1y-app-store-version-1.0.1",
-      "h50AttendanceConsistencyTrack": "h50.1z-self-attendance-consistency"
+      "h50AppVersionTrack": "h50.2a-app-store-version-1.0.2",
+      "h50AttendanceConsistencyTrack": "h50.1z-self-attendance-consistency",
+      "h50AppStoreTrainTrack": "h50.2a-apple-train-1.0.2"
     },
     "owner": "shadykutaifan",
     "runtimeVersion": {
