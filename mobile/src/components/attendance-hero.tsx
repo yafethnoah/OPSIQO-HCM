@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
-import { apiFetch, isApiTransportError } from "@/api/client";
+import { ApiError, apiFetch, isApiTransportError } from "@/api/client";
 import { deviceVerification } from "@/mobile/device";
 import {
   listOfflineClockEvents,
@@ -53,12 +53,26 @@ export function AttendanceHero({
   const [syncHealth, setSyncHealth] = useState<"synced" | "pending" | "attention">("synced");
   const [nowMs, setNowMs] = useState(Date.now());
 
+  const selfAttendance = useMemo(() => {
+    const workerId = data?.actor?.workerId;
+    if (!workerId) return { working: [] as any[], onBreak: [] as any[] };
+
+    return {
+      working: (data?.attendance?.working || []).filter(
+        (row: any) => row?.workerId === workerId,
+      ),
+      onBreak: (data?.attendance?.onBreak || []).filter(
+        (row: any) => row?.workerId === workerId,
+      ),
+    };
+  }, [data]);
+
   const active = useMemo(
-    () => [...(data?.attendance?.working || []), ...(data?.attendance?.onBreak || [])][0],
-    [data],
+    () => [...selfAttendance.working, ...selfAttendance.onBreak][0],
+    [selfAttendance],
   );
-  const onBreak = Boolean((data?.attendance?.onBreak || []).length);
-  const canClock = Boolean(data?.capabilities.clock);
+  const onBreak = selfAttendance.onBreak.length > 0;
+  const canClock = Boolean(data?.capabilities.clock && data?.actor?.workerId);
 
   useEffect(() => {
     const timer = setInterval(() => setNowMs(Date.now()), 30000);
@@ -139,6 +153,18 @@ export function AttendanceHero({
       } catch (error) {
         if (!isApiTransportError(error)) {
           setSyncHealth("attention");
+
+          if (
+            error instanceof ApiError &&
+            error.code === "clock_state_invalid"
+          ) {
+            await onReload();
+            setMessage(
+              "Your attendance status changed on the server, so OPSIQO refreshed it. If the status still looks incorrect, ask an administrator to review the time entry.",
+            );
+            return;
+          }
+
           throw error;
         }
 
