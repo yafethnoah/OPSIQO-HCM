@@ -111,7 +111,8 @@
       "h50OwnerTransferTrack": "h50.1x-eas-owner-transfer",
       "h50AppVersionTrack": "h50.2a-app-store-version-1.0.2",
       "h50AttendanceConsistencyTrack": "h50.1z-self-attendance-consistency",
-      "h50AppStoreTrainTrack": "h50.2a-apple-train-1.0.2"
+      "h50AppStoreTrainTrack": "h50.2a-apple-train-1.0.2",
+      "h50MobileSelfServiceTrack": "h50.2b-no-mfa-visible-attendance-fast-bootstrap"
     },
     "owner": "shadykutaifan",
     "runtimeVersion": {

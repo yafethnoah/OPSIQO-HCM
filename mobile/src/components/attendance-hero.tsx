@@ -132,7 +132,7 @@ export function AttendanceHero({
       const eventId = uuid();
 
       try {
-        await apiFetch(`/api/organizations/${activeOrgId}/time/clock`, {
+        await apiFetch(`/api/organizations/${activeOrgId}/mobile/time/clock`, {
           method: "POST",
           orgId: activeOrgId,
           body: JSON.stringify({
@@ -237,7 +237,7 @@ export function AttendanceHero({
     setMessage("");
 
     try {
-      await apiFetch(`/api/organizations/${activeOrgId}/time/breaks`, {
+      await apiFetch(`/api/organizations/${activeOrgId}/mobile/time/breaks`, {
         method: "POST",
         orgId: activeOrgId,
         body: JSON.stringify({ action, paid: false }),
@@ -286,25 +286,47 @@ export function AttendanceHero({
         onBreak={onBreak}
         compact={compact}
       />
-      {canClock ? (
-        <>
-          <Button
-            title={busy ? "Please wait..." : active ? "Clock out" : "Clock in"}
-            onPress={() => void clock(active ? "clock_out" : "clock_in")}
-            disabled={busy}
-          />
-          {active ? (
-            <Button
-              title={onBreak ? "End break" : "Start break"}
-              onPress={() => void breakAction(onBreak ? "end" : "start")}
-              disabled={busy}
-              secondary
-            />
-          ) : null}
-        </>
-      ) : (
-        <Muted>Clock actions are not enabled for this membership.</Muted>
-      )}
+      <Button
+        title={busy ? "Please wait..." : active ? "Clock out" : "Clock in"}
+        onPress={() => {
+          if (!canClock) {
+            setSyncHealth("attention");
+            setMessage(
+              data?.actor?.workerId
+                ? "Attendance is not enabled for this employee profile."
+                : "Your OPSIQO Pulse account is not linked to an employee record yet. Ask HR to link the account to enable Clock In, Clock Out and Breaks.",
+            );
+            return;
+          }
+          void clock(active ? "clock_out" : "clock_in");
+        }}
+        disabled={busy}
+      />
+
+      {active ? (
+        <Button
+          title={onBreak ? "End break" : "Start break"}
+          onPress={() => {
+            if (!canClock) {
+              setSyncHealth("attention");
+              setMessage(
+                "Your employee profile must be linked before break actions can be used.",
+              );
+              return;
+            }
+            void breakAction(onBreak ? "end" : "start");
+          }}
+          disabled={busy}
+          secondary
+        />
+      ) : null}
+
+      {!canClock ? (
+        <Muted>
+          Attendance controls stay visible so you can see what is available.
+          Link this login to an employee record to activate them.
+        </Muted>
+      ) : null}
 
       {pendingOffline ? (
         <View style={s.offline}>

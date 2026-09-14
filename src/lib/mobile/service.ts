@@ -32,11 +32,11 @@ function selfAttendance(
 export async function mobileBootstrap(actor: ActorContext): Promise<MobileBootstrap> {
   if (!actor.permissions.includes('self.read')) throw new ApiError(403, 'Employee self-service permission required.', 'forbidden');
 
-  const home = await superAppDashboard(actor);
   const workerId = actor.workerId;
   const can = (permission:string) => actor.permissions.includes(permission as Permission);
 
-  const [leave, shifts, attendance, expenses, notifications, learning, documents] = await Promise.all([
+  const [home, leave, shifts, attendance, expenses, notifications, learning, documents] = await Promise.all([
+    superAppDashboard(actor),
     workerId && can('leave.read') ? getLeaveWorkspace(actor, workerId).catch(() => null) : Promise.resolve(null),
     workerId && can('time.read') ? listShifts(actor, undefined, undefined, workerId).catch(() => []) : Promise.resolve([]),
     workerId && can('time.read')
@@ -57,7 +57,7 @@ export async function mobileBootstrap(actor: ActorContext): Promise<MobileBootst
     capabilities: {
       employeePortal: true,
       time: can('time.read'),
-      clock: can('time.clock'),
+      clock: Boolean(workerId && can('time.clock')),
       leave: can('leave.read') || can('leave.request'),
       expenses: can('expense.read') || can('expense.request'),
       learning: can('learning.read'),
