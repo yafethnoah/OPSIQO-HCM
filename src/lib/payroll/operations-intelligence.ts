@@ -1,4 +1,6 @@
 import type { PayrollCalendarRuleRecord, PayrollAnomaly } from '@/domain/comp-pay-operations';
+import type { PayrollPayDateSource, PayrollRun, PayrollWorkerProfile } from '@/domain/payroll';
+import { resolveWorkerPayDate } from './pay-date';
 
 const money=(n:number)=>Math.round(Number(n||0)*100)/100;
 const dateRx=/^\d{4}-\d{2}-\d{2}$/;
@@ -57,6 +59,53 @@ export function resolveCalendarPayDate(defaultDate:string,rule?:PayrollCalendarR
   if(rule.weekendAdjustment==='previous_weekday')date=previousWeekday(date);
   if(rule.weekendAdjustment==='next_weekday')date=nextWeekday(date);
   return {payDate:date,source:`${rule.scope} calendar`};
+}
+
+export function resolveAuthoritativeWorkerPayDate(
+  run: Pick<PayrollRun, 'payDate' | 'workerPayDates'>,
+  profile: PayrollWorkerProfile | undefined,
+  worker: { id:string; payGroupId?:string; orgUnitId?:string; departmentId?:string },
+  rules: PayrollCalendarRuleRecord[],
+): { payDate:string; source:PayrollPayDateSource; label:string; calendarRuleId?:string } {
+  const exact = run.workerPayDates?.[worker.id];
+  if (exact) {
+    const resolved = resolveWorkerPayDate(run, profile, worker.id);
+    return { payDate: resolved.payDate, source: 'worker_override', label: 'Exact run override' };
+  }
+
+  const rule = pickCalendarRule(rules, worker, run.payDate);
+  if (rule) {
+    const resolved = resolveCalendarPayDate(run.payDate, rule);
+    const sourceMap: Record<PayrollCalendarRuleRecord['scope'], PayrollPayDateSource> = {
+      worker: 'worker_calendar',
+      pay_group: 'pay_group_calendar',
+      org_unit: 'org_unit_calendar',
+      organization: 'organization_calendar',
+    };
+    const labelMap: Record<PayrollCalendarRuleRecord['scope'], string> = {
+      worker: 'Worker calendar',
+      pay_group: 'Pay-group calendar',
+      org_unit: 'Org-unit calendar',
+      organization: 'Organization calendar',
+    };
+    return {
+      payDate: resolved.payDate,
+      source: sourceMap[rule.scope],
+      label: labelMap[rule.scope],
+      calendarRuleId: rule.id,
+    };
+  }
+
+  const fallback = resolveWorkerPayDate(
+    { payDate: run.payDate, workerPayDates: undefined },
+    profile,
+    worker.id,
+  );
+  return {
+    payDate: fallback.payDate,
+    source: fallback.source,
+    label: fallback.source === 'profile_rule' ? 'Legacy profile fallback' : 'Run default',
+  };
 }
 
 export function previewRetro(input:{

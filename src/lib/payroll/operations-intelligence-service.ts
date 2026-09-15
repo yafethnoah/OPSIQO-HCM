@@ -6,7 +6,7 @@ import { ApiError } from '@/lib/http/errors';
 import { buildAudit } from '@/lib/audit/service';
 import { getPayrollReadiness } from '@/lib/payroll/readiness';
 import { createPayrollAdjustment, createPayrollRun } from '@/lib/payroll/control-plane';
-import { detectStatementAnomalies, pickCalendarRule, previewRetro, resolveCalendarPayDate, runStage } from '@/lib/payroll/operations-intelligence';
+import { detectStatementAnomalies, previewRetro, resolveAuthoritativeWorkerPayDate, runStage } from '@/lib/payroll/operations-intelligence';
 
 const now=()=>new Date().toISOString();
 const today=()=>now().slice(0,10);
@@ -27,14 +27,13 @@ function amount(v:unknown,label:string){const n=Number(v);if(!Number.isFinite(n)
 export async function payrollOperationsIntelligence(a:ActorContext){
   requireRead(a);
   const base=`organizations/${a.orgId}`;
-  const [readiness,workers,profiles,runs,statements,adjustments,sync,currentComp,calendarRules,retroCases,variablePay,reconciliations]=await Promise.all([
+  const [readiness,workers,profiles,runs,statements,adjustments,currentComp,calendarRules,retroCases,variablePay,reconciliations]=await Promise.all([
     getPayrollReadiness(a),
     all<any>(`${base}/workers`),
     all<any>(`${base}/payrollWorkerProfiles`),
     all<any>(`${base}/payrollRuns`),
     all<any>(`${base}/payStatements`),
     all<any>(`${base}/payrollAdjustments`),
-    all<any>(`${base}/compensationPayrollSyncCurrent`),
     all<any>(`${base}/workerCompensationCurrent`),
     all<PayrollCalendarRuleRecord>(`${base}/payrollCalendarRules`),
     all<PayrollRetroCase>(`${base}/payrollRetroCases`),
@@ -43,7 +42,6 @@ export async function payrollOperationsIntelligence(a:ActorContext){
   ]);
 
   const profileMap=new Map(profiles.map(x=>[x.workerId,x]));
-  const syncMap=new Map(sync.map(x=>[x.workerId||x.id,x]));
   const compMap=new Map(currentComp.map(x=>[x.workerId,x]));
   const workerMap=new Map(workers.map(x=>[x.id,x]));
   const nextRun=[...runs].filter(r=>!['completed','reversed','cancelled'].includes(r.status)).sort((a,b)=>String(a.payDate).localeCompare(String(b.payDate)))[0];
@@ -52,23 +50,25 @@ export async function payrollOperationsIntelligence(a:ActorContext){
   const workerRows=readiness.workers.map((row:any)=>{
     const worker=workerMap.get(row.workerId)||{};
     const profile=profileMap.get(row.workerId);
-    const rule=pickCalendarRule(calendarRules,worker,defaultDate);
-    const calendar=resolveCalendarPayDate(defaultDate,rule);
-    const syncRow=syncMap.get(row.workerId);
+    const calendar=resolveAuthoritativeWorkerPayDate(
+      {payDate:defaultDate,workerPayDates:undefined},
+      profile,
+      worker,
+      calendarRules,
+    );
     const comp=compMap.get(row.workerId);
     const syncRequiresAttention=Boolean(row.syncRequiresAttention);
-    const mismatch=syncRequiresAttention;
     return {
       ...row,
       nextReleaseDate:calendar.payDate,
-      releaseSource:calendar.source,
-      calendarRuleId:rule?.id,
+      releaseSource:calendar.label,
+      calendarRuleId:calendar.calendarRuleId,
       profileEnabled:Boolean(profile?.enabled),
       syncStatus:row.syncStatus,
+      syncLabel:row.syncLabel,
       syncReason:row.syncReason,
       syncRequiresAttention,
       compensationRecordId:comp?.id,
-      mismatch,
     };
   });
 

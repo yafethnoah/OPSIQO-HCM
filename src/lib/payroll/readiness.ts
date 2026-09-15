@@ -98,6 +98,7 @@ export async function getPayrollReadiness(a: ActorContext) {
         profileExplicitReviewComplete: payrollProfileExplicitlyReviewed(profile),
         missingProfileReviewFields: missingPayrollProfileReviewFields(profile),
         syncStatus: syncEvaluation.state,
+        syncLabel: syncEvaluation.label,
         syncRequiresAttention: syncEvaluation.requiresAttention,
         syncReason: syncEvaluation.reason,
         syncUpdatedAt: sync?.updatedAt,

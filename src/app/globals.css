@@ -42,7 +42,7 @@ button, input, select, textarea { font: inherit; }
 table { width: 100%; border-collapse: collapse; }
 th { color: var(--muted); font-size: 12px; font-weight: 650; text-align: left; padding: 11px 10px; border-bottom: 1px solid var(--line); }
 td { padding: 13px 10px; border-bottom: 1px solid #edf1f5; font-size: 14px; }
-.badge { display: inline-flex; padding: 5px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 650; }
+.badge { display: inline-flex; padding: 5px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 12px; font-weight: 650; white-space: nowrap; }
 .toolbar { display: flex; gap: 10px; justify-content: space-between; margin-bottom: 14px; }
 .button { border: 0; border-radius: 10px; background: var(--accent); color: white; padding: 10px 14px; cursor: pointer; font-weight: 650; }
 .button.secondary { background: white; color: var(--text); border: 1px solid var(--line); }
@@ -512,3 +512,14 @@ body:has(.prehireShell) .prehireMain .row{min-width:0;max-width:100%;flex-wrap:w
 .payCompUx .tabBar{overflow-x:auto;flex-wrap:nowrap;}
 .payCompUx .tab{white-space:nowrap;}
 @media(max-width:900px){.compPayWideTable table{min-width:900px;}.compPayActionRow{align-items:flex-start;}}
+
+/* H51.51 authority convergence UX */
+.authorityStickyTable{position:relative;}
+.authorityStickyTable th:first-child,.authorityStickyTable td:first-child{position:sticky;left:0;z-index:3;background:var(--surface);min-width:170px;}
+.authorityStickyTable th:last-child,.authorityStickyTable td:last-child{position:sticky;right:0;z-index:3;background:var(--surface);min-width:220px;}
+.authorityStickyTable th:first-child,.authorityStickyTable th:last-child{z-index:4;}
+.compPayActionRow{min-width:max-content;}
+.architectureScoreGrid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:10px;}
+.architectureScoreCard{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface-2);display:grid;gap:9px;}
+@media(max-width:1100px){.architectureScoreGrid{grid-template-columns:repeat(2,minmax(170px,1fr));}}
+@media(max-width:620px){.architectureScoreGrid{grid-template-columns:1fr;}}

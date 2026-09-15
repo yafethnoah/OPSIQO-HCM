@@ -2,6 +2,8 @@ import type { ActorContext } from '@/domain/security';
 import type { Assignment, Position, Worker } from '@/domain/hr';
 import type {
   CompensationReadiness,
+  JobFamily,
+  JobLevel,
   PositionCompensationProfile,
   SalaryBand,
   WorkerCompensationRecord,
@@ -11,6 +13,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
 import { normalizeBandAmount, normalizeStoredCompensation } from './pay-normalization';
 import { evaluateCompensationPayrollSync } from './payroll-sync-authority';
+import { calculateCompensationArchitectureHealth, evaluateWorkerBandMapping } from './authority-convergence';
 import { payrollProfileExplicitlyReviewed } from '@/lib/payroll/profile-integrity';
 import { savePositionCompProfile } from './service';
 
@@ -44,6 +47,8 @@ export async function getCompensationReadiness(a: ActorContext): Promise<Compens
     current,
     profiles,
     bands,
+    families,
+    levels,
     payrollProfiles,
     requisitions,
     syncEvidence,
@@ -54,6 +59,8 @@ export async function getCompensationReadiness(a: ActorContext): Promise<Compens
     all<WorkerCompensationRecord>(`${base}/workerCompensationCurrent`),
     all<PositionCompensationProfile>(`${base}/positionCompensationProfiles`),
     all<SalaryBand>(`${base}/salaryBands`),
+    all<JobFamily>(`${base}/jobFamilies`),
+    all<JobLevel>(`${base}/jobLevels`),
     all<PayrollWorkerProfile>(`${base}/payrollWorkerProfiles`),
     all<any>(`${base}/requisitions`),
     all<any>(`${base}/compensationPayrollSyncCurrent`),
@@ -75,7 +82,9 @@ export async function getCompensationReadiness(a: ActorContext): Promise<Compens
     const position = assignment ? positionMap.get(assignment.positionId) : undefined;
     const comp = compMap.get(w.id);
     const profile = position ? profileMap.get(position.id) : undefined;
-    const mappedBand = profile?.salaryBandId ? bandMap.get(profile.salaryBandId) : undefined;
+    const rawBand = profile?.salaryBandId ? bandMap.get(profile.salaryBandId) : undefined;
+    const mappedBand = rawBand?.status === 'active' ? rawBand : undefined;
+    const bandEvaluation = evaluateWorkerBandMapping({hasCompensation:Boolean(comp),positionId:position?.id,salaryBandId:rawBand?.id,salaryBandStatus:rawBand?.status});
     const payroll = payrollMap.get(w.id);
     const sync = syncMap.get(w.id);
     const syncEvaluation = evaluateCompensationPayrollSync(comp, sync);
@@ -83,7 +92,7 @@ export async function getCompensationReadiness(a: ActorContext): Promise<Compens
 
     if (!position) issues.push('Missing current position');
     if (!comp) issues.push('Missing current compensation');
-    if (position && !mappedBand) issues.push('No salary band mapping');
+    if (bandEvaluation.requiresAttention) issues.push('No salary band mapping');
     if (!payroll || !payroll.enabled) issues.push('Missing or disabled payroll profile');
     if (payroll && !payrollProfileExplicitlyReviewed(payroll)) issues.push('Payroll profile fields require explicit human confirmation');
     if (comp && syncEvaluation.requiresAttention) issues.push('Compensation → Payroll sync review required');
@@ -148,7 +157,11 @@ export async function getCompensationReadiness(a: ActorContext): Promise<Compens
       issues,
       ready: issues.filter((i) => !i.includes('legacy/policy')).length === 0,
       suggestedBand,
+      bandMappingState: bandEvaluation.state,
+      bandMappingRequiresAttention: bandEvaluation.requiresAttention,
+      bandMappingReason: bandEvaluation.reason,
       syncStatus: syncEvaluation.state,
+      syncLabel: syncEvaluation.label,
       syncRequiresAttention: syncEvaluation.requiresAttention,
       syncReason: syncEvaluation.reason,
       syncUpdatedAt: sync?.updatedAt,
@@ -156,19 +169,38 @@ export async function getCompensationReadiness(a: ActorContext): Promise<Compens
   });
 
   const missingCompensation = rows.filter((x) => x.issues.includes('Missing current compensation')).length;
-  const missingBand = rows.filter((x) => x.issues.includes('No salary band mapping')).length;
+  const missingBand = rows.filter((x) => x.bandMappingRequiresAttention).length;
   const missingPayrollProfile = rows.filter((x) =>
     x.issues.includes('Missing or disabled payroll profile'),
   ).length;
   const readyForPayroll = rows.filter((x) => x.ready).length;
   const syncPending = rows.filter((x) => x.syncRequiresAttention).length;
 
+  const activeFamilyCount = families.filter((x) => x.status === 'active').length;
+  const activeLevelCount = levels.filter((x) => x.status === 'active').length;
+  const activeBandCount = bands.filter((x) => x.status === 'active').length;
+  const currentPositionIds = new Set(rows.map((x) => x.positionId).filter((x): x is string => Boolean(x)));
+  const mappedCurrentPositionIds = new Set(
+    rows.filter((x) => x.positionId && !x.bandMappingRequiresAttention).map((x) => x.positionId as string),
+  );
+  const placedWorkers = rows.filter((x) => x.positionId && !x.bandMappingRequiresAttention).length;
+  const architecture = calculateCompensationArchitectureHealth({
+    activeJobFamilies: activeFamilyCount,
+    activeJobLevels: activeLevelCount,
+    activeSalaryBands: activeBandCount,
+    currentPositions: currentPositionIds.size,
+    mappedCurrentPositions: mappedCurrentPositionIds.size,
+    workersInScope: rows.length,
+    placedWorkers,
+  });
+
   return {
     health: {
       dataCompletenessPct: pct(rows.length - missingCompensation, rows.length),
-      architecturePct: pct(rows.length - missingBand, rows.length),
+      architecturePct: architecture.overallPct,
       payrollReadinessPct: pct(readyForPayroll, rows.length),
     },
+    architecture,
     counts: {
       workers: rows.length,
       missingCompensation,

@@ -1,5 +1,6 @@
 import{createHash,randomUUID}from'crypto';
 import type{ActorContext,Permission}from'@/domain/security';
+import type{PayrollCalendarRuleRecord}from'@/domain/comp-pay-operations';
 import type{PayrollAdjustment,PayrollCalculationInput,PayrollCalculationRecord,PayrollProviderConfig,PayrollReconciliation,PayrollReferenceValidation,PayrollRegulatoryStatus,PayrollRun,PayrollWorkerProfile,PayStatement,PayrollInputSnapshot}from'@/domain/payroll';
 import{adminDb}from'@/lib/firebase/admin';
 import{ApiError}from'@/lib/http/errors';
@@ -9,7 +10,7 @@ import{calculateCanada2026,canada2026RuleMetadata}from'./canada-2026';
 import{EvidenceSandboxPayrollAdapter,type PayrollOutboundRecord}from'./provider-adapter';
 import{payrollAdjustmentActionSchema,payrollAdjustmentSchema,payrollRunActionSchema,payrollRunCreateSchema,referenceCertificationSchema,referenceValidationSchema,workerProfileSchema}from'./schemas';
 import{normalizeStoredCompensation}from'@/lib/compensation/pay-normalization';
-import{resolveWorkerPayDate}from'./pay-date';
+import{resolveAuthoritativeWorkerPayDate}from'./operations-intelligence';
 import{missingExplicitProfileInputFields,REQUIRED_PAYROLL_PROFILE_REVIEW_FIELDS}from'./profile-integrity';
 
 const now=()=>new Date().toISOString(),today=()=>now().slice(0,10),money=(n:number)=>Math.round(n*100)/100;
@@ -60,16 +61,16 @@ export async function createPayrollRun(a:ActorContext,raw:unknown){
 
 async function buildRunRows(a:ActorContext,run:PayrollRun){
   const db=adminDb(),base=`organizations/${a.orgId}`;
-  const[workers,profiles,currentComp,timesheets,leaveRequests,adjustments,timeProfiles,timePolicies,statements]=await Promise.all([
+  const[workers,profiles,currentComp,timesheets,leaveRequests,adjustments,timeProfiles,timePolicies,statements,calendarRules]=await Promise.all([
     all<any>(`${base}/workers`),all<PayrollWorkerProfile>(`${base}/payrollWorkerProfiles`),all<any>(`${base}/workerCompensationCurrent`),
-    all<any>(`${base}/timesheets`),all<any>(`${base}/leaveRequests`),all<PayrollAdjustment>(`${base}/payrollAdjustments`),all<any>(`${base}/workerTimeProfiles`),all<any>(`${base}/timePolicies`),all<PayStatement>(`${base}/payStatements`)
+    all<any>(`${base}/timesheets`),all<any>(`${base}/leaveRequests`),all<PayrollAdjustment>(`${base}/payrollAdjustments`),all<any>(`${base}/workerTimeProfiles`),all<any>(`${base}/timePolicies`),all<PayStatement>(`${base}/payStatements`),all<PayrollCalendarRuleRecord>(`${base}/payrollCalendarRules`)
   ]);
   const selected=workers.filter(w=>(run.workerIds?.length?run.workerIds.includes(w.id):['active','leave'].includes(w.status))||(run.kind==='termination'&&w.terminationDate&&w.terminationDate>=run.periodStart&&w.terminationDate<=run.periodEnd));
   if(!selected.length)throw new ApiError(409,'No workers are eligible for this payroll run.','payroll_no_workers');
   const profileMap=Object.fromEntries(profiles.map(x=>[x.workerId,x])),compMap=Object.fromEntries(currentComp.map(x=>[x.workerId,x])),timeProfileMap=Object.fromEntries(timeProfiles.map(x=>[x.workerId,x])),policyMap=Object.fromEntries(timePolicies.map(x=>[x.id,x]));
   const rows:{snapshot:PayrollInputSnapshot;calculation:PayrollCalculationRecord;adjustments:PayrollAdjustment[]}[]=[];
   for(const w of selected){
-    const p=profileMap[w.id];if(!p||!p.enabled)throw new ApiError(409,`Payroll profile is missing or disabled for ${w.displayName||w.id}.`,'payroll_profile_missing');const release=resolveWorkerPayDate(run,p,w.id),workerPayDate=release.payDate;
+    const p=profileMap[w.id];if(!p||!p.enabled)throw new ApiError(409,`Payroll profile is missing or disabled for ${w.displayName||w.id}.`,'payroll_profile_missing');const release=resolveAuthoritativeWorkerPayDate(run,p,w,calendarRules),workerPayDate=release.payDate;
     const c=compMap[w.id];if(!c)throw new ApiError(409,`Current compensation is missing for ${w.displayName||w.id}.`,'current_compensation_missing');
     const ts=timesheets.filter(t=>t.workerId===w.id&&t.status==='approved'&&t.weekStart>=run.periodStart&&t.weekEnd<=run.periodEnd);
     const leave=leaveRequests.filter(l=>l.workerId===w.id&&l.status==='approved'&&l.endDate>=run.periodStart&&l.startDate<=run.periodEnd);

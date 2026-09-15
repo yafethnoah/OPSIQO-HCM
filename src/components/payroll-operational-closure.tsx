@@ -52,13 +52,13 @@ export function PayrollOperationalClosure(){
       setSpecialRun(x=>x.workerId?x:{...x,workerId:first});
     }catch(e){setError(e instanceof Error?e.message:'Unable to load Payroll Transaction Integrity.')}
   };
-  useEffect(()=>{void load()},[]);
+  useEffect(()=>{void load();const openCalendars=()=>setTab('calendars');window.addEventListener('opsiqo:payroll-open-calendars',openCalendars);return()=>window.removeEventListener('opsiqo:payroll-open-calendars',openCalendars)},[]);
 
   const workers=intel?.workers||[],providers=dashboard?.providers?.filter((x:any)=>(x.environment||'uat')==='uat')||[],activeRuns=intel?.runs||[];
 
   const action=async(body:any,success:string)=>{
     setBusy(body.action||'action');setError('');setMessage('');
-    try{await apiFetch(endpoint,{method:'POST',body:JSON.stringify(body)});setMessage(success);await load()}
+    try{await apiFetch(endpoint,{method:'POST',body:JSON.stringify(body)});setMessage(success);await load();if(body.action==='save_calendar')window.dispatchEvent(new CustomEvent('opsiqo:payroll-calendar-updated'))}
     catch(e){setError(e instanceof Error?e.message:'Governed payroll action failed.')}
     finally{setBusy('')}
   };
@@ -131,8 +131,8 @@ export function PayrollOperationalClosure(){
 
     {tab==='readiness'&&<section className="card stack">
       <div className="rowBetween"><div><h3 className="sectionTitle">Blocker Resolution</h3><p className="muted">Payroll and Compensation use the same synchronization authority.</p></div>{providers.length===0&&<button className="button compact" onClick={()=>setTab('runs')}>Configure UAT provider</button>}</div>
-      <div className="compPayWideTable" style={{ overflowX: 'auto' }}><table><thead><tr><th>Employee</th><th>Hourly</th><th>Monthly</th><th>Annual</th><th>Next release</th><th>Sync</th><th>Issue</th><th>Action</th></tr></thead>
-      <tbody>{workers.map((w:any)=><tr key={w.workerId}><td style={{ whiteSpace: 'nowrap' }}><strong>{w.displayName}</strong><div className="muted">#{w.employeeNumber}</div></td><td>{cad(w.hourlyRate,w.currency)}</td><td>{cad(w.monthlyPay,w.currency)}</td><td>{cad(w.annualPay,w.currency)}</td><td>{w.nextReleaseDate}<div className="muted">{w.releaseSource}</div></td><td><span className="badge">{String(w.syncStatus||'missing').replaceAll('_',' ')}</span>{w.syncReason&&<div className="muted">{w.syncReason}</div>}</td><td>{w.ready?<span className="badge">Ready</span>:w.issues.join('; ')}</td><td><div className="compPayActionRow">{!w.profileEnabled&&<button className="button compact" onClick={()=>beginProfile(w.workerId)}>Review profile</button>}<button className="button secondary compact" onClick={()=>window.location.assign('/compensation')}>Open Compensation</button>{w.syncRequiresAttention&&<button className="button secondary compact" onClick={()=>window.location.assign(`/compensation?syncWorker=${encodeURIComponent(w.workerId)}`)}>Review Sync</button>}</div></td></tr>)}</tbody></table></div>
+      <div className="compPayWideTable authorityStickyTable" style={{ overflowX: 'auto' }}><table><thead><tr><th>Employee</th><th>Hourly</th><th>Monthly</th><th>Annual</th><th>Next release</th><th>Sync</th><th>Issue</th><th>Action</th></tr></thead>
+      <tbody>{workers.map((w:any)=><tr key={w.workerId}><td style={{ whiteSpace: 'nowrap' }}><strong>{w.displayName}</strong><div className="muted">#{w.employeeNumber}</div></td><td>{cad(w.hourlyRate,w.currency)}</td><td>{cad(w.monthlyPay,w.currency)}</td><td>{cad(w.annualPay,w.currency)}</td><td>{w.nextReleaseDate}<div className="muted">{w.releaseSource}</div></td><td><span className="badge">{w.syncLabel||String(w.syncStatus||'missing').replaceAll('_',' ')}</span>{w.syncReason&&<div className="muted">{w.syncReason}</div>}</td><td>{w.ready?<span className="badge">Ready</span>:w.issues.join('; ')}</td><td><div className="compPayActionRow">{!w.profileEnabled&&<button className="button compact" onClick={()=>beginProfile(w.workerId)}>Review profile</button>}<button className="button secondary compact" onClick={()=>window.location.assign('/compensation')}>Open Compensation</button>{w.syncRequiresAttention&&<button className="button secondary compact" onClick={()=>window.location.assign(`/compensation?syncWorker=${encodeURIComponent(w.workerId)}`)}>Review Sync</button>}</div></td></tr>)}</tbody></table></div>
     </section>}
 
     {tab==='profiles'&&<section className="card stack">
@@ -155,7 +155,7 @@ export function PayrollOperationalClosure(){
       </div><label className="notice"><input type="checkbox" checked={profileConfirmed} onChange={e=>setProfileConfirmed(e.target.checked)}/> I confirm every visible payroll-profile value, including any entered zero, was reviewed by an authorized human.</label><button className="button compact" disabled={busy==='profile'} onClick={saveProfile}>Save explicitly reviewed payroll profile</button></>}
     </section>}
 
-    {tab==='calendars'&&<section className="card stack"><h3 className="sectionTitle">Pay Calendar Manager</h3><p className="muted">Precedence: exact run override → worker rule → pay group → org unit → organization calendar.</p>
+    {tab==='calendars'&&<section className="card stack"><h3 className="sectionTitle">Pay Calendar Manager</h3><p className="muted">Precedence: exact run override → worker rule → pay group → org unit → organization calendar → legacy profile fallback → run default. These governed calendar rules are used by actual payroll calculation, not only by the preview.</p>
       <div className="grid4">
         <label>Scope<select className="input" value={calendar.scope} onChange={e=>setCalendar({...calendar,scope:e.target.value,targetId:''})}><option value="organization">Organization</option><option value="org_unit">Org unit</option><option value="pay_group">Pay group</option><option value="worker">Worker</option></select></label>
         {calendar.scope==='worker'?<label>Worker<select className="input" value={calendar.targetId} onChange={e=>setCalendar({...calendar,targetId:e.target.value})}><option value="">Select…</option>{workers.map((w:any)=><option key={w.workerId} value={w.workerId}>{w.displayName}</option>)}</select></label>:calendar.scope!=='organization'?<label>Target ID<input className="input" value={calendar.targetId} onChange={e=>setCalendar({...calendar,targetId:e.target.value})}/></label>:null}
@@ -208,7 +208,7 @@ export function PayrollOperationalClosure(){
         <label>Mapping version<select className="input" value={mappingVersion} onChange={e=>setMappingVersion(e.target.value)}>{selectedProvider.mappingVersions.map(v=><option key={v}>{v}</option>)}</select></label>
         <label>Environment<input className="input" value="uat" readOnly/></label>
       </div><div className="notice">{selectedProvider.description}</div><button className="button compact" disabled={busy==='provider'} onClick={configureProvider}>Configure UAT provider</button></section>
-      <section className="card stack"><h3 className="sectionTitle">Specialized / Off-Cycle Payroll</h3><div className="grid4">
+      <section className="card stack"><div className="rowBetween"><h3 className="sectionTitle">Specialized / Off-Cycle Payroll</h3><button className="button secondary compact" onClick={()=>document.getElementById('payroll-controlled-regular-run')?.scrollIntoView({behavior:'smooth',block:'start'})}>Open controlled regular payroll run</button></div><div className="grid4">
         <label>Run type<select className="input" value={specialRun.kind} onChange={e=>setSpecialRun({...specialRun,kind:e.target.value})}>{['off_cycle','correction','termination','bonus','commission','emergency','retro'].map(x=><option key={x} value={x}>{x.replaceAll('_',' ')}</option>)}</select></label>
         <label>Name<input className="input" value={specialRun.name} onChange={e=>setSpecialRun({...specialRun,name:e.target.value})}/></label>
         <label>Worker<select className="input" value={specialRun.workerId} onChange={e=>setSpecialRun({...specialRun,workerId:e.target.value})}><option value="">All reviewed workers</option>{workers.map((w:any)=><option key={w.workerId} value={w.workerId}>{w.displayName}</option>)}</select></label>

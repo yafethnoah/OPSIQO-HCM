@@ -5,6 +5,7 @@ import { adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
 import { buildAudit } from '@/lib/audit/service';
 import { compensationDashboard, createWorkerCompensation } from '@/lib/compensation/service';
+import { getCompensationReadiness } from '@/lib/compensation/readiness';
 import { normalizePay, normalizeStoredCompensation } from '@/lib/compensation/pay-normalization';
 import { resolveWorkerPayDate } from '@/lib/payroll/pay-date';
 import { evaluateCompensationPayrollSync } from '@/lib/compensation/payroll-sync-authority';
@@ -22,18 +23,20 @@ function remainingYearFraction(effectiveDate:string){const d=new Date(`${effecti
 
 export async function compensationOperationsIntelligence(a:ActorContext){
   requireRead(a);
-  const [dashboard,requests,sync,profiles]=await Promise.all([
+  const [dashboard,readiness,requests,sync,profiles]=await Promise.all([
     compensationDashboard(a),
+    getCompensationReadiness(a),
     all<CompensationChangeRequest>(`organizations/${a.orgId}/compensationChangeRequests`),
     all<any>(`organizations/${a.orgId}/compensationPayrollSyncCurrent`),
     all<any>(`organizations/${a.orgId}/payrollWorkerProfiles`),
   ]);
   const syncMap=new Map(sync.map(x=>[x.workerId||x.id,x]));
+  const readinessMap=new Map(readiness.workers.map(x=>[x.workerId,x]));
   const flags:CompensationPositioningFlag[]=dashboard.workers.map(w=>{
     const pay=w.current?normalizeStoredCompensation(w.current):undefined;
     const band=w.salaryBand;
     if(!pay)return {workerId:w.workerId,displayName:w.displayName,positionTitle:w.positionTitle,annualPay:0,state:'unmapped'};
-    if(!band)return {workerId:w.workerId,displayName:w.displayName,positionTitle:w.positionTitle,annualPay:pay.annualPay,state:'unmapped',compaRatioPct:w.compaRatioPct};
+    if(!band||readinessMap.get(w.workerId)?.bandMappingRequiresAttention)return {workerId:w.workerId,displayName:w.displayName,positionTitle:w.positionTitle,annualPay:pay.annualPay,state:'unmapped',compaRatioPct:w.compaRatioPct};
     const min=normalizePay({payBasis:band.payBasis,basePay:band.min,standardHoursPerWeek:band.standardHoursPerWeek,standardWeeksPerYear:band.standardWeeksPerYear}).annualPay;
     const mid=normalizePay({payBasis:band.payBasis,basePay:band.midpoint,standardHoursPerWeek:band.standardHoursPerWeek,standardWeeksPerYear:band.standardWeeksPerYear}).annualPay;
     const max=normalizePay({payBasis:band.payBasis,basePay:band.max,standardHoursPerWeek:band.standardHoursPerWeek,standardWeeksPerYear:band.standardWeeksPerYear}).annualPay;
@@ -42,21 +45,23 @@ export async function compensationOperationsIntelligence(a:ActorContext){
     return {workerId:w.workerId,displayName:w.displayName,positionTitle:w.positionTitle,annualPay:pay.annualPay,bandMinAnnual:min,bandMidAnnual:mid,bandMaxAnnual:max,compaRatioPct:w.compaRatioPct,state,marketP50:benchmark?.p50,marketGap:benchmark?money(pay.annualPay-benchmark.p50):undefined};
   });
   const pending=requests.filter(r=>!['rejected','applied'].includes(r.status));
-  const mismatch=dashboard.workers.filter(w=>{const s=syncMap.get(w.workerId);return evaluateCompensationPayrollSync(w.current,s).requiresAttention;});
+  const mismatch=dashboard.workers.filter(w=>Boolean(readinessMap.get(w.workerId)?.syncRequiresAttention));
   return {
     generatedAt:now(),
     metrics:{
       workers:dashboard.workers.length,
-      missingCompensation:dashboard.workers.filter(w=>!w.current).length,
-      missingBand:dashboard.workers.filter(w=>w.current&&!w.salaryBand).length,
+      missingCompensation:readiness.counts.missingCompensation,
+      missingBand:readiness.counts.missingBand,
+      architecturePct:readiness.architecture.overallPct,
       belowBand:flags.filter(f=>f.state==='below_band').length,
       aboveBand:flags.filter(f=>f.state==='above_band').length,
       pendingChanges:pending.length,
-      payrollSyncAttention:mismatch.length,
+      payrollSyncAttention:readiness.counts.syncPending,
       payEquityAlerts:dashboard.payEquityDiagnostics.filter(d=>d.severity==='high'||d.severity==='warning').length,
       totalRewardsReady:dashboard.workers.filter(w=>Boolean(w.totalRewards)).length,
     },
     flags,
+    architecture:readiness.architecture,
     pendingChanges:[...pending].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)),
     cycles:dashboard.cycles.map(c=>({
       id:c.id,name:c.name,status:c.status,effectiveDate:c.effectiveDate,budgetAmount:c.budgetAmount,budgetPct:c.budgetPct,

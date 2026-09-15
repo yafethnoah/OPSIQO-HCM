@@ -65,7 +65,7 @@ describe('H51.37 member-specific payroll release dates', () => {
 describe('H51.37 live-UAT closure contracts', () => {
   it('uses resolved member pay dates in calculation, adjustments, statements and provider export', () => {
     const source = read('src/lib/payroll/control-plane.ts');
-    expect(source).toContain('resolveWorkerPayDate');
+    expect(source).toContain('resolveAuthoritativeWorkerPayDate');
     expect(source).toContain('workerPayDate=release.payDate');
     expect(source).toContain('x.payDate===workerPayDate');
     expect(source).toContain('payDate:workerPayDate');
@@ -107,15 +107,17 @@ describe('H51.37 live-UAT closure contracts', () => {
     expect(payroll).toContain("opsiqo:guide-progress");
   });
 
-  it('provides a reviewed worker subset and member release-date controls in payroll', () => {
+it('converges persistent release rules into Calendars while preserving worker selection and exact run overrides', () => {
     const source = read('src/components/payroll-workspace.tsx');
-    expect(source).toContain('Member-specific salary release dates');
-    expect(source).toContain('Days from default');
-    expect(source).toContain('Fixed day of month');
-    expect(source).toContain('Day of month');
+    const operations = read('src/components/payroll-operational-closure.tsx');
+    expect(source).toContain('Run worker selection & exact release overrides');
+    expect(source).toContain('Manage persistent rules in Calendars');
     expect(source).toContain('Exact date this run');
     expect(source).toContain('Default release date');
     expect(source).toContain('selectedWorkerIds');
     expect(source).toContain('unselect');
+    expect(operations).toContain('Pay Calendar Manager');
+    expect(operations).toContain('offset_days');
+    expect(operations).toContain('fixed_day_of_month');
   });
 });
