@@ -1,6 +1,6 @@
 export type PayrollProviderStatus='draft'|'configured'|'active'|'suspended';
 export type PayrollRunStatus='draft'|'calculated'|'review'|'approved'|'exported'|'reconciled'|'completed'|'reversed'|'cancelled';
-export type PayrollRunKind='regular'|'off_cycle'|'correction'|'termination';
+export type PayrollRunKind='regular'|'off_cycle'|'correction'|'termination'|'bonus'|'commission'|'emergency'|'retro';
 export type PayrollRunMode='uat'|'production';
 export type PayrollPayDateSource='run_default'|'profile_rule'|'worker_override';
 export type PayrollPayDateRule='run_default'|'offset_days'|'fixed_day_of_month';

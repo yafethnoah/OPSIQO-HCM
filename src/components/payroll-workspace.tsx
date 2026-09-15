@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import type { PayrollDashboard, PayrollPayDateRule, PayrollRun, PayrollWeekendAdjustment } from '@/domain/payroll';
 import { LoadingState } from '@/components/data-states';
+import { PayrollOperationsCommandCenter } from '@/components/payroll-operations-command-center';
 
 const localDate = () => {
   const d = new Date();
@@ -294,6 +295,8 @@ export function PayrollWorkspace() {
     <div className="stack">
       {err && <div className="error">{err}</div>}
       {msg && <div className="success">{msg}</div>}
+
+      <PayrollOperationsCommandCenter />
 
       <section className="card stack">
         <div className="rowBetween">
