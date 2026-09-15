@@ -10,6 +10,8 @@ import type { PayrollWorkerProfile } from '@/domain/payroll';
 import { adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
 import { normalizeBandAmount, normalizeStoredCompensation } from './pay-normalization';
+import { evaluateCompensationPayrollSync } from './payroll-sync-authority';
+import { payrollProfileExplicitlyReviewed } from '@/lib/payroll/profile-integrity';
 import { savePositionCompProfile } from './service';
 
 const now = () => new Date().toISOString();
@@ -76,12 +78,15 @@ export async function getCompensationReadiness(a: ActorContext): Promise<Compens
     const mappedBand = profile?.salaryBandId ? bandMap.get(profile.salaryBandId) : undefined;
     const payroll = payrollMap.get(w.id);
     const sync = syncMap.get(w.id);
+    const syncEvaluation = evaluateCompensationPayrollSync(comp, sync);
     const issues: string[] = [];
 
     if (!position) issues.push('Missing current position');
     if (!comp) issues.push('Missing current compensation');
     if (position && !mappedBand) issues.push('No salary band mapping');
     if (!payroll || !payroll.enabled) issues.push('Missing or disabled payroll profile');
+    if (payroll && !payrollProfileExplicitlyReviewed(payroll)) issues.push('Payroll profile fields require explicit human confirmation');
+    if (comp && syncEvaluation.requiresAttention) issues.push('Compensation → Payroll sync review required');
     if (comp && (!comp.standardHoursPerWeek || !comp.standardWeeksPerYear)) {
       issues.push('Pay conversion is using a legacy/policy schedule basis');
     }
@@ -143,7 +148,9 @@ export async function getCompensationReadiness(a: ActorContext): Promise<Compens
       issues,
       ready: issues.filter((i) => !i.includes('legacy/policy')).length === 0,
       suggestedBand,
-      syncStatus: sync?.status,
+      syncStatus: syncEvaluation.state,
+      syncRequiresAttention: syncEvaluation.requiresAttention,
+      syncReason: syncEvaluation.reason,
       syncUpdatedAt: sync?.updatedAt,
     };
   });
@@ -154,6 +161,7 @@ export async function getCompensationReadiness(a: ActorContext): Promise<Compens
     x.issues.includes('Missing or disabled payroll profile'),
   ).length;
   const readyForPayroll = rows.filter((x) => x.ready).length;
+  const syncPending = rows.filter((x) => x.syncRequiresAttention).length;
 
   return {
     health: {
@@ -167,6 +175,7 @@ export async function getCompensationReadiness(a: ActorContext): Promise<Compens
       missingBand,
       missingPayrollProfile,
       readyForPayroll,
+      syncPending,
     },
     workers: rows,
     requisitions: requisitions

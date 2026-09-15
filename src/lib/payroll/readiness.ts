@@ -5,6 +5,11 @@ import type { PayrollWorkerProfile } from '@/domain/payroll';
 import { adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
 import { normalizeStoredCompensation } from '@/lib/compensation/pay-normalization';
+import { evaluateCompensationPayrollSync } from '@/lib/compensation/payroll-sync-authority';
+import {
+  missingPayrollProfileReviewFields,
+  payrollProfileExplicitlyReviewed,
+} from '@/lib/payroll/profile-integrity';
 import { describeWorkerPayDateRule } from './pay-date';
 import { preparePayrollProfileDrafts } from '@/lib/compensation/readiness';
 
@@ -39,15 +44,29 @@ export async function getPayrollReadiness(a: ActorContext) {
       const profile = profileMap.get(w.id);
       const draft = draftMap.get(w.id);
       const sync = syncMap.get(w.id);
+      const syncEvaluation = evaluateCompensationPayrollSync(comp, sync);
       const issues: string[] = [];
 
       if (!comp) issues.push('Missing compensation');
       if (!profile) issues.push(draft ? 'Payroll profile draft requires review' : 'Missing payroll profile');
       if (profile && !profile.enabled) issues.push('Payroll profile disabled');
       if (profile && !profile.payPeriodsPerYear) issues.push('Pay frequency is missing');
+      if (profile && !payrollProfileExplicitlyReviewed(profile)) {
+        issues.push('Payroll profile fields require explicit human confirmation');
+      }
+      if (comp && syncEvaluation.requiresAttention) {
+        issues.push('Compensation → Payroll sync review required');
+      }
 
-      const rule = profile?.payDateRule || (profile?.payDayOfMonth ? 'fixed_day_of_month' : Number(profile?.payDateOffsetDays || 0) !== 0 ? 'offset_days' : 'run_default');
+      const rule =
+        profile?.payDateRule ||
+        (profile?.payDayOfMonth
+          ? 'fixed_day_of_month'
+          : Number(profile?.payDateOffsetDays || 0) !== 0
+            ? 'offset_days'
+            : 'run_default');
       const offset = Number(profile?.payDateOffsetDays || 0);
+
       if (rule === 'offset_days' && (!Number.isInteger(offset) || offset < -31 || offset > 31)) {
         issues.push('Invalid member release-date offset');
       }
@@ -76,9 +95,13 @@ export async function getPayrollReadiness(a: ActorContext) {
         payDayOfMonth: profile?.payDayOfMonth,
         weekendAdjustment: profile?.weekendAdjustment || 'none',
         releaseRule: describeWorkerPayDateRule(profile),
-        syncStatus: sync?.status,
+        profileExplicitReviewComplete: payrollProfileExplicitlyReviewed(profile),
+        missingProfileReviewFields: missingPayrollProfileReviewFields(profile),
+        syncStatus: syncEvaluation.state,
+        syncRequiresAttention: syncEvaluation.requiresAttention,
+        syncReason: syncEvaluation.reason,
         syncUpdatedAt: sync?.updatedAt,
-        compensationRecordId: sync?.compensationRecordId,
+        compensationRecordId: comp?.id,
       };
     });
 
@@ -90,7 +113,7 @@ export async function getPayrollReadiness(a: ActorContext) {
       x.issues.some((i) => i.toLowerCase().includes('payroll profile')),
     ).length,
     draftProfiles: rows.filter((x) => x.draft).length,
-    syncPending: rows.filter((x) => x.syncStatus === 'payroll_review_required').length,
+    syncPending: rows.filter((x) => x.syncRequiresAttention).length,
     workers: rows,
     generatedAt: new Date().toISOString(),
   };

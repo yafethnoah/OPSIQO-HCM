@@ -7,13 +7,16 @@ import{buildAudit}from'@/lib/audit/service';
 import{providerSchema,calculationSchema}from'./schemas';
 import{calculateCanada2026,canada2026RuleMetadata}from'./canada-2026';
 import{getPayrollRegulatoryStatus}from'./control-plane';
+import{findRegisteredPayrollProvider}from'./provider-registry';
 
 const now=()=>new Date().toISOString();
 function req(a:ActorContext,p:Permission){if(!a.permissions.includes(p))throw new ApiError(403,`Payroll permission required: ${p}.`,'forbidden')}
 async function all<T>(p:string){const s=await adminDb().collection(p).limit(4000).get();return s.docs.map(d=>({id:d.id,...d.data()}as T))}
 export async function createPayrollProvider(a:ActorContext,raw:unknown){
   req(a,'payroll.provider.manage');const x=providerSchema.parse(raw);if(x.secretRefs.some(v=>/AIza|-----BEGIN|password\s*=|token\s*=/i.test(v)))throw new ApiError(400,'Store only secret reference names, never credential values.','secret_value_forbidden');
-  const id=randomUUID(),ts=now(),row:PayrollProviderConfig={id,...x,status:'configured',createdBy:a.uid,createdAt:ts,updatedBy:a.uid,updatedAt:ts},db=adminDb(),audit=buildAudit(a,{action:'payroll.provider.create',entityType:'payrollProvider',entityId:id,after:{...row,secretRefs:row.secretRefs.map(()=> '[secret-ref]')}});
+  const registered=findRegisteredPayrollProvider(x.code,x.adapterCode,x.mappingVersion,x.environment);if(!registered)throw new ApiError(409,'Provider, adapter, mapping-version and environment combination is not registered for governed payroll use.','provider_registry_mismatch');
+  const db=adminDb(),existing=await db.collection(`organizations/${a.orgId}/payrollProviders`).where('code','==',x.code).where('environment','==',x.environment).limit(1).get();if(!existing.empty)return {id:existing.docs[0]!.id,...existing.docs[0]!.data()} as PayrollProviderConfig;
+  const id=randomUUID(),ts=now(),row:PayrollProviderConfig={id,...x,status:'configured',createdBy:a.uid,createdAt:ts,updatedBy:a.uid,updatedAt:ts},audit=buildAudit(a,{action:'payroll.provider.create',entityType:'payrollProvider',entityId:id,after:{...row,secretRefs:row.secretRefs.map(()=> '[secret-ref]')}});
   const b=db.batch();b.create(db.doc(`organizations/${a.orgId}/payrollProviders/${id}`),row);b.create(db.doc(`organizations/${a.orgId}/auditLogs/${audit.id}`),audit);await b.commit();return row;
 }
 export async function calculatePayroll(a:ActorContext,raw:unknown){

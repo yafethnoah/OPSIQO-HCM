@@ -56,14 +56,17 @@ export async function payrollOperationsIntelligence(a:ActorContext){
     const calendar=resolveCalendarPayDate(defaultDate,rule);
     const syncRow=syncMap.get(row.workerId);
     const comp=compMap.get(row.workerId);
-    const mismatch=Boolean(comp&&syncRow&&syncRow.compensationRecordId&&syncRow.compensationRecordId!==comp.id);
+    const syncRequiresAttention=Boolean(row.syncRequiresAttention);
+    const mismatch=syncRequiresAttention;
     return {
       ...row,
       nextReleaseDate:calendar.payDate,
       releaseSource:calendar.source,
       calendarRuleId:rule?.id,
       profileEnabled:Boolean(profile?.enabled),
-      syncStatus:syncRow?.status,
+      syncStatus:row.syncStatus,
+      syncReason:row.syncReason,
+      syncRequiresAttention,
       compensationRecordId:comp?.id,
       mismatch,
     };
@@ -82,7 +85,7 @@ export async function payrollOperationsIntelligence(a:ActorContext){
       workers:readiness.totalWorkers,
       ready:readiness.readyWorkers,
       blocked:readiness.totalWorkers-readiness.readyWorkers,
-      syncPending:workerRows.filter((x:any)=>x.syncStatus==='payroll_review_required'||x.mismatch).length,
+      syncPending:workerRows.filter((x:any)=>x.syncRequiresAttention).length,
       anomalies:anomalies.length,
       pendingAdjustments:adjustments.filter(x=>x.status==='submitted').length,
       pendingRetro:retroCases.filter(x=>['draft','submitted','approved'].includes(x.status)).length,

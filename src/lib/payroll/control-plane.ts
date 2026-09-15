@@ -10,6 +10,7 @@ import{EvidenceSandboxPayrollAdapter,type PayrollOutboundRecord}from'./provider-
 import{payrollAdjustmentActionSchema,payrollAdjustmentSchema,payrollRunActionSchema,payrollRunCreateSchema,referenceCertificationSchema,referenceValidationSchema,workerProfileSchema}from'./schemas';
 import{normalizeStoredCompensation}from'@/lib/compensation/pay-normalization';
 import{resolveWorkerPayDate}from'./pay-date';
+import{missingExplicitProfileInputFields,REQUIRED_PAYROLL_PROFILE_REVIEW_FIELDS}from'./profile-integrity';
 
 const now=()=>new Date().toISOString(),today=()=>now().slice(0,10),money=(n:number)=>Math.round(n*100)/100;
 const hash=(v:unknown)=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
@@ -21,10 +22,14 @@ function sum<T>(rows:T[],f:(x:T)=>number){return money(rows.reduce((n,x)=>n+Numb
 function resultDeductions(r:any){return money(r.cppOrQpp+r.cpp2OrQpp2+r.ei+r.qpip+r.federalTax+r.provincialTax+r.otherDeductions)}
 
 export async function savePayrollWorkerProfile(a:ActorContext,workerId:string,raw:unknown){
-  requireP(a,'payroll.provider.manage');const x=workerProfileSchema.parse(raw),db=adminDb(),w=await db.doc(`organizations/${a.orgId}/workers/${workerId}`).get();
+  requireP(a,'payroll.provider.manage');
+  const missing=missingExplicitProfileInputFields(raw);
+  if(missing.length)throw new ApiError(400,`Unknown is not zero. Explicitly review and submit: ${missing.join(', ')}.`,'payroll_profile_explicit_review_required');
+  if(!(raw as any)?.reviewConfirmed)throw new ApiError(400,'Explicit human confirmation is required before a payroll profile can be saved.','payroll_profile_confirmation_required');
+  const x=workerProfileSchema.parse(raw),db=adminDb(),w=await db.doc(`organizations/${a.orgId}/workers/${workerId}`).get();
   if(!w.exists)throw new ApiError(404,'Worker not found.','worker_not_found');
   const ref=db.doc(`organizations/${a.orgId}/payrollWorkerProfiles/${workerId}`),before=(await ref.get()).data(),ts=now();
-  const row:PayrollWorkerProfile={id:workerId,workerId,...x,createdBy:(before as any)?.createdBy||a.uid,createdAt:(before as any)?.createdAt||ts,updatedBy:a.uid,updatedAt:ts};
+  const row:PayrollWorkerProfile={id:workerId,workerId,...x,reviewedFields:[...REQUIRED_PAYROLL_PROFILE_REVIEW_FIELDS],reviewConfirmedBy:a.uid,reviewConfirmedAt:ts,createdBy:(before as any)?.createdBy||a.uid,createdAt:(before as any)?.createdAt||ts,updatedBy:a.uid,updatedAt:ts};
   await ref.set(row);const syncRef=db.doc(`organizations/${a.orgId}/compensationPayrollSyncCurrent/${workerId}`),syncSnap=await syncRef.get();if(syncSnap.exists)await syncRef.set({status:'profile_reviewed',payrollProfileId:workerId,releaseDateRule:{payDateRule:x.payDateRule,payDateOffsetDays:x.payDateOffsetDays,payDayOfMonth:x.payDayOfMonth,weekendAdjustment:x.weekendAdjustment},updatedBy:a.uid,updatedAt:ts},{merge:true});const audit=buildAudit(a,{action:'payroll.worker_profile.save',entityType:'payrollWorkerProfile',entityId:workerId,before,after:{...row,paymentMethodRef:row.paymentMethodRef?'[payment-ref]':undefined}});
   await db.doc(`organizations/${a.orgId}/auditLogs/${audit.id}`).create(audit);return row;
 }

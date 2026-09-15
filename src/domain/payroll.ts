@@ -18,6 +18,7 @@ export interface PayrollWorkerProfile{
   id:string;workerId:string;province:PayrollCalculationInput['province'];payPeriodsPerYear:number;payDateRule?:PayrollPayDateRule;payDateOffsetDays?:number;payDayOfMonth?:number;weekendAdjustment?:PayrollWeekendAdjustment;
   federalClaimAmount:number;provincialClaimAmount:number;additionalTax:number;
   recurringTaxableBenefits:number;recurringPreTaxDeductions:number;recurringOtherDeductions:number;paymentMethodRef?:string;
+  reviewedFields?:string[];reviewConfirmedBy?:string;reviewConfirmedAt?:string;
   enabled:boolean;createdBy:string;createdAt:string;updatedBy:string;updatedAt:string;
 }
 export interface PayrollAdjustment{

@@ -354,7 +354,7 @@ export function PayrollWorkspace() {
               </div>
             )}
 
-            <div className="tableWrap">
+            <div className="tableWrap compPayWideTable">
               <table>
                 <thead>
                   <tr>
@@ -418,7 +418,7 @@ export function PayrollWorkspace() {
           run-level date unless a governed holiday calendar is configured in a future release.
         </div>
 
-        <div className="tableWrap">
+        <div className="tableWrap compPayWideTable">
           <table>
             <thead>
               <tr>
@@ -648,7 +648,7 @@ export function PayrollWorkspace() {
         )}
       </section>
 
-      <section className="card tableWrap">
+      <section className="card tableWrap compPayWideTable">
         <h2 className="sectionTitle">Payroll runs</h2>
         <table>
           <thead>
@@ -707,7 +707,7 @@ export function PayrollWorkspace() {
         </table>
       </section>
 
-      <section className="card tableWrap">
+      <section className="card tableWrap compPayWideTable">
         <h2 className="sectionTitle">Payroll providers</h2>
         <table>
           <thead>

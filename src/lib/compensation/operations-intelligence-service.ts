@@ -7,6 +7,7 @@ import { buildAudit } from '@/lib/audit/service';
 import { compensationDashboard, createWorkerCompensation } from '@/lib/compensation/service';
 import { normalizePay, normalizeStoredCompensation } from '@/lib/compensation/pay-normalization';
 import { resolveWorkerPayDate } from '@/lib/payroll/pay-date';
+import { evaluateCompensationPayrollSync } from '@/lib/compensation/payroll-sync-authority';
 
 const now=()=>new Date().toISOString();
 const today=()=>now().slice(0,10);
@@ -41,7 +42,7 @@ export async function compensationOperationsIntelligence(a:ActorContext){
     return {workerId:w.workerId,displayName:w.displayName,positionTitle:w.positionTitle,annualPay:pay.annualPay,bandMinAnnual:min,bandMidAnnual:mid,bandMaxAnnual:max,compaRatioPct:w.compaRatioPct,state,marketP50:benchmark?.p50,marketGap:benchmark?money(pay.annualPay-benchmark.p50):undefined};
   });
   const pending=requests.filter(r=>!['rejected','applied'].includes(r.status));
-  const mismatch=dashboard.workers.filter(w=>{const s=syncMap.get(w.workerId);return w.current&&(!s||s.compensationRecordId!==w.current.id||s.status==='payroll_review_required')});
+  const mismatch=dashboard.workers.filter(w=>{const s=syncMap.get(w.workerId);return evaluateCompensationPayrollSync(w.current,s).requiresAttention;});
   return {
     generatedAt:now(),
     metrics:{
@@ -63,7 +64,7 @@ export async function compensationOperationsIntelligence(a:ActorContext){
       approvedRecommendations:dashboard.recommendations.filter(r=>r.cycleId===c.id&&['approved','applied'].includes(r.status)).length,
     })),
     payEquityDiagnostics:dashboard.payEquityDiagnostics,
-    payrollSyncAttention:mismatch.map(w=>({workerId:w.workerId,displayName:w.displayName,currentCompensationRecordId:w.current?.id,sync:syncMap.get(w.workerId)})),
+    payrollSyncAttention:mismatch.map(w=>{const sync=syncMap.get(w.workerId);const evaluation=evaluateCompensationPayrollSync(w.current,sync);return {workerId:w.workerId,displayName:w.displayName,currentCompensationRecordId:w.current?.id,sync,evaluation,syncRequiresAttention:evaluation.requiresAttention};}),
     totalRewards:dashboard.workers.filter(w=>w.totalRewards).map(w=>({workerId:w.workerId,displayName:w.displayName,statement:w.totalRewards})),
     workerDirectory:dashboard.workerDirectory,
     guardrails:[
