@@ -1,5 +1,6 @@
 8c2448821eb1fc292d928566ab5c5dc7ef1ebd18d270a9d4d7d300fdb6feeab0  .env.example
 bb0f83e060feffed36d4f3063305184ad31e17d863d9bf35b3c26c5a5f07e4d2  .firebaserc
+2d5a18af466d061ecc6b8dd18726422dac416ed4cfff4a2d026dc480e6bbfefa  .git
 8963730503a22b069daabf119fe60c9f5e2b1464cbb8ef9ae1078c670eb02433  .gitattributes
 14335ded41a8a3e4d5b2dcb209f0111372f8f195c8b5185e322bd326660b027c  .github/workflows/automation-scheduler.yml
 16e05e57fd50853f18b458418c0771e2060721ebc9805f4dbb66a05b9528d01e  .github/workflows/cloud-dr-evidence.yml
@@ -856,8 +857,13 @@ ba80f2eb2c4527c8a8390379a3a6651e5fa6d93a072f65f3e2cfa4497a27f386  src/app/api/or
 97851bcd4e35e179467ea7a1a0f0ce79566bbe470fee10da68b742dd1c38a4ce  src/app/api/organizations/[orgId]/lifecycle/dashboard/route.ts
 ea7826a180b20aac76ed06af0f90f05e6b5e2d0303fd08946dfc24c4b8c01d7d  src/app/api/organizations/[orgId]/lifecycle/diagnostics/route.ts
 cb711979b3440ae757238bd03a8dd0706cef9fd9f372712783d813a5eed94873  src/app/api/organizations/[orgId]/manager/team/route.ts
-8ffba515dedabd6946dcd80115a1d1f3f4c8b444aa56f9fdbb0d539bcd97999a  src/app/api/organizations/[orgId]/mobile/bootstrap/route.ts
+298012020fca891a247de16561f99aca028023424b9afafaeece4cb86baa8a19  src/app/api/organizations/[orgId]/mobile/bootstrap/route.ts
 04e373a93fafe13340a33ca782e3f6d3d66468de9721d7e3c0d334199597ff26  src/app/api/organizations/[orgId]/mobile/devices/route.ts
+40a54f7af05f38433c03efcb44d9913c9ebb3de8a2e327d15e3c400f210a056a  src/app/api/organizations/[orgId]/mobile/expenses/[claimId]/route.ts
+4a6636fe14af77d8c0c7890852ad3ed1464bf991cd0945a7d20da17611ed7d7f  src/app/api/organizations/[orgId]/mobile/expenses/route.ts
+3734b2d4c0ef5c22dfa73d19c3b3b484742bd9927c5294788610df734981e1fb  src/app/api/organizations/[orgId]/mobile/leave/requests/route.ts
+da1cdce1822014be7e19f28c5c48fccf8fab60ea580dd75a2af17dca9e6fbb71  src/app/api/organizations/[orgId]/mobile/time/breaks/route.ts
+c42d90f9978b749b8d91e8b904d4d1f756493e460628971e996f894f841c86eb  src/app/api/organizations/[orgId]/mobile/time/clock/route.ts
 4c78112cb530c492ead8c83e4086edfb3bb8771042f850772e2ebb86caaaabae  src/app/api/organizations/[orgId]/notification-settings/route.ts
 862194fff95a3a9dd6c696bc187a569af316e73730f66f6dfb8949ac233d6e10  src/app/api/organizations/[orgId]/notification-templates/route.ts
 73a66591212ffe8e791ba9ec446a18c74094d27d561e89772c84c06931cf1a50  src/app/api/organizations/[orgId]/notifications/[notificationId]/route.ts
@@ -1516,7 +1522,7 @@ c766cacd5ec5fd3fdc3f01d6882854ea57cd29f4d34a5fca458adf85d8a66ac9  src/lib/auth/a
 a339241431e625df5da1112a7a8fb6709dafc8189e0c3db250907875670dc6a1  src/lib/auth/mfa-client.ts
 b3991bfadb92b948c60521134e3add800d23334718187490187321e5f9a60a89  src/lib/auth/permissions.ts
 1fd7dda721996c394a7cbf0a48d90b5bd65316b000822644eb48a9bf816ab958  src/lib/auth/session-expiry-client.ts
-b0a6ec505c966ee3d57d0baf95d81f4a47a796187d48a84f6b7920359460d6d6  src/lib/auth/session.ts
+ba0217f7105ebc9fa4f097ef1ac239c346755779c3e3350fe2d0069a6498673d  src/lib/auth/session.ts
 c5f9ec9c950c9803d79cb09a9e1bf7ffc1476025f625225ab5c85742925190d5  src/lib/automation/catalog.ts
 1140d6649cd467b01f406ce7d063a4dff73a99876be462b713c629cc846a83b8  src/lib/automation/service.ts
 0263720af9e5ef3d8d1f4de97f6ba3dacf8504496af5a1883cd6e909d1dfae75  src/lib/automation/system-actor.ts
@@ -1648,7 +1654,7 @@ c648900476d8a76b95ab0dc402cea62067e2d305720693feb4c770c08547389f  src/lib/lifecy
 ccea1fc26349799d34d646c2532d58808c0f7c894ddf2799c8ef6b9352d4b6a5  src/lib/membership/schemas.ts
 372f65b0484ac5efe62fe41d8aedca4865d6fdc0b4bba03803fd4bd4fba2b6c3  src/lib/membership/service.ts
 4848a5f08fb82737cc5b2d15ef07d669564988e71f5c5918ed5f14ca231b5bce  src/lib/mobile/schemas.ts
-6fcb9611bbf56e8964fb0544abbef1b994730c56a05c183e7a154bbe3e876e4c  src/lib/mobile/service.ts
+1058d4cb6d257e428d5a6c63cbde732351a87a7735d4ab2374d763f966778bbb  src/lib/mobile/service.ts
 b4d3cbafefcb9bc3bc506c4196b7e0ab20c438afa19e5b0639d8183ca8c66ac8  src/lib/notifications/schemas.ts
 9586444e54adaee326cb1b897d3f141a7c36cd7f112ef43d205b74fc0afe0c8f  src/lib/notifications/service.ts
 65ce702b0cffb3114998b50204da72bd13bca0386ee5747b4af4c80ee1347b09  src/lib/onboarding/scan-policy.ts
@@ -2017,6 +2023,7 @@ acfd4bccfd930aed9f48ae9b6133ce567592cf65a64a4408d750f8b1d6800ae6  tests/h51-46-o
 a1fb15dd84b1b9caa0b6c6f96322a1dfd1b4cb5505c626398ac23f167d98e28c  tests/h51-52-comp-pay-uat-closure.test.ts
 780d6cae623032268d174a17a63cc00ce40a20b3f28bd799e61476f7091e4c81  tests/h51-53-attendance-integrity-admin-clockout.test.ts
 bc830790d79fc4fd257795758e806d17635f4bc21bb9cfa50754fe863c57b699  tests/h51-54-separation-write-reconciliation.test.ts
+04772bfb7d4c6f16bdbc5aa5a7cd0ecd51eb46fe6ede300778f4286a42f3c562  tests/h51-55-pulse-mobile-backend-convergence.test.ts
 fb1711839c8e379c323940163b09511d204e7bd8fd71fb6d273c38e14df0dda9  tests/h51-control-plane.test.ts
 ba667d484c279c58f50bd531f554b9e938372fe84886795901b059844d84d9db  tests/h51-fix.test.ts
 6414f01681558206149d7fb7c058bbf3ff11855c6f6ba494fb158accadf0e9f9  tests/hr-diagnostic.schemas.test.ts

@@ -93,6 +93,133 @@ export async function actorFromRequest(request: Request, orgId?: string): Promis
   return { uid: identity.uid, orgId: resolvedOrgId, role, workerId: membership.workerId, permissions: permissionsForRole(role) };
 }
 
+async function resolveMobileWorkerId(
+  orgId: string,
+  identity: IdentityContext,
+  membership: Membership,
+) {
+  if (membership.workerId) return membership.workerId;
+
+  const db = adminDb();
+
+  const personSnap = await db
+    .collection(`organizations/${orgId}/persons`)
+    .where('authUid', '==', identity.uid)
+    .limit(2)
+    .get();
+
+  if (personSnap.size === 1) {
+    const personId = personSnap.docs[0]!.id;
+    const workerSnap = await db
+      .collection(`organizations/${orgId}/workers`)
+      .where('personId', '==', personId)
+      .limit(2)
+      .get();
+
+    if (workerSnap.size === 1) return workerSnap.docs[0]!.id;
+  }
+
+  if (identity.emailVerified && identity.email) {
+    const normalizedEmail = identity.email.trim().toLowerCase();
+
+    const lowerSnap = await db
+      .collection(`organizations/${orgId}/workers`)
+      .where('workEmailLower', '==', normalizedEmail)
+      .limit(2)
+      .get();
+
+    if (lowerSnap.size === 1) return lowerSnap.docs[0]!.id;
+
+    const exactSnap = await db
+      .collection(`organizations/${orgId}/workers`)
+      .where('workEmail', '==', identity.email.trim())
+      .limit(2)
+      .get();
+
+    if (exactSnap.size === 1) return exactSnap.docs[0]!.id;
+  }
+
+  return undefined;
+}
+
+/**
+ * OPSIQO Pulse employee self-service boundary.
+ * Firebase auth + App Check + active membership remain mandatory.
+ * Organization session-timeout enforcement is intentionally not applied.
+ * Existing H51.54 web/admin actor behavior is left unchanged.
+ */
+export async function actorFromMobileSelfServiceRequest(
+  request: Request,
+  orgId?: string,
+): Promise<ActorContext> {
+  const demo = process.env.OPSIQO_DEMO_MODE === 'true';
+  const routeOrgId = String(orgId || '').trim() || undefined;
+  const headerOrgId = String(request.headers.get('x-org-id') || '').trim() || undefined;
+
+  if (routeOrgId && headerOrgId && routeOrgId !== headerOrgId) {
+    throw new ApiError(400, 'Organization context does not match the requested resource.', 'org_context_mismatch');
+  }
+
+  const demoOrgId = demo
+    ? String(process.env.OPSIQO_DEMO_ORG_ID || '').trim() || undefined
+    : undefined;
+  const resolvedOrgId = routeOrgId || headerOrgId || demoOrgId;
+
+  if (!resolvedOrgId) {
+    throw new ApiError(400, 'Organization context is required.', 'missing_org');
+  }
+
+  if (demo && !request.headers.get('authorization')) {
+    const context = demoContext(resolvedOrgId);
+    return {
+      ...context,
+      role: 'employee',
+      permissions: permissionsForRole('employee'),
+    };
+  }
+
+  const identity = await identityFromRequest(request);
+
+  if (identity.signInProvider === 'anonymous') {
+    throw new ApiError(403, 'Anonymous access is not available in OPSIQO Pulse.', 'mobile_membership_required');
+  }
+
+  const memberSnap = await adminDb()
+    .doc(`organizations/${resolvedOrgId}/memberships/${identity.uid}`)
+    .get();
+
+  if (!memberSnap.exists) {
+    throw new ApiError(403, 'No membership for this organization.', 'membership_required');
+  }
+
+  const membership = memberSnap.data() as Membership;
+
+  if (membership.status !== 'active') {
+    throw new ApiError(403, 'Membership is inactive.', 'membership_inactive');
+  }
+
+  const platform = await platformPolicyForOrg(resolvedOrgId);
+
+  if (
+    platform &&
+    !identity.demo &&
+    platform.allowPasswordSignIn === false &&
+    identity.signInProvider === 'password'
+  ) {
+    throw new ApiError(403, 'Email/password sign-in is disabled by organization policy.', 'password_signin_disabled');
+  }
+
+  const workerId = await resolveMobileWorkerId(resolvedOrgId, identity, membership);
+
+  return {
+    uid: identity.uid,
+    orgId: resolvedOrgId,
+    role: 'employee',
+    workerId,
+    permissions: permissionsForRole('employee'),
+  };
+}
+
 const TEAM_PERMISSION_FALLBACK: Partial<Record<Permission, Permission>> = {
   'recruiting.manage': 'recruiting.manage.team',
   'onboarding.manage': 'onboarding.manage.team',
