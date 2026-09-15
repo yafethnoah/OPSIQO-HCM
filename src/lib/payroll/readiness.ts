@@ -12,6 +12,7 @@ import {
 } from '@/lib/payroll/profile-integrity';
 import { describeWorkerPayDateRule } from './pay-date';
 import { preparePayrollProfileDrafts } from '@/lib/compensation/readiness';
+import { payrollAttendanceIntegrityBlockers } from '@/lib/time/attendance-integrity';
 
 async function all<T>(path: string, limit = 4000) {
   const s = await adminDb().collection(path).limit(limit).get();
@@ -36,6 +37,7 @@ export async function getPayrollReadiness(a: ActorContext) {
   const profileMap = new Map(profiles.map((x) => [x.workerId, x]));
   const draftMap = new Map(drafts.map((x) => [x.workerId, x]));
   const syncMap = new Map(syncEvidence.map((x) => [x.workerId || x.id, x]));
+  const attendanceBlockers = await payrollAttendanceIntegrityBlockers(a.orgId, workers.map((w) => w.id));
 
   const rows = workers
     .filter((w) => w.status === 'active' || w.status === 'leave')
@@ -45,6 +47,7 @@ export async function getPayrollReadiness(a: ActorContext) {
       const draft = draftMap.get(w.id);
       const sync = syncMap.get(w.id);
       const syncEvaluation = evaluateCompensationPayrollSync(comp, sync);
+      const attendanceIntegrity = attendanceBlockers.get(w.id);
       const issues: string[] = [];
 
       if (!comp) issues.push('Missing compensation');
@@ -56,6 +59,9 @@ export async function getPayrollReadiness(a: ActorContext) {
       }
       if (comp && syncEvaluation.requiresAttention) {
         issues.push('Compensation → Payroll sync review required');
+      }
+      if (attendanceIntegrity?.payrollBlocked) {
+        issues.push('Unresolved overdue open shift');
       }
 
       const rule =
@@ -103,6 +109,7 @@ export async function getPayrollReadiness(a: ActorContext) {
         syncReason: syncEvaluation.reason,
         syncUpdatedAt: sync?.updatedAt,
         compensationRecordId: comp?.id,
+        attendanceIntegrity,
       };
     });
 

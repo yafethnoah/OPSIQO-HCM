@@ -13,6 +13,7 @@ import { isDirectReport } from '@/lib/hr/service';
 import { breakActionSchema, expenseActionSchema, expenseClaimSchema, shiftActionSchema, shiftSchema, workLocationSchema } from './frontline-schemas';
 import { exactMinutesBetween, exactWorkedMinutes } from './precision';
 import { normalizeAttendanceActivityRange, type AttendanceActivityRangeInput } from './attendance-activity';
+import { assessAttendanceEntries } from './attendance-integrity';
 
 const now=()=>new Date().toISOString();
 const hrRoles=new Set(['super_admin','org_admin','hr_admin','hr_partner']);
@@ -85,13 +86,16 @@ export async function recordBreak(actor:ActorContext,raw:unknown){if(!actor.work
 export async function liveAttendance(actor:ActorContext){
   if(!actor.permissions.includes('time.read'))throw new ApiError(403,'Time read permission required.','forbidden');
   const db=adminDb(),generatedAt=now(),open=await db.collection(`organizations/${actor.orgId}/timeEntries`).where('status','==','open').get(),locations=await listWorkLocations(actor),locationMap=Object.fromEntries(locations.map(x=>[x.id,x.name])),rows=[] as Array<Record<string,unknown>>;
+  const openEntries=open.docs.map(s=>s.data() as TimeEntry);
+  const integrityMap=await assessAttendanceEntries(actor.orgId,openEntries,generatedAt);
   for(const s of open.docs){
     const e=s.data() as TimeEntry;
     if(!await canReadWorker(actor,e.workerId))continue;
-    const w=await getWorker(actor.orgId,e.workerId),breakState=e.breakState||'working',locationId=e.startEvidence?.locationId||null;
-    rows.push({entryId:e.id,workerId:e.workerId,workerName:w.displayName,employeeNumber:w.employeeNumber||'',status:breakState==='on_break'?'on_break':'clocked_in',startAt:e.startAt,elapsedMinutes:exactMinutesBetween(e.startAt,generatedAt),breakState,source:e.source,lastActivityAt:e.updatedAt,locationId,locationName:locationId?locationMap[locationId]||locationId:null,latitude:e.startEvidence?.latitude,longitude:e.startEvidence?.longitude,insideGeofence:e.startEvidence?.insideGeofence,deviceVerification:e.startEvidence?.deviceVerification||'none',integrityRisk:e.startEvidence?.integrityRisk||'none'});
+    const w=await getWorker(actor.orgId,e.workerId),breakState=e.breakState||'working',locationId=e.startEvidence?.locationId||null,integrity=integrityMap.get(e.id);
+    const locationEvidenceLabel=locationId?'Governed work location from clock-in evidence':e.startEvidence?.latitude!=null&&e.startEvidence?.longitude!=null?'Clock-in event location evidence':'No location collected';
+    rows.push({entryId:e.id,workerId:e.workerId,workerName:w.displayName,employeeNumber:w.employeeNumber||'',status:breakState==='on_break'?'on_break':'clocked_in',startAt:e.startAt,elapsedMinutes:exactMinutesBetween(e.startAt,generatedAt),breakState,source:e.source,lastActivityAt:e.updatedAt,locationId,locationName:locationId?locationMap[locationId]||locationId:null,locationEvidenceLabel,latitude:e.startEvidence?.latitude,longitude:e.startEvidence?.longitude,insideGeofence:e.startEvidence?.insideGeofence,deviceVerification:e.startEvidence?.deviceVerification||'none',integrityRisk:integrity?.requiresReview?(integrity.state==='critical_open_shift'?'critical':'requires_review'):e.startEvidence?.integrityRisk||'none',integrityState:integrity?.state||'normal',thresholdMinutes:integrity?.thresholdMinutes||0,overdueMinutes:integrity?.overdueMinutes||0,requiresReview:Boolean(integrity?.requiresReview),payrollBlocked:Boolean(integrity?.payrollBlocked)});
   }
-  return{generatedAt,working:rows.filter(x=>x.breakState==='working'),onBreak:rows.filter(x=>x.breakState==='on_break'),count:rows.length};
+  return{generatedAt,working:rows.filter(x=>x.breakState==='working'),onBreak:rows.filter(x=>x.breakState==='on_break'),count:rows.length,overdueOpenShifts:rows.filter(x=>Boolean(x.requiresReview)).length};
 }
 
 export type AttendanceActivityOptions=AttendanceActivityRangeInput&{limit?:number};
