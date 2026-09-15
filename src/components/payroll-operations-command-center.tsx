@@ -1,6 +1,7 @@
 'use client';
 import { useEffect,useState } from 'react';
 import { activeOrgId,apiFetch } from '@/lib/http/client';
+import { PayrollOperationalClosure } from '@/components/payroll-operational-closure';
 
 const cad=(n?:number,c='CAD')=>typeof n==='number'?new Intl.NumberFormat('en-CA',{style:'currency',currency:c,maximumFractionDigits:2}).format(n):'—';
 const askAi=(prompt:string)=>window.dispatchEvent(new CustomEvent('opsiqo:ai-assist',{detail:{prompt}}));
@@ -21,7 +22,7 @@ export function PayrollOperationsCommandCenter(){
       <div className="metricCard"><div className="metricLabel">Reconciliation</div><div className="metricValue">{d.metrics.unreconciledRuns}</div><div className="metricFoot">runs awaiting closure controls</div></div>
     </div>
     <div className="tableWrap"><table><thead><tr><th>Employee</th><th>Hourly</th><th>Monthly</th><th>Annual</th><th>Next release</th><th>Source</th><th>Sync</th><th>Readiness</th></tr></thead>
-      <tbody>{d.workers.map((w:any)=><tr key={w.workerId}><td><strong>{w.displayName}</strong><div className="muted">#{w.employeeNumber}</div></td><td>{cad(w.hourlyRate,w.currency)}</td><td>{cad(w.monthlyPay,w.currency)}</td><td>{cad(w.annualPay,w.currency)}</td><td>{w.nextReleaseDate}</td><td>{w.releaseSource}</td><td>{w.mismatch?<span className="badge">Mismatch</span>:w.syncStatus?<span className="badge">{String(w.syncStatus).replaceAll('_',' ')}</span>:'—'}</td><td>{w.ready?<span className="badge">Ready</span>:w.issues.join('; ')}</td></tr>)}</tbody>
+      <tbody>{d.workers.map((w:any)=><tr key={w.workerId}><td><strong>{w.displayName}</strong><div className="muted" style={{whiteSpace:'nowrap'}}>#{w.employeeNumber}</div></td><td style={{whiteSpace:'nowrap'}}>{cad(w.hourlyRate,w.currency)}</td><td style={{whiteSpace:'nowrap'}}>{cad(w.monthlyPay,w.currency)}</td><td style={{whiteSpace:'nowrap'}}>{cad(w.annualPay,w.currency)}</td><td>{w.nextReleaseDate}</td><td>{w.releaseSource}</td><td>{w.mismatch?<span className="badge">Mismatch</span>:w.syncStatus?<span className="badge">{String(w.syncStatus).replaceAll('_',' ')}</span>:'—'}</td><td>{w.ready?<span className="badge">Ready</span>:w.issues.join('; ')}</td></tr>)}</tbody>
     </table></div>
     {d.anomalies.length>0&&<div className="stack"><h3 className="sectionTitle">Payroll variance & anomaly intelligence</h3>{d.anomalies.slice(0,8).map((a:any)=><div className="notice" key={a.id}><strong>{a.displayName} · {a.metric.toUpperCase()} {a.deltaPct>0?'+':''}{a.deltaPct}%</strong><br/>{cad(a.previousAmount)} → {cad(a.currentAmount)} · {a.explanation}</div>)}</div>}
     <div className="grid2">
@@ -31,5 +32,6 @@ export function PayrollOperationsCommandCenter(){
     <div className="tableWrap"><h3 className="sectionTitle">Payroll run workflow</h3><table><thead><tr><th>Run</th><th>Type</th><th>Operational stage</th><th>Pay date</th><th>Workers</th><th>Reconciliation</th></tr></thead><tbody>{d.runs.map((r:any)=><tr key={r.id}><td><strong>{r.name}</strong></td><td>{r.kind||'regular'}</td><td>{r.operationalStage}</td><td>{r.payDate}</td><td>{r.totals?.workers||r.workerIds?.length||'—'}</td><td>{r.reconciliation?.status||'pending'}</td></tr>)}</tbody></table></div>
     <div className="notice"><strong>Off-cycle support:</strong> regular, off-cycle, correction, termination, bonus, commission, emergency and retro run types are available through the governed payroll intelligence API. Production execution remains subject to the existing payroll regulatory/provider gates.</div>
     <button className="button secondary compact" disabled={busy} onClick={()=>action({action:'save_calendar',input:{scope:'organization',rule:'run_default',weekendAdjustment:'none',effectiveDate:new Date().toISOString().slice(0,10),reason:'Confirm organization payroll calendar baseline'}})}>Confirm organization calendar baseline</button>
+    <PayrollOperationalClosure />
   </section>
 }
