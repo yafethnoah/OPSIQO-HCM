@@ -93,7 +93,8 @@ describe('H51.37 live-UAT closure contracts', () => {
     expect(source).toContain('Map position to salary band');
     expect(source).toContain('Employee placement');
     expect(source).toContain('Current stage');
-    expect(source).toContain('Comp → Payroll');
+    const operations = read('src/components/compensation-operational-closure.tsx');
+    expect(operations).toContain('Compensation → Payroll');
     expect(source).toContain('Expected minimum pay');
     expect(source).toContain("basis==='hourly'?p.hourlyRate");
   });

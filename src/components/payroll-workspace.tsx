@@ -115,7 +115,7 @@ export function PayrollWorkspace() {
       });
 
       guide([0, 1]);
-      setMsg('Controlled UAT payroll run created with reviewed member release dates.');
+      setMsg('Controlled UAT payroll run created with reviewed worker-specific exact run overrides and governed calendar rules.');
       await load();
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Unable to create payroll run.');
@@ -295,8 +295,8 @@ export function PayrollWorkspace() {
         </div>
 
         <div className="notice">
-          Selected workers: <strong>{selectedWorkerIds.length}</strong>. Member-specific release dates are resolved
-          separately inside the run and are carried into statutory calculation input, provider export, pay statements
+          Selected workers: <strong>{selectedWorkerIds.length}</strong>. Worker-specific exact run overrides and governed calendar rules are resolved
+          inside the run and are carried into statutory calculation input, provider export, pay statements
           and YTD ordering.
         </div>
 

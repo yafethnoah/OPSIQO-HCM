@@ -4,6 +4,7 @@
 import { useEffect, useState } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
 import { PAYROLL_PROVIDER_REGISTRY } from '@/lib/payroll/provider-registry';
+import { payrollProfileExplicitlyReviewed } from '@/lib/payroll/profile-integrity';
 
 const today=()=>new Date().toISOString().slice(0,10);
 const cad=(n?:number,c='CAD')=>typeof n==='number'?new Intl.NumberFormat('en-CA',{style:'currency',currency:c,maximumFractionDigits:2}).format(n):'—';
@@ -55,6 +56,13 @@ export function PayrollOperationalClosure(){
   useEffect(()=>{void load();const openCalendars=()=>setTab('calendars');window.addEventListener('opsiqo:payroll-open-calendars',openCalendars);return()=>window.removeEventListener('opsiqo:payroll-open-calendars',openCalendars)},[]);
 
   const workers=intel?.workers||[],providers=dashboard?.providers?.filter((x:any)=>(x.environment||'uat')==='uat')||[],activeRuns=intel?.runs||[];
+  const reviewedProfileCount=(dashboard?.workerProfiles||[]).filter((p:any)=>payrollProfileExplicitlyReviewed(p)).length;
+  const reviewedSyncCount=workers.filter((w:any)=>w.syncStatus==='reviewed').length;
+  const syncScopeCount=workers.filter((w:any)=>Number(w.annualPay||0)>0).length;
+  const calendarEvidenceCount=(intel?.calendarRules||[]).length;
+  const exactOverrideRunCount=activeRuns.filter((r:any)=>Object.keys(r.workerPayDates||{}).length>0).length;
+  const retroMakerCheckerCount=(intel?.retroCases||[]).filter((x:any)=>x.reviewedBy&&x.createdBy&&x.reviewedBy!==x.createdBy&&['approved','prepared','rejected'].includes(x.status)).length;
+  const variableMakerCheckerCount=(intel?.variablePay||[]).filter((x:any)=>x.reviewedBy&&x.createdBy&&x.reviewedBy!==x.createdBy&&['approved','prepared','rejected'].includes(x.status)).length;
 
   const action=async(body:any,success:string)=>{
     setBusy(body.action||'action');setError('');setMessage('');
@@ -133,6 +141,18 @@ export function PayrollOperationalClosure(){
       <div className="rowBetween"><div><h3 className="sectionTitle">Blocker Resolution</h3><p className="muted">Payroll and Compensation use the same synchronization authority.</p></div>{providers.length===0&&<button className="button compact" onClick={()=>setTab('runs')}>Configure UAT provider</button>}</div>
       <div className="compPayWideTable authorityStickyTable" style={{ overflowX: 'auto' }}><table><thead><tr><th>Employee</th><th>Hourly</th><th>Monthly</th><th>Annual</th><th>Next release</th><th>Sync</th><th>Issue</th><th>Action</th></tr></thead>
       <tbody>{workers.map((w:any)=><tr key={w.workerId}><td style={{ whiteSpace: 'nowrap' }}><strong>{w.displayName}</strong><div className="muted">#{w.employeeNumber}</div></td><td>{cad(w.hourlyRate,w.currency)}</td><td>{cad(w.monthlyPay,w.currency)}</td><td>{cad(w.annualPay,w.currency)}</td><td>{w.nextReleaseDate}<div className="muted">{w.releaseSource}</div></td><td><span className="badge">{w.syncLabel||String(w.syncStatus||'missing').replaceAll('_',' ')}</span>{w.syncReason&&<div className="muted">{w.syncReason}</div>}</td><td>{w.ready?<span className="badge">Ready</span>:w.issues.join('; ')}</td><td><div className="compPayActionRow">{!w.profileEnabled&&<button className="button compact" onClick={()=>beginProfile(w.workerId)}>Review profile</button>}<button className="button secondary compact" onClick={()=>window.location.assign('/compensation')}>Open Compensation</button>{w.syncRequiresAttention&&<button className="button secondary compact" onClick={()=>window.location.assign(`/compensation?syncWorker=${encodeURIComponent(w.workerId)}`)}>Review Sync</button>}</div></td></tr>)}</tbody></table></div>
+      <div className="uatEvidencePanel">
+        <div className="rowBetween"><div><h4 className="sectionTitle">Live UAT Closure Evidence</h4><p className="muted">Read-only evidence from governed UAT records. Pending means the control has not yet been proven by a live UAT transaction; it does not mean the control is absent.</p></div><span className="badge">No automatic approvals</span></div>
+        <div className="uatEvidenceGrid">
+          <div className="uatEvidenceCard"><span>Explicit profile review</span><strong>{reviewedProfileCount}</strong><small>profiles with all required human-reviewed fields</small></div>
+          <div className="uatEvidenceCard"><span>Governed calendar rules</span><strong>{calendarEvidenceCount}</strong><small>active persistent release rules</small></div>
+          <div className="uatEvidenceCard"><span>Exact run override proof</span><strong>{exactOverrideRunCount}</strong><small>payroll runs carrying worker-specific exact dates</small></div>
+          <div className="uatEvidenceCard"><span>Registered UAT provider</span><strong>{providers.length}</strong><small>governed UAT provider configurations</small></div>
+          <div className="uatEvidenceCard"><span>Comp → Payroll reviewed</span><strong>{reviewedSyncCount}/{syncScopeCount}</strong><small>current compensated workers with reviewed synchronization evidence</small></div>
+          <div className="uatEvidenceCard"><span>Retro maker-checker proof</span><strong>{retroMakerCheckerCount}</strong><small>cases reviewed by someone other than the maker</small></div>
+          <div className="uatEvidenceCard"><span>Variable-pay maker-checker proof</span><strong>{variableMakerCheckerCount}</strong><small>items reviewed by someone other than the maker</small></div>
+        </div>
+      </div>
     </section>}
 
     {tab==='profiles'&&<section className="card stack">
