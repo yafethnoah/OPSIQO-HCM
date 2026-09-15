@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { OntarioComplianceFoundation } from '@/components/ontario-compliance-foundation';
 import { OntarioComplianceReadiness } from '@/components/ontario-compliance-readiness';
+import { OntarioComplianceAssurance } from '@/components/ontario-compliance-assurance';
 import { SaudiCountryPackFoundation } from '@/components/saudi-country-pack-foundation';
 import { SaudiEmploymentRulesFoundation } from '@/components/saudi-employment-rules-foundation';
 import { SaudiPayrollGuardPanel } from '@/components/saudi-payroll-guard-panel';
@@ -68,7 +69,7 @@ export function CountryComplianceWorkspace() {
       </section>
     </>}
 
-    {tab === 'ontario' && <div className="stack"><OntarioComplianceReadiness /><OntarioComplianceFoundation /></div>}
+    {tab === 'ontario' && <div className="stack"><OntarioComplianceReadiness /><OntarioComplianceAssurance /><OntarioComplianceFoundation /></div>}
 
     {tab === 'saudi' && <div className="stack">
       <SaudiCountryPackFoundation />
