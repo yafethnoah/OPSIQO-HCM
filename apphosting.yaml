@@ -17,7 +17,8 @@ env:
     availability: [RUNTIME]
   - variable: RESEND_WEBHOOK_SECRET
     secret: OPSIQO_RESEND_WEBHOOK_SECRET
-    availability: [RUNTIME]  - variable: OPSIQO_RELEASE_VERSION
+    availability: [RUNTIME]
+  - variable: OPSIQO_RELEASE_VERSION
     value: '3.6.1'
   - variable: OPSIQO_PRODUCT_RELEASE
     value: '8.5-v7.9.3'
