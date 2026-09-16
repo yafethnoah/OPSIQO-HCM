@@ -12,6 +12,7 @@ import { systemActor } from '@/lib/automation/system-actor';
 const now = () => new Date().toISOString();
 const hashToken = (value: string) => createHash('sha256').update(value).digest('hex');
 const emailKey = (value: string) => encodeURIComponent(value.trim().toLowerCase());
+const NEVER_EXPIRES_AT = '9999-12-31T23:59:59.999Z';
 
 function mayInviteRole(actorRole: Role, invitedRole: Role) {
   if (actorRole === 'super_admin' || actorRole === 'org_admin') return true;
@@ -22,11 +23,7 @@ function mayInviteRole(actorRole: Role, invitedRole: Role) {
 
 export async function listInvitations(actor: ActorContext) {
   const snap = await adminDb().collection(`organizations/${actor.orgId}/invitations`).orderBy('createdAt', 'desc').limit(100).get();
-  return snap.docs.map((d) => {
-    const invitation = d.data() as Invitation;
-    if (invitation.status === 'pending' && invitation.expiresAt < now()) return { ...invitation, status: 'expired' as const };
-    return invitation;
-  });
+  return snap.docs.map((d) => d.data() as Invitation);
 }
 
 
@@ -61,56 +58,21 @@ async function invitationGovernanceNotifyOnce(orgId: string, key: string, payloa
 }
 
 export async function processInvitationGovernance(orgId: string, limit = 500) {
-  const db = adminDb();
-  const timestamp = now();
-  const soon = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
-  const snap = await db.collection(`organizations/${orgId}/invitations`)
+  const snap = await adminDb().collection(`organizations/${orgId}/invitations`)
     .where('status', '==', 'pending')
     .limit(Math.max(1, Math.min(limit, 1000)))
     .get();
-  const summary = { scanned: snap.size, expired: 0, expiringSoon: 0, tokenIndexesDeleted: 0, notifications: 0 };
-  const actor = systemActor(orgId, 'system:invitation-governance');
 
-  for (const doc of snap.docs) {
-    const invitation = doc.data() as Invitation;
-    if (invitation.expiresAt <= timestamp) {
-      const tokenQuery = await db.collection(`organizations/${orgId}/invitationTokenIndex`).where('invitationId', '==', invitation.id).limit(20).get();
-      const after = { ...invitation, status: 'expired' as const, expiredAt: timestamp };
-      const audit = buildAudit(actor, { action: 'membership.invitation.expire', entityType: 'invitation', entityId: invitation.id, before: invitation, after });
-      const batch = db.batch();
-      batch.set(doc.ref, { status: 'expired', expiredAt: timestamp, updatedAt: timestamp }, { merge: true });
-      if (invitation.membershipCreatedByInvitation && invitation.authUid) {
-        batch.set(db.doc(`organizations/${orgId}/memberships/${invitation.authUid}`), { status: 'inactive', activationPending: false, updatedAt: timestamp }, { merge: true });
-      }
-      batch.set(db.doc(`organizations/${orgId}/invitationEmailIndex/${emailKey(invitation.email)}`), { invitationId: invitation.id, email: invitation.email, status: 'expired', updatedAt: timestamp }, { merge: true });
-      for (const tokenDoc of tokenQuery.docs) batch.delete(tokenDoc.ref);
-      batch.create(db.doc(`organizations/${orgId}/auditLogs/${audit.id}`), audit);
-      await batch.commit();
-      summary.expired += 1;
-      summary.tokenIndexesDeleted += tokenQuery.size;
-      if (await invitationGovernanceNotifyOnce(orgId, `invitation-expired:${invitation.id}:${invitation.expiresAt}`, {
-        title: 'Invitation expired',
-        message: `The pending invitation for ${invitation.email} expired and its remaining token index was removed. Create or resend an invitation only after reviewing current access need.`,
-        targetUid: invitation.invitedBy,
-        entityId: invitation.id,
-        priority: 'normal',
-      })) summary.notifications += 1;
-      continue;
-    }
-
-    if (invitation.expiresAt <= soon) {
-      summary.expiringSoon += 1;
-      if (await invitationGovernanceNotifyOnce(orgId, `invitation-expiring:${invitation.id}:${invitation.expiresAt}`, {
-        title: 'Invitation expires soon',
-        message: `The invitation for ${invitation.email} expires within 48 hours. OPSIQO will not rotate or resend credentials automatically; review the access need before resending.`,
-        targetUid: invitation.invitedBy,
-        entityId: invitation.id,
-        priority: 'normal',
-      })) summary.notifications += 1;
-    }
-  }
-
-  return summary;
+  // H51.55: invitations are intentionally non-expiring. Governance may observe them,
+  // but it must never expire a pending invitation, delete its token, or deactivate access.
+  return {
+    scanned: snap.size,
+    expired: 0,
+    expiringSoon: 0,
+    tokenIndexesDeleted: 0,
+    notifications: 0,
+    nonExpiring: snap.size,
+  };
 }
 
 async function organizationName(orgId: string) {
@@ -169,7 +131,23 @@ async function deliverInvitation(input: {
       deliveryError: `Email provider returned ${response.status}.`,
     };
   }
-  return { delivery: 'email' as const, inviteUrl: input.inviteUrl, downloadUrl, signInUrl };
+  let providerMessageId: string | undefined;
+  try {
+    const providerResponse = await response.json() as { id?: string };
+    providerMessageId = typeof providerResponse.id === 'string' ? providerResponse.id : undefined;
+  } catch {
+    providerMessageId = undefined;
+  }
+
+  // HTTP 2xx proves provider acceptance, not mailbox delivery. Webhooks advance this state.
+  return {
+    delivery: 'submitted' as const,
+    providerMessageId,
+    inviteUrl: input.inviteUrl,
+    passwordSetupUrl: input.passwordSetupUrl,
+    downloadUrl,
+    signInUrl,
+  };
 }
 
 async function resolveInvitationWorker(orgId: string, invitation: Pick<Invitation, 'workerId' | 'email'>) {
@@ -267,12 +245,33 @@ async function provisionInvitationAccess(actor: ActorContext, invitation: Invita
     expiresAt: invitation.expiresAt,
   });
   const deliveryTimestamp = now();
-  await db.doc(`organizations/${actor.orgId}/invitations/${invitation.id}`).set({
+  const invitationRef = db.doc(`organizations/${actor.orgId}/invitations/${invitation.id}`);
+  const deliveryPatch: Record<string, unknown> = {
     deliveryStatus: delivery.delivery,
     lastDeliveryAt: deliveryTimestamp,
     deliveryError: 'deliveryError' in delivery ? delivery.deliveryError || null : null,
     updatedAt: deliveryTimestamp,
-  }, { merge: true });
+  };
+  if (delivery.delivery === 'submitted') {
+    deliveryPatch.deliveryProvider = 'resend';
+    deliveryPatch.deliveryFrom = process.env.INVITATION_FROM_EMAIL || null;
+    deliveryPatch.deliverySubmittedAt = deliveryTimestamp;
+  }
+  if ('providerMessageId' in delivery && delivery.providerMessageId) {
+    deliveryPatch.providerMessageId = delivery.providerMessageId;
+  }
+  await invitationRef.set(deliveryPatch, { merge: true });
+
+  if ('providerMessageId' in delivery && delivery.providerMessageId) {
+    await db.doc(`invitationDeliveryMessageIndex/${encodeURIComponent(delivery.providerMessageId)}`).set({
+      provider: 'resend',
+      providerMessageId: delivery.providerMessageId,
+      orgId: actor.orgId,
+      invitationId: invitation.id,
+      createdAt: deliveryTimestamp,
+      updatedAt: deliveryTimestamp,
+    }, { merge: true });
+  }
 
   return { ...delivery, authIdentity: identity.created ? 'created' as const : 'reused' as const };
 }
@@ -286,7 +285,7 @@ export async function createInvitation(actor: ActorContext, raw: unknown) {
   const id = randomUUID();
   const token = randomBytes(32).toString('base64url');
   const tokenHash = hashToken(token);
-  const expiresAt = new Date(Date.now() + input.expiresInDays * 86_400_000).toISOString();
+  const expiresAt = NEVER_EXPIRES_AT;
   const invitation: Invitation = {
     id,
     email,
@@ -310,8 +309,8 @@ export async function createInvitation(actor: ActorContext, raw: unknown) {
       if (existingId) {
         const existing = await tx.get(db.doc(`organizations/${actor.orgId}/invitations/${existingId}`));
         const data = existing.data() as Invitation | undefined;
-        if (data?.status === 'pending' && data.expiresAt > timestamp) {
-          throw new ApiError(409, 'A valid pending invitation already exists for this email.', 'invitation_exists');
+        if (data?.status === 'pending') {
+          throw new ApiError(409, 'A pending invitation already exists for this email. Resend it to rotate the secure token or revoke it before creating another.', 'invitation_exists');
         }
       }
     }
@@ -386,7 +385,8 @@ async function resendInvitation(actor: ActorContext, invitationId: string, expir
   const tokenHash = hashToken(token);
   const tokenIndexRef = db.doc(`organizations/${actor.orgId}/invitationTokenIndex/${tokenHash}`);
   const timestamp = now();
-  const expiresAt = new Date(Date.now() + expiresInDays * 86_400_000).toISOString();
+  const expiresAt = NEVER_EXPIRES_AT;
+  void expiresInDays; // retained for backward-compatible API payloads; H51.55 invitations do not expire.
   let result!: Invitation;
 
   await db.runTransaction(async (tx) => {
@@ -450,7 +450,6 @@ export async function acceptInvitation(request: Request, orgId: string, raw: unk
       return;
     }
     if (invitation.status !== 'pending') throw new ApiError(409, `Invitation is ${invitation.status}.`, 'invitation_not_pending');
-    if (invitation.expiresAt <= timestamp) throw new ApiError(410, 'Invitation has expired.', 'invitation_expired');
     if (invitation.email !== authenticatedEmail) throw new ApiError(403, 'Invitation email does not match the signed-in account.', 'invitation_email_mismatch');
 
     let workerId = invitation.workerId;

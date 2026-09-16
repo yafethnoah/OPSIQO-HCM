@@ -1,4 +1,4 @@
-﻿import { randomUUID } from 'crypto';
+import { randomUUID } from 'crypto';
 import type { Query, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import type { AutomationLaneResult, AutomationRunSummary } from '@/domain/automation';
 import { adminDb } from '@/lib/firebase/admin';
@@ -131,7 +131,7 @@ export async function runPhase1Automation(orgId: string, initiatedBy = 'system:s
   const scheduledChanges = await lane('effective_hr_changes', 'operational', () => processDueEmployeeChanges(orgId), { scanned: 0, applied: 0, failed: 0, skipped: 0 });
   const secondaryAssignments = await lane('secondary_assignment_changes', 'operational', () => processDueSecondaryAssignmentPlans(orgId), { scanned: 0, applied: 0, failed: 0, skipped: 0 });
   const separationGovernance = await lane('separation_governance', 'operational', () => processSeparationGovernance(orgId), { scannedTasks: 0, overdue: 0, ready: 0, closed: 0, blocked: 0, notifications: 0 });
-  const invitationGovernance = await lane('invitation_lifecycle', 'security', () => processInvitationGovernance(orgId), { scanned: 0, expired: 0, expiringSoon: 0, tokenIndexesDeleted: 0, notifications: 0 });
+  const invitationGovernance = await lane('invitation_lifecycle', 'security', () => processInvitationGovernance(orgId), { scanned: 0, expired: 0, expiringSoon: 0, tokenIndexesDeleted: 0, notifications: 0, nonExpiring: 0 });
   const onboardingTasks = await lane('onboarding_deadlines', 'operational', () => processOnboardingDueTasks(orgId), { scanned: 0, overdue: 0, notifications: 0 });
   await lane('governed_import_analysis', 'operational', () => processLibraryImportAutomation(orgId), { scanned: 0, analyzed: 0, analysisFailed: 0, draftsCreated: 0, employeeDocumentsPromoted: 0, zipChildrenCreated: 0, skippedHumanConfiguration: 0 });
 

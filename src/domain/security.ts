@@ -221,9 +221,16 @@ export interface Invitation {
   accountStatus?: 'password_setup_pending' | 'active' | 'provisioning_failed';
   authProvisionedAt?: string;
   passwordSetupGeneratedAt?: string;
-  deliveryStatus?: 'email' | 'manual' | 'failed';
+  deliveryStatus?: 'manual' | 'submitted' | 'sent' | 'delivered' | 'delivery_delayed' | 'bounced' | 'complained' | 'failed' | 'suppressed';
   lastDeliveryAt?: string;
   deliveryError?: string;
+  deliveryProvider?: 'resend';
+  providerMessageId?: string;
+  deliveryFrom?: string;
+  deliverySubmittedAt?: string;
+  lastDeliveryEventAt?: string;
+  deliveryOpenedAt?: string;
+  deliveryClickedAt?: string;
   membershipCreatedByInvitation?: boolean;
 }
 

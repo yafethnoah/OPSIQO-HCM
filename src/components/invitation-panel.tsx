@@ -73,11 +73,12 @@ export function InvitationPanel() {
   const mismatch = Boolean(linked?.workEmail && email && linked.workEmail.toLowerCase() !== email.trim().toLowerCase());
 
   function applyResponse(response: InviteResponse) {
-    setInviteLink(response.delivery === 'manual' ? response.inviteUrl || '' : '');
-    setPasswordLink(response.delivery === 'manual' ? response.passwordSetupUrl || '' : '');
+    // Always expose governed fallback links to authorized admins, even when email submission succeeds.
+    setInviteLink(response.inviteUrl || '');
+    setPasswordLink(response.passwordSetupUrl || '');
     setDownloadLink(response.downloadUrl || '');
-    if (response.delivery === 'email') {
-      setDelivery(`Invitation email delivered. Firebase identity ${response.authIdentity || 'prepared'}; organization access is already provisioned and activates automatically on first authenticated sign-in.`);
+    if (response.delivery === 'submitted') {
+      setDelivery(`Invitation submitted to the email provider. Mailbox delivery confirmation is pending. Firebase identity ${response.authIdentity || 'prepared'}; the invitation remains active until accepted or revoked.`);
     } else {
       setDelivery(response.deliveryError
         ? `Email delivery was unavailable (${response.deliveryError}). Use the secure setup links below for manual delivery.`
@@ -102,7 +103,6 @@ export function InvitationPanel() {
           email: email.trim(),
           role: form.get('role'),
           workerId: workerId || undefined,
-          expiresInDays: Number(form.get('expiresInDays') || 7),
         }),
       });
       applyResponse(result.data);
@@ -124,7 +124,7 @@ export function InvitationPanel() {
     setBusy(`${invitation.id}:${actionName}`);
     try {
       const payload = actionName === 'resend'
-        ? { action: 'resend', expiresInDays: 7 }
+        ? { action: 'resend' }
         : { action: 'revoke', reason: 'Revoked by administrator' };
       const result = await apiFetch<{ data: InviteResponse }>(`/api/organizations/${activeOrgId()}/invitations/${invitation.id}`, {
         method: 'POST',
@@ -161,7 +161,7 @@ export function InvitationPanel() {
         <label className="field"><span>Role</span><select className="input" name="role" defaultValue="employee"><option value="employee">Employee</option><option value="manager">Manager</option><option value="hr_partner">HR Partner</option><option value="hr_admin">HR Admin</option><option value="org_admin">Organization Admin</option></select></label>
         <label className="field"><span>Link to employee</span><select className="input" value={workerId} onChange={(e) => { const id = e.target.value; setWorkerId(id); const worker = workers.find((item) => item.id === id); if (worker?.workEmail) setEmail(worker.workEmail); }}><option value="">Match automatically by work email</option>{workers.map((worker) => <option key={worker.id} value={worker.id}>{worker.displayName} · {worker.workEmail}</option>)}</select></label>
         {mismatch && <div className="error">Selected employee email is {linked?.workEmail}. Correct the invitation email before sending.</div>}
-        <label className="field"><span>Invitation validity (days)</span><input className="input" type="number" min="1" max="30" defaultValue="7" name="expiresInDays" /></label>
+        <div className="notice">Invitation validity: does not expire automatically. It remains active until accepted or revoked. Resending rotates the secure invitation token.</div>
         <button className="button" disabled={busy === 'create' || mismatch}>{busy === 'create' ? 'Provisioning…' : 'Provision access & send invitation'}</button>
       </form>
 
@@ -175,7 +175,8 @@ export function InvitationPanel() {
           <div>✓ No password is emailed or stored by HR</div>
           <div>✓ First authenticated sign-in finalizes invitation status</div>
           <div>✓ App download landing page is centrally controlled</div>
-          <div>✓ Resend rotates secure invitation token</div>
+          <div>Pending invitations do not expire automatically</div>
+          <div>Resend rotates secure invitation token and refreshes password setup</div>
           <div>✓ Revoke removes pending provisioned access</div>
           <div>✓ All provisioning actions are audited</div>
         </div>
@@ -191,17 +192,17 @@ export function InvitationPanel() {
     <section className="card tableWrap">
       <h2 className="sectionTitle">Invitation & activation lifecycle</h2>
       <table>
-        <thead><tr><th>Email</th><th>Role</th><th>Account</th><th>Delivery</th><th>Expires</th><th>Sends</th><th>Invitation</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Email</th><th>Role</th><th>Account</th><th>Delivery</th><th>Validity</th><th>Sends</th><th>Invitation</th><th>Actions</th></tr></thead>
         <tbody>
           {data.map((invitation) => <tr key={invitation.id}>
             <td>{invitation.email}</td>
             <td>{invitation.role.replaceAll('_', ' ')}</td>
             <td><span className="badge">{invitation.accountStatus || 'not provisioned'}</span></td>
             <td><span className="badge">{invitation.deliveryStatus || 'not sent'}</span>{invitation.deliveryError && <div className="muted">{invitation.deliveryError}</div>}</td>
-            <td>{new Date(invitation.expiresAt).toLocaleDateString()}</td>
+            <td>Does not expire</td>
             <td>{invitation.sendCount || 1}</td>
             <td><span className="badge">{invitation.status}</span></td>
-            <td><div className="stepActions">{(invitation.status === 'pending' || invitation.status === 'expired') && <button className="button secondary" disabled={Boolean(busy)} onClick={() => action(invitation, 'resend')}>{busy === `${invitation.id}:resend` ? 'Sending…' : 'Resend'}</button>}{invitation.status === 'pending' && <button className="button dangerButton" disabled={Boolean(busy)} onClick={() => action(invitation, 'revoke')}>{busy === `${invitation.id}:revoke` ? 'Revoking…' : 'Revoke'}</button>}</div></td>
+            <td><div className="stepActions">{(invitation.status === 'pending' || invitation.status === 'expired') && <button className="button secondary" disabled={Boolean(busy)} onClick={() => action(invitation, 'resend')}>{busy === `${invitation.id}:resend` ? 'Sending…' : invitation.status === 'expired' ? 'Reactivate & resend' : 'Resend'}</button>}{invitation.status === 'pending' && <button className="button dangerButton" disabled={Boolean(busy)} onClick={() => action(invitation, 'revoke')}>{busy === `${invitation.id}:revoke` ? 'Revoking…' : 'Revoke'}</button>}</div></td>
           </tr>)}
           {!data.length && <tr><td colSpan={8} className="muted">No invitations yet.</td></tr>}
         </tbody>

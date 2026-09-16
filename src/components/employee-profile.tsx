@@ -119,8 +119,8 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
     if(!detail?.worker.workEmail)return setError('A work email is required before OPSIQO account access can be provisioned.');
     setError('');setMessage('');setAccessBusy('invite');
     try{
-      const result=await apiFetch<{data:{delivery:string;deliveryError?:string}}>(`/api/organizations/${activeOrgId()}/invitations`,{method:'POST',body:JSON.stringify({email:detail.worker.workEmail,role:accessRole,workerId,expiresInDays:7})});
-      setMessage(result.data.delivery==='email'?'OPSIQO access was provisioned and the invitation email was sent.':'OPSIQO access was provisioned. Email delivery is not configured, so use Members & Invitations for the secure manual setup links.');
+      const result=await apiFetch<{data:{delivery:string;deliveryError?:string}}>(`/api/organizations/${activeOrgId()}/invitations`,{method:'POST',body:JSON.stringify({email:detail.worker.workEmail,role:accessRole,workerId})});
+      setMessage(result.data.delivery==='submitted'?'OPSIQO access was provisioned and the invitation was submitted to the email provider. Delivery confirmation is pending; the invitation does not expire.':'OPSIQO access was provisioned. Email delivery is unavailable, so use Members & Invitations for the secure manual setup links. The invitation does not expire.');
       await load();
     }catch(e){setError(e instanceof Error?e.message:'Unable to provision OPSIQO access.');}
     finally{setAccessBusy('')}
@@ -131,7 +131,7 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
     if(!invitationId)return;
     setError('');setMessage('');setAccessBusy(action);
     try{
-      await apiFetch(`/api/organizations/${activeOrgId()}/invitations/${invitationId}`,{method:'POST',body:JSON.stringify(action==='resend'?{action:'resend',expiresInDays:7}:{action:'revoke',reason:'Revoked from employee profile'})});
+      await apiFetch(`/api/organizations/${activeOrgId()}/invitations/${invitationId}`,{method:'POST',body:JSON.stringify(action==='resend'?{action:'resend'}:{action:'revoke',reason:'Revoked from employee profile'})});
       setMessage(action==='resend'?'Invitation and password-setup access were resent.':'Pending invitation was revoked and invitation-provisioned organization access was deactivated.');
       await load();
     }catch(e){setError(e instanceof Error?e.message:`Unable to ${action} invitation.`);}
