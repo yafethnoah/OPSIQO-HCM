@@ -9,7 +9,15 @@ runConfig:
   memoryMiB: 1024
 
 env:
-  - variable: OPSIQO_RELEASE_VERSION
+  - variable: RESEND_API_KEY
+    secret: OPSIQO_RESEND_API_KEY
+    availability: [RUNTIME]
+  - variable: INVITATION_FROM_EMAIL
+    secret: OPSIQO_INVITATION_FROM_EMAIL
+    availability: [RUNTIME]
+  - variable: RESEND_WEBHOOK_SECRET
+    secret: OPSIQO_RESEND_WEBHOOK_SECRET
+    availability: [RUNTIME]  - variable: OPSIQO_RELEASE_VERSION
     value: '3.6.1'
   - variable: OPSIQO_PRODUCT_RELEASE
     value: '8.5-v7.9.3'
