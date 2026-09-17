@@ -41,7 +41,7 @@ export async function syncOfflineClockEvents(orgId:string){
   const failures:Array<{id:string;message:string;terminal:boolean}>=[];
   for(const event of pending){
     try{
-      await apiFetch(`/api/organizations/${orgId}/time/clock`,{method:'POST',orgId,body:JSON.stringify({
+      await apiFetch(`/api/organizations/${orgId}/mobile/time/clock`,{method:'POST',orgId,body:JSON.stringify({
         action:event.action,
         offlineEventId:event.id,
         clientCapturedAt:event.capturedAt,

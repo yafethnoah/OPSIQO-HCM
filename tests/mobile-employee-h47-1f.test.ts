@@ -1,7 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+
 const read=(p:string)=>readFileSync(p,'utf8');
 const MINIMUM_PATCH = 'H47.1F';
+
 const releaseScore=(identity:string)=>{
   const match=identity.match(/OPSIQO_PATCH_RELEASE = process\.env\.OPSIQO_PATCH_RELEASE \|\| 'H(\d+)\.(\d+)([A-Z]?)'/);
   expect(match).not.toBeNull();
@@ -10,21 +12,29 @@ const releaseScore=(identity:string)=>{
   const letter=match?.[3]?match[3].charCodeAt(0)-64:0;
   return major*100000+minor*100+letter;
 };
+
 const featureMajor=(identity:string)=>{
   const match=identity.match(/OPSIQO_FEATURE_RELEASE = process\.env\.OPSIQO_FEATURE_RELEASE \|\| 'H(\d+)(?:\.\d+[A-Z]?)?'/);
   expect(match).not.toBeNull();
   return Number(match?.[1]||0);
 };
 
+function versionScore(version: unknown) {
+  const match=String(version||'').match(/^(\d+)\.(\d+)\.(\d+)$/);
+  expect(match).not.toBeNull();
+  return Number(match?.[1]||0)*1_000_000 + Number(match?.[2]||0)*1_000 + Number(match?.[3]||0);
+}
+
 describe('H47.1F mobile reproducible build baseline',()=>{
-  it('publishes H47.1F-or-later release lineage and certified app versions',()=>{
+  it('publishes H47.1F-or-later release lineage and certified-or-later app versions',()=>{
     const identity=read('src/lib/release/identity.ts');
     const pkg=JSON.parse(read('mobile/package.json'));
     const app=JSON.parse(read('mobile/app.json'));
+
     expect(featureMajor(identity)).toBeGreaterThanOrEqual(47);
     expect(releaseScore(identity)).toBeGreaterThanOrEqual(47*100000+1*100+6);
     expect(pkg.version).toBe('0.2.5');
-    expect(app.expo.version).toBe('0.1.2');
+    expect(versionScore(app.expo.version)).toBeGreaterThanOrEqual(versionScore('0.1.2'));
     expect(app.expo.extra.h47Release).toBe('employee-mobile-v1.1f');
   });
 

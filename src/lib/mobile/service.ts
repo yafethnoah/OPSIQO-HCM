@@ -15,17 +15,35 @@ import { mobileDeviceSchema } from './schemas';
 const now = () => new Date().toISOString();
 const deviceId = (installationId:string) => createHash('sha256').update(installationId).digest('hex').slice(0,48);
 
+function selfAttendance(
+  snapshot: Awaited<ReturnType<typeof liveAttendance>>,
+  workerId: string,
+) {
+  const working = snapshot.working.filter((row) => row.workerId === workerId);
+  const onBreak = snapshot.onBreak.filter((row) => row.workerId === workerId);
+  return {
+    ...snapshot,
+    working,
+    onBreak,
+    count: working.length + onBreak.length,
+  };
+}
+
 export async function mobileBootstrap(actor: ActorContext): Promise<MobileBootstrap> {
   if (!actor.permissions.includes('self.read')) throw new ApiError(403, 'Employee self-service permission required.', 'forbidden');
 
-  const home = await superAppDashboard(actor);
   const workerId = actor.workerId;
   const can = (permission:string) => actor.permissions.includes(permission as Permission);
 
-  const [leave, shifts, attendance, expenses, notifications, learning, documents] = await Promise.all([
+  const [home, leave, shifts, attendance, expenses, notifications, learning, documents] = await Promise.all([
+    superAppDashboard(actor),
     workerId && can('leave.read') ? getLeaveWorkspace(actor, workerId).catch(() => null) : Promise.resolve(null),
     workerId && can('time.read') ? listShifts(actor, undefined, undefined, workerId).catch(() => []) : Promise.resolve([]),
-    workerId && can('time.read') ? liveAttendance(actor).catch(() => null) : Promise.resolve(null),
+    workerId && can('time.read')
+      ? liveAttendance(actor)
+          .then((snapshot) => selfAttendance(snapshot, workerId))
+          .catch(() => null)
+      : Promise.resolve(null),
     can('expense.read') ? expenseWorkspace(actor).catch(() => []) : Promise.resolve([]),
     can('notifications.read') ? listNotifications(actor, 30).catch(() => []) : Promise.resolve([]),
     can('learning.read') ? learningDashboard(actor).catch(() => null) : Promise.resolve(null),
@@ -39,7 +57,7 @@ export async function mobileBootstrap(actor: ActorContext): Promise<MobileBootst
     capabilities: {
       employeePortal: true,
       time: can('time.read'),
-      clock: can('time.clock'),
+      clock: Boolean(workerId && can('time.clock')),
       leave: can('leave.read') || can('leave.request'),
       expenses: can('expense.read') || can('expense.request'),
       learning: can('learning.read'),

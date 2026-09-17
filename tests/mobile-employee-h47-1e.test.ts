@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const read = (path: string) => readFileSync(path, 'utf8');
 const MINIMUM_PATCH = 'H47.1E';
+
 const releaseScore=(identity:string)=>{
   const match=identity.match(/OPSIQO_PATCH_RELEASE = process\.env\.OPSIQO_PATCH_RELEASE \|\| 'H(\d+)\.(\d+)([A-Z]?)'/);
   expect(match).not.toBeNull();
@@ -11,11 +12,19 @@ const releaseScore=(identity:string)=>{
   const letter=match?.[3]?match[3].charCodeAt(0)-64:0;
   return major*100000+minor*100+letter;
 };
+
 const featureMajor=(identity:string)=>{
   const match=identity.match(/OPSIQO_FEATURE_RELEASE = process\.env\.OPSIQO_FEATURE_RELEASE \|\| 'H(\d+)(?:\.\d+[A-Z]?)?'/);
   expect(match).not.toBeNull();
   return Number(match?.[1]||0);
 };
+
+function expo57Patch(version: unknown) {
+  const normalized=String(version||'').replace(/^[~^]/,'');
+  const match=normalized.match(/^57\.0\.(\d+)$/);
+  expect(match).not.toBeNull();
+  return Number(match?.[1]||0);
+}
 
 describe('H47.1E-or-later Expo Doctor workspace isolation', () => {
   it('preserves H47.1E-or-later patch lineage and mobile package version', () => {
@@ -31,9 +40,9 @@ describe('H47.1E-or-later Expo Doctor workspace isolation', () => {
     expect(Object.hasOwn(app.expo, 'newArchEnabled')).toBe(false);
   });
 
-  it('declares Expo Router linking peer explicitly', () => {
+  it('declares an Expo Router linking peer compatible with H47.1E or later SDK 57 patches', () => {
     const pkg = JSON.parse(read('mobile/package.json'));
-    expect(pkg.dependencies['expo-linking']).toBe('~57.0.9');
+    expect(expo57Patch(pkg.dependencies['expo-linking'])).toBeGreaterThanOrEqual(9);
   });
 
   it('certifies mobile dependencies in an isolated temporary project', () => {

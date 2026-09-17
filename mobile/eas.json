@@ -30,9 +30,20 @@
       "env": {
         "EXPO_PUBLIC_OPSIQO_ENVIRONMENT": "production"
       }
+    },
+    "testflight": {
+      "distribution": "store",
+      "channel": "uat",
+      "environment": "preview",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_OPSIQO_ENVIRONMENT": "uat",
+        "EXPO_PUBLIC_OPSIQO_API_BASE_URL": "https://uat.opsiqo.ca"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "testflight": {}
   }
 }

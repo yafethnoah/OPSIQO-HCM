@@ -14,6 +14,38 @@ export async function verifyAppCheckRequest(request:Request){
   try{await adminAppCheck().verifyToken(token);}catch{throw new ApiError(401,'Firebase App Check verification failed.','invalid_app_check');}
 }
 
+async function verifyFirebaseBearerToken(token: string) {
+  try {
+    return await adminAuth().verifyIdToken(
+      token,
+      !process.env.FIREBASE_AUTH_EMULATOR_HOST,
+    );
+  } catch (error) {
+    const code =
+      typeof error === 'object' && error && 'code' in error
+        ? String((error as { code?: unknown }).code || '')
+        : '';
+
+    const invalidTokenCodes = new Set([
+      'auth/argument-error',
+      'auth/id-token-expired',
+      'auth/id-token-revoked',
+      'auth/invalid-id-token',
+      'auth/user-disabled',
+    ]);
+
+    if (invalidTokenCodes.has(code) || code.startsWith('auth/id-token-')) {
+      throw new ApiError(
+        401,
+        'Authentication token is invalid or expired. Sign in again.',
+        'invalid_auth_token',
+      );
+    }
+
+    throw error;
+  }
+}
+
 export async function identityFromRequest(request: Request): Promise<IdentityContext> {
   const authHeader = request.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) {
@@ -21,7 +53,7 @@ export async function identityFromRequest(request: Request): Promise<IdentityCon
     throw new ApiError(401, 'Authentication required.', 'unauthenticated');
   }
   await verifyAppCheckRequest(request);
-  const decoded = await adminAuth().verifyIdToken(authHeader.slice('Bearer '.length), !process.env.FIREBASE_AUTH_EMULATOR_HOST);
+  const decoded = await verifyFirebaseBearerToken(authHeader.slice('Bearer '.length));
   const firebase = decoded.firebase as {sign_in_provider?:string;sign_in_second_factor?:string} | undefined;
   const rawGroups = (decoded as unknown as {groups?:unknown;roles?:unknown}).groups ?? (decoded as unknown as {roles?:unknown}).roles;
   const groups = Array.isArray(rawGroups) ? rawGroups.filter((v): v is string => typeof v === 'string').slice(0,200) : undefined;
@@ -91,6 +123,176 @@ export async function actorFromRequest(request: Request, orgId?: string): Promis
   enforcePrivilegedIdentityPolicy(identity,role);
   enforcePlatformIdentityPolicy(identity,role,platform);
   return { uid: identity.uid, orgId: resolvedOrgId, role, workerId: membership.workerId, permissions: permissionsForRole(role) };
+}
+
+async function resolveMobileWorkerId(
+  orgId: string,
+  identity: IdentityContext,
+  membership: Membership,
+) {
+  if (membership.workerId) return membership.workerId;
+
+  const db = adminDb();
+
+  const personSnap = await db
+    .collection(`organizations/${orgId}/persons`)
+    .where('authUid', '==', identity.uid)
+    .limit(2)
+    .get();
+
+  if (personSnap.size === 1) {
+    const personId = personSnap.docs[0]!.id;
+    const workerSnap = await db
+      .collection(`organizations/${orgId}/workers`)
+      .where('personId', '==', personId)
+      .limit(2)
+      .get();
+
+    if (workerSnap.size === 1) {
+      return workerSnap.docs[0]!.id;
+    }
+  }
+
+  if (identity.emailVerified && identity.email) {
+    const normalizedEmail = identity.email.trim().toLowerCase();
+
+    const lowerSnap = await db
+      .collection(`organizations/${orgId}/workers`)
+      .where('workEmailLower', '==', normalizedEmail)
+      .limit(2)
+      .get();
+
+    if (lowerSnap.size === 1) {
+      return lowerSnap.docs[0]!.id;
+    }
+
+    const exactSnap = await db
+      .collection(`organizations/${orgId}/workers`)
+      .where('workEmail', '==', identity.email.trim())
+      .limit(2)
+      .get();
+
+    if (exactSnap.size === 1) {
+      return exactSnap.docs[0]!.id;
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * OPSIQO Pulse is an employee self-service surface even when the same account
+ * also holds a privileged web role.
+ *
+ * Pulse security boundary:
+ * - Firebase ID token + App Check remain mandatory.
+ * - organization membership must be active.
+ * - a hard organization password-provider ban is still respected.
+ * - Pulse receives employee permissions only.
+ * - Pulse does not apply the organization auth_time session timeout.
+ * - Firebase token refresh, revocation, disabled-user state and explicit
+ *   sign-out remain authoritative.
+ *
+ * Web/admin APIs continue through actorFromRequest() and keep their existing
+ * H51.57 policy behavior unchanged.
+ */
+export async function actorFromMobileSelfServiceRequest(
+  request: Request,
+  orgId?: string,
+): Promise<ActorContext> {
+  const demo = process.env.OPSIQO_DEMO_MODE === 'true';
+  const routeOrgId = String(orgId || '').trim() || undefined;
+  const headerOrgId =
+    String(request.headers.get('x-org-id') || '').trim() || undefined;
+
+  if (routeOrgId && headerOrgId && routeOrgId !== headerOrgId) {
+    throw new ApiError(
+      400,
+      'Organization context does not match the requested resource.',
+      'org_context_mismatch',
+    );
+  }
+
+  const demoOrgId = demo
+    ? String(process.env.OPSIQO_DEMO_ORG_ID || '').trim() || undefined
+    : undefined;
+  const resolvedOrgId = routeOrgId || headerOrgId || demoOrgId;
+
+  if (!resolvedOrgId) {
+    throw new ApiError(
+      400,
+      'Organization context is required.',
+      'missing_org',
+    );
+  }
+
+  if (demo && !request.headers.get('authorization')) {
+    const context = demoContext(resolvedOrgId);
+    return {
+      ...context,
+      role: 'employee',
+      permissions: permissionsForRole('employee'),
+    };
+  }
+
+  const identity = await identityFromRequest(request);
+
+  if (identity.signInProvider === 'anonymous') {
+    throw new ApiError(
+      403,
+      'Anonymous access is not available in OPSIQO Pulse.',
+      'mobile_membership_required',
+    );
+  }
+
+  const memberSnap = await adminDb()
+    .doc(`organizations/${resolvedOrgId}/memberships/${identity.uid}`)
+    .get();
+
+  if (!memberSnap.exists) {
+    throw new ApiError(
+      403,
+      'No membership for this organization.',
+      'membership_required',
+    );
+  }
+
+  const membership = memberSnap.data() as Membership;
+  if (membership.status !== 'active') {
+    throw new ApiError(
+      403,
+      'Membership is inactive.',
+      'membership_inactive',
+    );
+  }
+
+  const platform = await platformPolicyForOrg(resolvedOrgId);
+  if (
+    platform &&
+    !identity.demo &&
+    platform.allowPasswordSignIn === false &&
+    identity.signInProvider === 'password'
+  ) {
+    throw new ApiError(
+      403,
+      'Email/password sign-in is disabled by organization policy.',
+      'password_signin_disabled',
+    );
+  }
+
+  const workerId = await resolveMobileWorkerId(
+    resolvedOrgId,
+    identity,
+    membership,
+  );
+
+  return {
+    uid: identity.uid,
+    orgId: resolvedOrgId,
+    role: 'employee',
+    workerId,
+    permissions: permissionsForRole('employee'),
+  };
 }
 
 const TEAM_PERMISSION_FALLBACK: Partial<Record<Permission, Permission>> = {
