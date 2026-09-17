@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
 import type { Shift } from "@/types/mobile";
@@ -55,6 +55,10 @@ export type AttendanceReminderState = {
   status: "configuring" | "ready" | "denied" | "error";
   scheduled: number;
   message: string;
+};
+
+export type AttendanceReminderContext = {
+  isClockedIn?: boolean;
 };
 
 function validSound(value: unknown): value is AttendanceAlarmSound {
@@ -116,7 +120,7 @@ export async function saveAttendanceReminderSettings(
   return sanitized;
 }
 
-async function clearManagedReminders() {
+export async function clearAttendanceReminders() {
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
 
   await Promise.all(
@@ -224,8 +228,9 @@ export async function previewAttendanceAlarmSound(sound: AttendanceAlarmSound) {
 export async function synchronizeAttendanceReminders(
   shifts: Shift[],
   overrideSettings?: AttendanceReminderSettings,
+  context: AttendanceReminderContext = {},
 ) {
-  await clearManagedReminders();
+  await clearAttendanceReminders();
 
   const settings = sanitizeSettings(
     overrideSettings || (await getAttendanceReminderSettings()),
@@ -262,13 +267,24 @@ export async function synchronizeAttendanceReminders(
     .sort((a, b) => Date.parse(a.startAt) - Date.parse(b.startAt))
     .slice(0, MAX_SHIFTS);
 
+  if (upcoming.length === 0) {
+    return {
+      status: "ready" as const,
+      scheduled: 0,
+      message:
+        "No upcoming work schedule is assigned, so no Clock In/Clock Out alarm can be scheduled yet.",
+    };
+  }
+
   let scheduled = 0;
+  const allowClockIn = context.isClockedIn !== true;
+  const allowClockOut = context.isClockedIn !== false;
 
   for (const shift of upcoming) {
     const start = Date.parse(shift.startAt);
     const end = Date.parse(shift.endAt);
 
-    if (settings.clockInEnabled && Number.isFinite(start)) {
+    if (allowClockIn && settings.clockInEnabled && Number.isFinite(start)) {
       const alarmAt = start - settings.clockInLeadMinutes * 60 * 1000;
       if (alarmAt > now && alarmAt <= horizon) {
         await scheduleReminder(
@@ -281,7 +297,7 @@ export async function synchronizeAttendanceReminders(
       }
     }
 
-    if (settings.clockOutEnabled && Number.isFinite(end)) {
+    if (allowClockOut && settings.clockOutEnabled && Number.isFinite(end)) {
       const alarmAt = end - settings.clockOutLeadMinutes * 60 * 1000;
       if (alarmAt > now && alarmAt <= horizon) {
         await scheduleReminder(
@@ -305,16 +321,25 @@ export async function synchronizeAttendanceReminders(
   };
 }
 
-export function useAttendanceReminders(shifts: Shift[]) {
+export function useAttendanceReminders(
+  shifts: Shift[],
+  context: AttendanceReminderContext = {},
+  enabled = true,
+) {
   const signature = useMemo(
     () =>
-      shifts
-        .map(
+      [
+        context.isClockedIn === undefined
+          ? "unknown"
+          : context.isClockedIn
+            ? "clocked-in"
+            : "clocked-out",
+        ...shifts.map(
           (shift) =>
             `${shift.id}|${shift.startAt}|${shift.endAt}|${shift.status}`,
-        )
-        .join("::"),
-    [shifts],
+        ),
+      ].join("::"),
+    [shifts, context.isClockedIn],
   );
 
   const [state, setState] = useState<AttendanceReminderState>({
@@ -324,6 +349,15 @@ export function useAttendanceReminders(shifts: Shift[]) {
   });
 
   const resync = useCallback(async () => {
+    if (!enabled) {
+      setState({
+        status: "configuring",
+        scheduled: 0,
+        message: "Waiting for your OPSIQO work schedule...",
+      });
+      return;
+    }
+
     setState((current) => ({
       ...current,
       status: "configuring",
@@ -331,7 +365,11 @@ export function useAttendanceReminders(shifts: Shift[]) {
     }));
 
     try {
-      const next = await synchronizeAttendanceReminders(shifts);
+      const next = await synchronizeAttendanceReminders(
+        shifts,
+        undefined,
+        context,
+      );
       setState(next);
     } catch {
       setState({
@@ -341,11 +379,23 @@ export function useAttendanceReminders(shifts: Shift[]) {
           "Clock alarms could not be scheduled. Pull to refresh or check notification settings.",
       });
     }
-  }, [signature]);
+  }, [signature, enabled]);
 
   useEffect(() => {
     void resync();
   }, [resync]);
+
+  useEffect(() => {
+    if (!enabled) return;
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        void resync();
+      }
+    });
+
+    return () => subscription.remove();
+  }, [enabled, resync]);
 
   return {
     ...state,

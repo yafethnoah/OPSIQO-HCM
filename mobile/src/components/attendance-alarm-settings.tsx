@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import { Linking, Pressable, StyleSheet, Switch, Text, View } from "react-native";
 import type { Shift } from "@/types/mobile";
 import { Button, Card, H2, Muted } from "@/components/ui";
 import { colors } from "@/theme/tokens";
@@ -114,6 +114,7 @@ export function AttendanceAlarmSettings({ shifts }: Props) {
   const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [notificationDenied, setNotificationDenied] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -159,6 +160,7 @@ export function AttendanceAlarmSettings({ shifts }: Props) {
     try {
       const result = await previewAttendanceAlarmSound(sound);
       setMessage(result.message);
+      setNotificationDenied(result.status === "denied");
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Alarm preview could not be played.",
@@ -197,6 +199,20 @@ export function AttendanceAlarmSettings({ shifts }: Props) {
       />
 
       <Button
+        title="Send test notification now"
+        onPress={() => void preview(settings.clockInSound)}
+        secondary
+      />
+
+      {notificationDenied ? (
+        <Button
+          title="Open device notification settings"
+          onPress={() => void Linking.openSettings()}
+          secondary
+        />
+      ) : null}
+
+      <Button
         title={saving ? "Saving..." : "Save alarm settings"}
         onPress={() => void save()}
         disabled={!ready || saving}
@@ -205,7 +221,9 @@ export function AttendanceAlarmSettings({ shifts }: Props) {
       {message ? <Text style={s.message}>{message}</Text> : null}
 
       <Muted>
-        Alarm delivery still follows your phone notification, Focus and silent-mode
+        OPSIQO synchronizes reminders automatically after sign-in, when your
+        schedule changes, and whenever Pulse returns to the foreground. Alarm
+        delivery still follows your phone notification, Focus and silent-mode
         settings.
       </Muted>
     </Card>
