@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Linking, Pressable, StyleSheet, Switch, Text, View } from "react-native";
+import {
+  Linking,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import type { Shift } from "@/types/mobile";
 import { Button, Card, H2, Muted } from "@/components/ui";
 import { colors } from "@/theme/tokens";
@@ -7,16 +15,21 @@ import {
   ATTENDANCE_ALARM_LEAD_OPTIONS,
   ATTENDANCE_ALARM_SOUND_OPTIONS,
   DEFAULT_ATTENDANCE_REMINDER_SETTINGS,
+  REGULAR_WORKDAY_OPTIONS,
+  getAttendanceReminderRuntimeStatus,
   getAttendanceReminderSettings,
   previewAttendanceAlarmSound,
   saveAttendanceReminderSettings,
+  scheduleTimedAttendanceTest,
   synchronizeAttendanceReminders,
   type AttendanceAlarmSound,
   type AttendanceReminderSettings,
+  type AttendanceScheduleSource,
 } from "@/notifications/attendance-reminders";
 
 type Props = {
   shifts: Shift[];
+  isClockedIn?: boolean;
 };
 
 function ChoiceButton({
@@ -107,7 +120,31 @@ function AlarmSection({
   );
 }
 
-export function AttendanceAlarmSettings({ shifts }: Props) {
+function sourceLabel(source: AttendanceScheduleSource) {
+  if (source === "published_shift") return "Published shifts";
+  if (source === "regular_schedule") return "Regular schedule fallback";
+  if (source === "mixed") return "Published shifts + regular schedule";
+  return "No active schedule";
+}
+
+function fmtNext(iso?: string) {
+  if (!iso) return "None scheduled";
+
+  try {
+    return new Date(iso).toLocaleString([], {
+      weekday: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+export function AttendanceAlarmSettings({
+  shifts,
+  isClockedIn,
+}: Props) {
   const [settings, setSettings] = useState<AttendanceReminderSettings>(
     DEFAULT_ATTENDANCE_REMINDER_SETTINGS,
   );
@@ -115,12 +152,25 @@ export function AttendanceAlarmSettings({ shifts }: Props) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [notificationDenied, setNotificationDenied] = useState(false);
+  const [scheduledCount, setScheduledCount] = useState(0);
+  const [scheduleSource, setScheduleSource] =
+    useState<AttendanceScheduleSource>("none");
+  const [nextAt, setNextAt] = useState<string | undefined>();
 
   useEffect(() => {
     let mounted = true;
-    void getAttendanceReminderSettings()
-      .then((value) => {
-        if (mounted) setSettings(value);
+
+    void Promise.all([
+      getAttendanceReminderSettings(),
+      getAttendanceReminderRuntimeStatus(),
+    ])
+      .then(([value, runtime]) => {
+        if (!mounted) return;
+        setSettings(value);
+        setNotificationDenied(!runtime.granted && !runtime.canAskAgain);
+        setScheduledCount(runtime.scheduled);
+        setScheduleSource(runtime.source);
+        setNextAt(runtime.nextAt);
       })
       .finally(() => {
         if (mounted) setReady(true);
@@ -135,6 +185,16 @@ export function AttendanceAlarmSettings({ shifts }: Props) {
     setSettings((current) => ({ ...current, ...next }));
   }
 
+  function toggleWorkDay(day: number) {
+    const selected = settings.regularWorkDays.includes(day);
+
+    patch({
+      regularWorkDays: selected
+        ? settings.regularWorkDays.filter((value) => value !== day)
+        : [...settings.regularWorkDays, day].sort((a, b) => a - b),
+    });
+  }
+
   async function save() {
     setSaving(true);
     setMessage("");
@@ -142,8 +202,18 @@ export function AttendanceAlarmSettings({ shifts }: Props) {
     try {
       const persisted = await saveAttendanceReminderSettings(settings);
       setSettings(persisted);
-      const result = await synchronizeAttendanceReminders(shifts, persisted);
+
+      const result = await synchronizeAttendanceReminders(
+        shifts,
+        persisted,
+        { isClockedIn },
+      );
+
       setMessage(result.message);
+      setScheduledCount(result.scheduled);
+      setScheduleSource(result.source || "none");
+      setNextAt(result.nextAt);
+      setNotificationDenied(result.status === "denied");
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -157,13 +227,36 @@ export function AttendanceAlarmSettings({ shifts }: Props) {
 
   async function preview(sound: AttendanceAlarmSound) {
     setMessage("");
+
     try {
       const result = await previewAttendanceAlarmSound(sound);
       setMessage(result.message);
       setNotificationDenied(result.status === "denied");
     } catch (error) {
       setMessage(
-        error instanceof Error ? error.message : "Alarm preview could not be played.",
+        error instanceof Error
+          ? error.message
+          : "Alarm preview could not be played.",
+      );
+    }
+  }
+
+  async function timedTest() {
+    setMessage("");
+
+    try {
+      const result = await scheduleTimedAttendanceTest(
+        settings.clockInSound,
+        60,
+      );
+
+      setMessage(result.message);
+      setNotificationDenied(result.status === "denied");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "The one-minute timing test could not be scheduled.",
       );
     }
   }
@@ -172,9 +265,27 @@ export function AttendanceAlarmSettings({ shifts }: Props) {
     <Card>
       <H2>Clock alarms</H2>
       <Muted>
-        Choose whether OPSIQO should alert you for Clock In and Clock Out,
-        when the alarm should ring, and which sound it should use.
+        OPSIQO uses published shifts first. When no shift is published for a
+        workday, enable a regular schedule fallback so alarms still fire at your
+        normal start and end times.
       </Muted>
+
+      <View style={s.statusBox}>
+        <Text style={s.statusTitle}>Automatic reminder status</Text>
+        <Text style={s.statusText}>
+          Schedule source: {sourceLabel(scheduleSource)}
+        </Text>
+        <Text style={s.statusText}>
+          Scheduled alarms: {scheduledCount}
+        </Text>
+        <Text style={s.statusText}>
+          Next alarm: {fmtNext(nextAt)}
+        </Text>
+        <Text style={s.statusText}>
+          Published shifts loaded:{" "}
+          {shifts.filter((x) => x.status === "published").length}
+        </Text>
+      </View>
 
       <AlarmSection
         title="Clock In alarm"
@@ -198,9 +309,83 @@ export function AttendanceAlarmSettings({ shifts }: Props) {
         onPreview={() => void preview(settings.clockOutSound)}
       />
 
+      <View style={s.section}>
+        <View style={s.switchRow}>
+          <View style={s.switchCopy}>
+            <Text style={s.sectionTitle}>Regular schedule fallback</Text>
+            <Muted>
+              Use these normal work hours only on days without a published shift.
+            </Muted>
+          </View>
+          <Switch
+            value={settings.regularScheduleEnabled}
+            onValueChange={(value) =>
+              patch({ regularScheduleEnabled: value })
+            }
+          />
+        </View>
+
+        <View style={!settings.regularScheduleEnabled && s.disabled}>
+          <Text style={s.label}>Workdays</Text>
+          <View style={s.choices}>
+            {REGULAR_WORKDAY_OPTIONS.map((option) => (
+              <ChoiceButton
+                key={option.value}
+                label={option.label}
+                selected={settings.regularWorkDays.includes(option.value)}
+                onPress={() =>
+                  settings.regularScheduleEnabled &&
+                  toggleWorkDay(option.value)
+                }
+              />
+            ))}
+          </View>
+
+          <Text style={s.label}>Normal start time</Text>
+          <TextInput
+            value={settings.regularStartLocalTime}
+            onChangeText={(value) =>
+              patch({ regularStartLocalTime: value })
+            }
+            editable={settings.regularScheduleEnabled}
+            placeholder="09:00"
+            autoCapitalize="none"
+            keyboardType="numbers-and-punctuation"
+            style={s.input}
+            maxLength={5}
+          />
+
+          <Text style={s.label}>Normal end time</Text>
+          <TextInput
+            value={settings.regularEndLocalTime}
+            onChangeText={(value) =>
+              patch({ regularEndLocalTime: value })
+            }
+            editable={settings.regularScheduleEnabled}
+            placeholder="17:00"
+            autoCapitalize="none"
+            keyboardType="numbers-and-punctuation"
+            style={s.input}
+            maxLength={5}
+          />
+
+          <Muted>
+            Enter times as 24-hour HH:MM. Regular schedule reminders use the
+            phone's current local time zone. A published OPSIQO shift overrides
+            the fallback for that day.
+          </Muted>
+        </View>
+      </View>
+
       <Button
         title="Send test notification now"
         onPress={() => void preview(settings.clockInSound)}
+        secondary
+      />
+
+      <Button
+        title="Schedule 1-minute timing test"
+        onPress={() => void timedTest()}
         secondary
       />
 
@@ -213,7 +398,7 @@ export function AttendanceAlarmSettings({ shifts }: Props) {
       ) : null}
 
       <Button
-        title={saving ? "Saving..." : "Save alarm settings"}
+        title={saving ? "Saving..." : "Save & schedule alarms"}
         onPress={() => void save()}
         disabled={!ready || saving}
       />
@@ -221,10 +406,9 @@ export function AttendanceAlarmSettings({ shifts }: Props) {
       {message ? <Text style={s.message}>{message}</Text> : null}
 
       <Muted>
-        OPSIQO synchronizes reminders automatically after sign-in, when your
-        schedule changes, and whenever Pulse returns to the foreground. Alarm
-        delivery still follows your phone notification, Focus and silent-mode
-        settings.
+        The one-minute timing test uses the same delayed notification trigger as
+        a real Clock In or Clock Out reminder. You can close Pulse after
+        scheduling it.
       </Muted>
     </Card>
   );
@@ -284,6 +468,34 @@ const s = StyleSheet.create({
   },
   disabled: {
     opacity: 0.45,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    backgroundColor: colors.surface,
+    color: colors.text,
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  statusBox: {
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    padding: 12,
+    gap: 4,
+    backgroundColor: "#F6FAFC",
+  },
+  statusTitle: {
+    color: colors.navy,
+    fontWeight: "900",
+  },
+  statusText: {
+    color: colors.text,
+    fontSize: 13,
+    lineHeight: 19,
   },
   message: {
     color: colors.navy,

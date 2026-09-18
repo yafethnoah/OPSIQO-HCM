@@ -18,6 +18,11 @@ export default function Time() {
     );
   }
 
+  const isClockedIn = Boolean(
+    (data?.attendance?.working?.length || 0) +
+      (data?.attendance?.onBreak?.length || 0),
+  );
+
   return (
     <ScrollView
       style={{ backgroundColor: colors.bg }}
@@ -53,17 +58,24 @@ export default function Time() {
             </View>
           ))
         ) : (
-          <Muted>No scheduled shifts found.</Muted>
+          <Muted>
+            No published shift is assigned. Configure Regular schedule fallback
+            below if you work consistent office hours.
+          </Muted>
         )}
       </Card>
 
-      <AttendanceAlarmSettings shifts={data?.shifts || []} />
+      <AttendanceAlarmSettings
+        shifts={data?.shifts || []}
+        isClockedIn={isClockedIn}
+      />
 
       <Card>
         <H2>Attendance privacy</H2>
         <Muted>
           OPSIQO Pulse requests foreground location only when you submit Clock In
-          or Clock Out. Background location tracking is disabled in the iOS app.
+          or Clock Out. Reminder scheduling does not enable background location
+          tracking.
         </Muted>
       </Card>
     </ScrollView>

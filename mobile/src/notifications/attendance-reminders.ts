@@ -5,15 +5,24 @@ import * as SecureStore from "expo-secure-store";
 import type { Shift } from "@/types/mobile";
 
 const MANAGED_KIND = "opsiqo_attendance_reminder";
-const SETTINGS_KEY = "opsiqo.mobile.attendance.reminder.settings.v2";
-const HORIZON_MS = 14 * 24 * 60 * 60 * 1000;
-const MAX_SHIFTS = 14;
+const TIMED_TEST_KIND = "opsiqo_attendance_scheduled_test";
+const SETTINGS_KEY = "opsiqo.mobile.attendance.reminder.settings.v3";
+const LEGACY_SETTINGS_KEY = "opsiqo.mobile.attendance.reminder.settings.v2";
+const HORIZON_DAYS = 14;
+const HORIZON_MS = HORIZON_DAYS * 24 * 60 * 60 * 1000;
+const MAX_EFFECTIVE_SHIFTS = 28;
 
 export type AttendanceAlarmSound =
   | "default"
   | "opsiqo-pulse.wav"
   | "opsiqo-chime.wav"
   | "opsiqo-bell.wav";
+
+export type AttendanceScheduleSource =
+  | "published_shift"
+  | "regular_schedule"
+  | "mixed"
+  | "none";
 
 export type AttendanceReminderSettings = {
   clockInEnabled: boolean;
@@ -22,6 +31,22 @@ export type AttendanceReminderSettings = {
   clockOutLeadMinutes: number;
   clockInSound: AttendanceAlarmSound;
   clockOutSound: AttendanceAlarmSound;
+  regularScheduleEnabled: boolean;
+  regularWorkDays: number[];
+  regularStartLocalTime: string;
+  regularEndLocalTime: string;
+};
+
+export type AttendanceReminderState = {
+  status: "configuring" | "ready" | "denied" | "error";
+  scheduled: number;
+  message: string;
+  source?: AttendanceScheduleSource;
+  nextAt?: string;
+};
+
+export type AttendanceReminderContext = {
+  isClockedIn?: boolean;
 };
 
 export const ATTENDANCE_ALARM_SOUND_OPTIONS: Array<{
@@ -35,11 +60,21 @@ export const ATTENDANCE_ALARM_SOUND_OPTIONS: Array<{
 ];
 
 export const ATTENDANCE_ALARM_LEAD_OPTIONS = [
-  { value: 0, label: "At shift time" },
+  { value: 0, label: "At work time" },
   { value: 5, label: "5 min before" },
   { value: 10, label: "10 min before" },
   { value: 15, label: "15 min before" },
   { value: 30, label: "30 min before" },
+] as const;
+
+export const REGULAR_WORKDAY_OPTIONS = [
+  { value: 1, label: "Mon" },
+  { value: 2, label: "Tue" },
+  { value: 3, label: "Wed" },
+  { value: 4, label: "Thu" },
+  { value: 5, label: "Fri" },
+  { value: 6, label: "Sat" },
+  { value: 0, label: "Sun" },
 ] as const;
 
 export const DEFAULT_ATTENDANCE_REMINDER_SETTINGS: AttendanceReminderSettings = {
@@ -49,16 +84,10 @@ export const DEFAULT_ATTENDANCE_REMINDER_SETTINGS: AttendanceReminderSettings = 
   clockOutLeadMinutes: 0,
   clockInSound: "default",
   clockOutSound: "default",
-};
-
-export type AttendanceReminderState = {
-  status: "configuring" | "ready" | "denied" | "error";
-  scheduled: number;
-  message: string;
-};
-
-export type AttendanceReminderContext = {
-  isClockedIn?: boolean;
+  regularScheduleEnabled: false,
+  regularWorkDays: [1, 2, 3, 4, 5],
+  regularStartLocalTime: "",
+  regularEndLocalTime: "",
 };
 
 function validSound(value: unknown): value is AttendanceAlarmSound {
@@ -66,7 +95,28 @@ function validSound(value: unknown): value is AttendanceAlarmSound {
 }
 
 function validLead(value: unknown) {
-  return ATTENDANCE_ALARM_LEAD_OPTIONS.some((option) => option.value === Number(value));
+  return ATTENDANCE_ALARM_LEAD_OPTIONS.some(
+    (option) => option.value === Number(value),
+  );
+}
+
+function validLocalTime(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value.trim())
+  );
+}
+
+function sanitizeWorkDays(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [...DEFAULT_ATTENDANCE_REMINDER_SETTINGS.regularWorkDays];
+  }
+
+  return [...new Set(
+    value
+      .map((item) => Number(item))
+      .filter((item) => Number.isInteger(item) && item >= 0 && item <= 6),
+  )].sort((a, b) => a - b);
 }
 
 function sanitizeSettings(value: unknown): AttendanceReminderSettings {
@@ -96,27 +146,55 @@ function sanitizeSettings(value: unknown): AttendanceReminderSettings {
     clockOutSound: validSound(row.clockOutSound)
       ? row.clockOutSound
       : DEFAULT_ATTENDANCE_REMINDER_SETTINGS.clockOutSound,
+    regularScheduleEnabled:
+      typeof row.regularScheduleEnabled === "boolean"
+        ? row.regularScheduleEnabled
+        : DEFAULT_ATTENDANCE_REMINDER_SETTINGS.regularScheduleEnabled,
+    regularWorkDays: sanitizeWorkDays(row.regularWorkDays),
+    regularStartLocalTime: validLocalTime(row.regularStartLocalTime)
+      ? row.regularStartLocalTime.trim()
+      : "",
+    regularEndLocalTime: validLocalTime(row.regularEndLocalTime)
+      ? row.regularEndLocalTime.trim()
+      : "",
   };
 }
 
 export async function getAttendanceReminderSettings() {
-  const raw = await SecureStore.getItemAsync(SETTINGS_KEY);
-  if (!raw) return DEFAULT_ATTENDANCE_REMINDER_SETTINGS;
+  const current = await SecureStore.getItemAsync(SETTINGS_KEY);
 
-  try {
-    return sanitizeSettings(JSON.parse(raw));
-  } catch {
-    return DEFAULT_ATTENDANCE_REMINDER_SETTINGS;
+  if (current) {
+    try {
+      return sanitizeSettings(JSON.parse(current));
+    } catch {
+      return DEFAULT_ATTENDANCE_REMINDER_SETTINGS;
+    }
   }
+
+  const legacy = await SecureStore.getItemAsync(LEGACY_SETTINGS_KEY);
+
+  if (legacy) {
+    try {
+      const migrated = sanitizeSettings(JSON.parse(legacy));
+      await saveAttendanceReminderSettings(migrated);
+      return migrated;
+    } catch {
+      return DEFAULT_ATTENDANCE_REMINDER_SETTINGS;
+    }
+  }
+
+  return DEFAULT_ATTENDANCE_REMINDER_SETTINGS;
 }
 
 export async function saveAttendanceReminderSettings(
   settings: AttendanceReminderSettings,
 ) {
   const sanitized = sanitizeSettings(settings);
+
   await SecureStore.setItemAsync(SETTINGS_KEY, JSON.stringify(sanitized), {
     keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
   });
+
   return sanitized;
 }
 
@@ -139,11 +217,13 @@ async function ensureNotificationPermission() {
     permission = await Notifications.requestPermissionsAsync();
   }
 
-  return permission.granted;
+  return permission;
 }
 
 function channelId(sound: AttendanceAlarmSound) {
-  return `attendance-reminders-${sound.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
+  return `attendance-reminders-${sound
+    .replace(/[^a-z0-9]+/gi, "-")
+    .toLowerCase()}`;
 }
 
 async function ensureAndroidChannel(sound: AttendanceAlarmSound) {
@@ -153,11 +233,136 @@ async function ensureAndroidChannel(sound: AttendanceAlarmSound) {
     name:
       sound === "default"
         ? "Attendance reminders"
-        : `Attendance reminders · ${ATTENDANCE_ALARM_SOUND_OPTIONS.find((x) => x.value === sound)?.label || "Custom"}`,
+        : `Attendance reminders - ${
+            ATTENDANCE_ALARM_SOUND_OPTIONS.find((x) => x.value === sound)?.label ||
+            "Custom"
+          }`,
     importance: Notifications.AndroidImportance.HIGH,
     sound,
     vibrationPattern: [0, 250, 180, 250],
   });
+}
+
+function parseLocalTime(value: string) {
+  if (!validLocalTime(value)) return null;
+  const [hour, minute] = value.split(":").map(Number);
+  return { hour, minute };
+}
+
+function localDayKey(date: Date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function dateAtLocalTime(base: Date, value: string, nextDay = false) {
+  const parsed = parseLocalTime(value);
+  if (!parsed) return null;
+
+  const result = new Date(
+    base.getFullYear(),
+    base.getMonth(),
+    base.getDate(),
+    parsed.hour,
+    parsed.minute,
+    0,
+    0,
+  );
+
+  if (nextDay) result.setDate(result.getDate() + 1);
+  return result;
+}
+
+export function buildRegularScheduleShifts(
+  settings: AttendanceReminderSettings,
+  now = new Date(),
+): Shift[] {
+  if (
+    !settings.regularScheduleEnabled ||
+    settings.regularWorkDays.length === 0 ||
+    !validLocalTime(settings.regularStartLocalTime) ||
+    !validLocalTime(settings.regularEndLocalTime)
+  ) {
+    return [];
+  }
+
+  const rows: Shift[] = [];
+
+  for (let offset = 0; offset < HORIZON_DAYS; offset += 1) {
+    const day = new Date(now);
+    day.setHours(12, 0, 0, 0);
+    day.setDate(day.getDate() + offset);
+
+    if (!settings.regularWorkDays.includes(day.getDay())) continue;
+
+    const start = dateAtLocalTime(day, settings.regularStartLocalTime);
+    const sameDayEnd = dateAtLocalTime(day, settings.regularEndLocalTime);
+
+    if (!start || !sameDayEnd) continue;
+
+    const end =
+      sameDayEnd.getTime() <= start.getTime()
+        ? dateAtLocalTime(day, settings.regularEndLocalTime, true)
+        : sameDayEnd;
+
+    if (!end || end.getTime() <= now.getTime()) continue;
+
+    rows.push({
+      id: `regular-${localDayKey(day)}`,
+      title: "Regular work schedule",
+      startAt: start.toISOString(),
+      endAt: end.toISOString(),
+      status: "published",
+    });
+  }
+
+  return rows;
+}
+
+type EffectiveShift = {
+  shift: Shift;
+  source: "published_shift" | "regular_schedule";
+};
+
+function effectiveReminderShifts(
+  shifts: Shift[],
+  settings: AttendanceReminderSettings,
+  now = new Date(),
+): EffectiveShift[] {
+  const nowMs = now.getTime();
+
+  const published = shifts
+    .filter((shift) => {
+      if (shift.status?.toLowerCase() !== "published") return false;
+      const end = Date.parse(shift.endAt);
+      return Number.isFinite(end) && end > nowMs;
+    })
+    .map((shift) => ({
+      shift,
+      source: "published_shift" as const,
+    }));
+
+  const regular = buildRegularScheduleShifts(settings, now);
+
+  const publishedDays = new Set(
+    published.map(({ shift }) => localDayKey(new Date(shift.startAt))),
+  );
+
+  const uncoveredRegular = regular
+    .filter((shift) => !publishedDays.has(localDayKey(new Date(shift.startAt))))
+    .map((shift) => ({
+      shift,
+      source: "regular_schedule" as const,
+    }));
+
+  return [...published, ...uncoveredRegular]
+    .sort(
+      (a, b) =>
+        Date.parse(a.shift.startAt) - Date.parse(b.shift.startAt),
+    )
+    .slice(0, MAX_EFFECTIVE_SHIFTS);
 }
 
 async function scheduleReminder(
@@ -165,6 +370,7 @@ async function scheduleReminder(
   action: "clock_in" | "clock_out",
   date: Date,
   sound: AttendanceAlarmSound,
+  scheduleSource: "published_shift" | "regular_schedule",
 ) {
   const clockIn = action === "clock_in";
   await ensureAndroidChannel(sound);
@@ -173,30 +379,36 @@ async function scheduleReminder(
     content: {
       title: clockIn ? "Time to clock in" : "Time to clock out",
       body: clockIn
-        ? `${shift.title || "Your shift"} is ready. Open OPSIQO Pulse to clock in.`
-        : `${shift.title || "Your shift"} is scheduled to end. Open OPSIQO Pulse to clock out.`,
+        ? `${shift.title || "Your workday"} is ready. Open OPSIQO Pulse to clock in.`
+        : `${shift.title || "Your workday"} is scheduled to end. Open OPSIQO Pulse to clock out.`,
       sound,
       data: {
         kind: MANAGED_KIND,
         action,
         shiftId: shift.id,
+        scheduleSource,
+        alarmAt: date.toISOString(),
         route: "/time",
       },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DATE,
       date,
-      ...(Platform.OS === "android" ? { channelId: channelId(sound) } : {}),
+      ...(Platform.OS === "android"
+        ? { channelId: channelId(sound) }
+        : {}),
     },
   });
 }
 
 export async function previewAttendanceAlarmSound(sound: AttendanceAlarmSound) {
-  const granted = await ensureNotificationPermission();
-  if (!granted) {
+  const permission = await ensureNotificationPermission();
+
+  if (!permission.granted) {
     return {
       status: "denied" as const,
-      message: "Notifications are off. Enable them in device Settings to preview alarm sounds.",
+      message:
+        "Notifications are off. Enable them in device Settings to preview alarm sounds.",
     };
   }
 
@@ -221,7 +433,92 @@ export async function previewAttendanceAlarmSound(sound: AttendanceAlarmSound) {
 
   return {
     status: "ready" as const,
-    message: "Alarm preview scheduled.",
+    message: "Immediate notification test sent.",
+  };
+}
+
+export async function scheduleTimedAttendanceTest(
+  sound: AttendanceAlarmSound,
+  delaySeconds = 60,
+) {
+  const permission = await ensureNotificationPermission();
+
+  if (!permission.granted) {
+    return {
+      status: "denied" as const,
+      message:
+        "Notifications are off. Enable them in device Settings before running the timing test.",
+    };
+  }
+
+  await ensureAndroidChannel(sound);
+
+  const fireAt = new Date(Date.now() + Math.max(15, delaySeconds) * 1000);
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: "OPSIQO scheduled alarm test",
+      body:
+        "This delayed notification uses the same scheduled trigger path as Clock In and Clock Out reminders.",
+      sound,
+      data: {
+        kind: TIMED_TEST_KIND,
+        alarmAt: fireAt.toISOString(),
+        route: "/time",
+      },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: fireAt,
+      ...(Platform.OS === "android"
+        ? { channelId: channelId(sound) }
+        : {}),
+    },
+  });
+
+  return {
+    status: "ready" as const,
+    fireAt: fireAt.toISOString(),
+    message: `Scheduled timing test for ${fireAt.toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+      second: "2-digit",
+    })}. You can close Pulse; the phone should notify you at that time.`,
+  };
+}
+
+export async function getAttendanceReminderRuntimeStatus() {
+  const permission = await Notifications.getPermissionsAsync();
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+
+  const managed = scheduled
+    .filter((request) => request.content.data?.kind === MANAGED_KIND)
+    .map((request) => ({
+      alarmAt: String(request.content.data?.alarmAt || ""),
+      source: String(request.content.data?.scheduleSource || ""),
+      action: String(request.content.data?.action || ""),
+    }))
+    .filter((row) => Number.isFinite(Date.parse(row.alarmAt)))
+    .sort((a, b) => Date.parse(a.alarmAt) - Date.parse(b.alarmAt));
+
+  const sources = new Set(managed.map((row) => row.source));
+
+  const source: AttendanceScheduleSource =
+    sources.has("published_shift") && sources.has("regular_schedule")
+      ? "mixed"
+      : sources.has("published_shift")
+        ? "published_shift"
+        : sources.has("regular_schedule")
+          ? "regular_schedule"
+          : "none";
+
+  return {
+    granted: permission.granted,
+    canAskAgain: permission.canAskAgain,
+    scheduled: managed.length,
+    source,
+    nextAt: managed[0]?.alarmAt,
+    nextAction: managed[0]?.action,
   };
 }
 
@@ -240,84 +537,127 @@ export async function synchronizeAttendanceReminders(
     return {
       status: "ready" as const,
       scheduled: 0,
-      message: "Clock-in and clock-out alarms are turned off.",
+      source: "none" as const,
+      message: "Clock In and Clock Out alarms are turned off.",
     };
   }
 
-  const granted = await ensureNotificationPermission();
+  const permission = await ensureNotificationPermission();
 
-  if (!granted) {
+  if (!permission.granted) {
     return {
       status: "denied" as const,
       scheduled: 0,
+      source: "none" as const,
       message:
-        "Notifications are off. Enable them in Settings to receive clock-in and clock-out alarms.",
+        "Notifications are off. Enable them in Settings to receive Clock In and Clock Out alarms.",
     };
   }
 
   const now = Date.now();
   const horizon = now + HORIZON_MS;
+  const effective = effectiveReminderShifts(shifts, settings, new Date(now));
 
-  const upcoming = shifts
-    .filter((shift) => {
-      if (shift.status?.toLowerCase() === "cancelled") return false;
-      const end = Date.parse(shift.endAt);
-      return Number.isFinite(end) && end > now;
-    })
-    .sort((a, b) => Date.parse(a.startAt) - Date.parse(b.startAt))
-    .slice(0, MAX_SHIFTS);
+  if (effective.length === 0) {
+    const regularNeedsConfiguration =
+      settings.regularScheduleEnabled &&
+      (
+        settings.regularWorkDays.length === 0 ||
+        !validLocalTime(settings.regularStartLocalTime) ||
+        !validLocalTime(settings.regularEndLocalTime)
+      );
 
-  if (upcoming.length === 0) {
     return {
       status: "ready" as const,
       scheduled: 0,
-      message:
-        "No upcoming work schedule is assigned, so no Clock In/Clock Out alarm can be scheduled yet.",
+      source: "none" as const,
+      message: regularNeedsConfiguration
+        ? "Regular schedule fallback is enabled but needs at least one workday plus valid start and end times."
+        : "No published shift or regular work schedule is available, so no automatic Clock In or Clock Out alarm can be scheduled.",
     };
   }
 
   let scheduled = 0;
+  let nextAt: string | undefined;
+
+  const usedSources = new Set<string>();
   const allowClockIn = context.isClockedIn !== true;
   const allowClockOut = context.isClockedIn !== false;
 
-  for (const shift of upcoming) {
+  for (const { shift, source } of effective) {
     const start = Date.parse(shift.startAt);
     const end = Date.parse(shift.endAt);
 
-    if (allowClockIn && settings.clockInEnabled && Number.isFinite(start)) {
-      const alarmAt = start - settings.clockInLeadMinutes * 60 * 1000;
+    if (
+      allowClockIn &&
+      settings.clockInEnabled &&
+      Number.isFinite(start)
+    ) {
+      const alarmAt =
+        start - settings.clockInLeadMinutes * 60 * 1000;
+
       if (alarmAt > now && alarmAt <= horizon) {
         await scheduleReminder(
           shift,
           "clock_in",
           new Date(alarmAt),
           settings.clockInSound,
+          source,
         );
         scheduled += 1;
+        usedSources.add(source);
+
+        const iso = new Date(alarmAt).toISOString();
+        if (!nextAt || iso < nextAt) nextAt = iso;
       }
     }
 
-    if (allowClockOut && settings.clockOutEnabled && Number.isFinite(end)) {
-      const alarmAt = end - settings.clockOutLeadMinutes * 60 * 1000;
+    if (
+      allowClockOut &&
+      settings.clockOutEnabled &&
+      Number.isFinite(end)
+    ) {
+      const alarmAt =
+        end - settings.clockOutLeadMinutes * 60 * 1000;
+
       if (alarmAt > now && alarmAt <= horizon) {
         await scheduleReminder(
           shift,
           "clock_out",
           new Date(alarmAt),
           settings.clockOutSound,
+          source,
         );
         scheduled += 1;
+        usedSources.add(source);
+
+        const iso = new Date(alarmAt).toISOString();
+        if (!nextAt || iso < nextAt) nextAt = iso;
       }
     }
   }
 
+  const source: AttendanceScheduleSource =
+    usedSources.has("published_shift") &&
+    usedSources.has("regular_schedule")
+      ? "mixed"
+      : usedSources.has("published_shift")
+        ? "published_shift"
+        : usedSources.has("regular_schedule")
+          ? "regular_schedule"
+          : "none";
+
   return {
     status: "ready" as const,
     scheduled,
+    source,
+    nextAt,
     message:
       scheduled > 0
-        ? `${scheduled} attendance alarm${scheduled === 1 ? "" : "s"} scheduled for your upcoming shifts.`
-        : "No upcoming enabled attendance alarms need to be scheduled right now.",
+        ? `${scheduled} attendance alarm${scheduled === 1 ? "" : "s"} scheduled automatically.`
+        : context.isClockedIn
+          ? "You are clocked in, but no future Clock Out alarm is available for the current published or regular schedule."
+          : "No future Clock In alarm is currently due for the published or regular schedule.",
   };
 }
 
@@ -345,7 +685,7 @@ export function useAttendanceReminders(
   const [state, setState] = useState<AttendanceReminderState>({
     status: "configuring",
     scheduled: 0,
-    message: "Preparing clock-in and clock-out alarms...",
+    message: "Preparing Clock In and Clock Out alarms...",
   });
 
   const resync = useCallback(async () => {
@@ -353,6 +693,7 @@ export function useAttendanceReminders(
       setState({
         status: "configuring",
         scheduled: 0,
+        source: "none",
         message: "Waiting for your OPSIQO work schedule...",
       });
       return;
@@ -361,7 +702,7 @@ export function useAttendanceReminders(
     setState((current) => ({
       ...current,
       status: "configuring",
-      message: "Preparing clock-in and clock-out alarms...",
+      message: "Preparing Clock In and Clock Out alarms...",
     }));
 
     try {
@@ -375,6 +716,7 @@ export function useAttendanceReminders(
       setState({
         status: "error",
         scheduled: 0,
+        source: "none",
         message:
           "Clock alarms could not be scheduled. Pull to refresh or check notification settings.",
       });

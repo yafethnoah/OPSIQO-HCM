@@ -47,9 +47,18 @@ describe("H51.59 automatic attendance reminder intelligence", () => {
     expect(settings).toContain("Linking.openSettings()");
   });
 
-  it("truthfully reports that a schedule is required when no shift is assigned", () => {
+  it("truthfully reports when no automatic schedule source is available", () => {
     const source = read("mobile/src/notifications/attendance-reminders.ts");
-    expect(source).toContain("No upcoming work schedule is assigned");
+
+    const originalH5159Message =
+      source.includes("No upcoming work schedule is assigned");
+
+    const successorFallbackMessage =
+      source.includes(
+        "No published shift or regular work schedule is available",
+      );
+
+    expect(originalH5159Message || successorFallbackMessage).toBe(true);
   });
 
   it("keeps attendance reminder intelligence free of background location tracking", () => {
