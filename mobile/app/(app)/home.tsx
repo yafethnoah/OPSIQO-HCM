@@ -1,11 +1,10 @@
-import { Linking, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "@/auth/provider";
 import { useBootstrap } from "@/hooks/use-bootstrap";
 import { AttendanceHero } from "@/components/attendance-hero";
 import { AttendancePulseMonitor } from "@/components/attendance-pulse-monitor";
 import { OpsiqoBannerAd } from "@/components/ad-banner";
-import { useAttendanceReminders } from "@/notifications/attendance-reminders";
 import { Card, H1, H2, Loading, Muted, Screen } from "@/components/ui";
 import { colors } from "@/theme/tokens";
 
@@ -26,7 +25,6 @@ const fmt = (iso: string) => {
 export default function Home() {
   const { activeOrgId } = useAuth();
   const { data, loading, error, reload } = useBootstrap();
-  const reminders = useAttendanceReminders(data?.shifts || []);
 
   if (loading && !data) {
     return (
@@ -51,12 +49,12 @@ export default function Home() {
       }
     >
       <View>
-        <Text style={s.eyebrow}>OPSIQO PULSE · iOS</Text>
+        <Text style={s.eyebrow}>OPSIQO PULSE Â· iOS</Text>
         <H1>Hi, {worker?.displayName?.split(" ")[0] || "there"}</H1>
         <Muted>
           {data?.employee?.assignment?.positionTitle || "Employee"}
           {data?.employee?.assignment?.orgUnitName
-            ? ` · ${data.employee.assignment.orgUnitName}`
+            ? ` Â· ${data.employee.assignment.orgUnitName}`
             : ""}
         </Muted>
       </View>
@@ -68,6 +66,7 @@ export default function Home() {
       ) : null}
 
       <AttendancePulseMonitor />
+
       <AttendanceHero
         data={data}
         activeOrgId={activeOrgId}
@@ -92,7 +91,7 @@ export default function Home() {
           <>
             <Text style={s.big}>{data.shifts[0].title}</Text>
             <Muted>
-              {fmt(data.shifts[0].startAt)} →{" "}
+              {fmt(data.shifts[0].startAt)} â†’{" "}
               {fmt(data.shifts[0].endAt)}
             </Muted>
           </>
@@ -103,15 +102,14 @@ export default function Home() {
 
       <Card>
         <H2>Clock reminders</H2>
-        <Muted>{reminders.message}</Muted>
-        {reminders.status === "denied" ? (
-          <Text
-            onPress={() => void Linking.openSettings()}
-            style={s.quickItem}
-          >
-            Open notification settings
-          </Text>
-        ) : null}
+        <Muted>
+          {data?.shifts?.length
+            ? "Automatic Clock In and Clock Out reminders are managed from Time > Clock alarms for your published shifts."
+            : "No upcoming published shift is available, so OPSIQO cannot schedule a Clock In or Clock Out alarm yet."}
+        </Muted>
+        <Text onPress={() => router.push("/time")} style={s.quickItem}>
+          Open clock alarms
+        </Text>
       </Card>
 
       <Card>
@@ -184,7 +182,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 const s = StyleSheet.create({
-  content: { padding: 18, gap: 14 },
+  content: { padding: 18, paddingBottom: 112, gap: 14 },
   eyebrow: {
     fontSize: 11,
     fontWeight: "900",

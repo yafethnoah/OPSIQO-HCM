@@ -1,9 +1,13 @@
-import { Redirect, Tabs } from 'expo-router';
-import { Text, type ColorValue } from 'react-native';
-import { useAuth } from '@/auth/provider';
-import { useBootstrap } from '@/hooks/use-bootstrap';
-import { useAttendanceReminders } from '@/notifications/attendance-reminders';
-import { colors } from '@/theme/tokens';
+import { Redirect, Tabs } from "expo-router";
+import { type ColorValue } from "react-native";
+import { useAuth } from "@/auth/provider";
+import { useBootstrap } from "@/hooks/use-bootstrap";
+import { useAttendanceReminders } from "@/notifications/attendance-reminders";
+import {
+  PulseTabIcon,
+  type PulseTabIconName,
+} from "@/components/pulse-tab-icon";
+import { colors } from "@/theme/tokens";
 
 type TabIconProps = {
   focused: boolean;
@@ -11,16 +15,10 @@ type TabIconProps = {
   size: number;
 };
 
-const icon = (label: string) =>
+const icon =
+  (name: PulseTabIconName) =>
   ({ color, size }: TabIconProps) => (
-    <Text
-      allowFontScaling={false}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ color, fontWeight: '800', fontSize: Math.max(14, size - 4), lineHeight: size }}
-    >
-      {label}
-    </Text>
+    <PulseTabIcon name={name} color={String(color)} size={size} />
   );
 
 function AttendanceReminderCoordinator() {
@@ -56,19 +54,42 @@ export default function AppLayout() {
           headerShown: false,
           tabBarActiveTintColor: colors.teal,
           tabBarInactiveTintColor: colors.muted,
-          tabBarStyle: { height: 66, paddingBottom: 8, paddingTop: 6 },
+          tabBarStyle: {
+            height: 72,
+            paddingBottom: 10,
+            paddingTop: 6,
+          },
+          tabBarLabelStyle: {
+            fontSize: 10,
+            fontWeight: "700",
+          },
         }}
       >
-        <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: icon('âŒ‚') }} />
-        <Tabs.Screen name="time" options={{ title: 'Time', tabBarIcon: icon('â—·') }} />
-        <Tabs.Screen name="requests" options={{ title: 'Requests', tabBarIcon: icon('+') }} />
-        <Tabs.Screen name="inbox" options={{ title: 'Inbox', tabBarIcon: icon('â—') }} />
-        <Tabs.Screen name="me" options={{ title: 'Me', tabBarIcon: icon('â—‹') }} />
-        <Tabs.Screen name="documents" options={{href:null}} />
-        <Tabs.Screen name="learning" options={{href:null}} />
-        <Tabs.Screen name="copilot" options={{href:null}} />
-        <Tabs.Screen name="safety" options={{href:null}} />
-        <Tabs.Screen name="team" options={{href:null}} />
+        <Tabs.Screen
+          name="home"
+          options={{ title: "Home", tabBarIcon: icon("home") }}
+        />
+        <Tabs.Screen
+          name="time"
+          options={{ title: "Time", tabBarIcon: icon("time") }}
+        />
+        <Tabs.Screen
+          name="requests"
+          options={{ title: "Requests", tabBarIcon: icon("requests") }}
+        />
+        <Tabs.Screen
+          name="inbox"
+          options={{ title: "Inbox", tabBarIcon: icon("inbox") }}
+        />
+        <Tabs.Screen
+          name="me"
+          options={{ title: "Me", tabBarIcon: icon("me") }}
+        />
+        <Tabs.Screen name="documents" options={{ href: null }} />
+        <Tabs.Screen name="learning" options={{ href: null }} />
+        <Tabs.Screen name="copilot" options={{ href: null }} />
+        <Tabs.Screen name="safety" options={{ href: null }} />
+        <Tabs.Screen name="team" options={{ href: null }} />
       </Tabs>
     </>
   );

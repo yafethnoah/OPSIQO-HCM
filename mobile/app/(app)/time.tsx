@@ -44,7 +44,7 @@ export default function Time() {
             <View key={shift.id} style={s.shift}>
               <Text style={s.shiftTitle}>{shift.title}</Text>
               <Muted>
-                {new Date(shift.startAt).toLocaleString()} →{" "}
+                {new Date(shift.startAt).toLocaleString()} â†’{" "}
                 {new Date(shift.endAt).toLocaleTimeString([], {
                   hour: "numeric",
                   minute: "2-digit",
@@ -71,7 +71,7 @@ export default function Time() {
 }
 
 const s = StyleSheet.create({
-  content: { padding: 18, gap: 14 },
+  content: { padding: 18, paddingBottom: 112, gap: 14 },
   loading: {
     flex: 1,
     backgroundColor: colors.bg,
