@@ -296,7 +296,7 @@ export function LivePulseClock({
         {activeStartAt ? (
           <View style={s.session}>
             <Text style={s.sessionLabel}>
-              {onBreak ? "ON BREAK Â· " : "CLOCKED IN Â· "}
+              {onBreak ? "ON BREAK - " : "CLOCKED IN - "}
               {clockedInAt}
             </Text>
             <Text style={s.elapsed}>{elapsed}</Text>

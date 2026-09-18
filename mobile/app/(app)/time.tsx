@@ -44,7 +44,7 @@ export default function Time() {
             <View key={shift.id} style={s.shift}>
               <Text style={s.shiftTitle}>{shift.title}</Text>
               <Muted>
-                {new Date(shift.startAt).toLocaleString()} â†’{" "}
+                {new Date(shift.startAt).toLocaleString()} to{" "}
                 {new Date(shift.endAt).toLocaleTimeString([], {
                   hour: "numeric",
                   minute: "2-digit",

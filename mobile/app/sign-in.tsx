@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
@@ -7,28 +7,28 @@ import {
   Text,
   TextInput,
   View,
-} from 'react-native';
-import { router } from 'expo-router';
-import { useAuth } from '@/auth/provider';
-import { Button, Card, Muted } from '@/components/ui';
-import { colors } from '@/theme/tokens';
+} from "react-native";
+import { router } from "expo-router";
+import { useAuth } from "@/auth/provider";
+import { Button, Card, Muted } from "@/components/ui";
+import { colors } from "@/theme/tokens";
 
 export default function SignIn() {
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   async function submit() {
     setBusy(true);
-    setError('');
+    setError("");
 
     try {
       await signIn(email, password);
-      router.replace('/select-organization');
+      router.replace("/select-organization");
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Sign-in failed.');
+      setError(e instanceof Error ? e.message : "Sign-in failed.");
     } finally {
       setBusy(false);
     }
@@ -37,11 +37,11 @@ export default function SignIn() {
   return (
     <KeyboardAvoidingView
       style={s.root}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <View style={s.brand}>
         <Image
-          source={require('../assets/opsiqo-pulse-logo.png')}
+          source={require("../assets/opsiqo-pulse-logo.png")}
           style={s.logo}
           resizeMode="contain"
           accessibilityLabel="OPSIQO Pulse"
@@ -72,7 +72,7 @@ export default function SignIn() {
         {error ? <Text style={s.error}>{error}</Text> : null}
 
         <Button
-          title={busy ? 'Signing inâ€¦' : 'Sign in'}
+          title={busy ? "Signing in..." : "Sign in"}
           onPress={submit}
           disabled={busy || !email || !password}
         />
@@ -91,7 +91,7 @@ const s = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
     padding: 22,
-    justifyContent: 'center',
+    justifyContent: "center",
     gap: 22,
   },
   brand: {
@@ -100,11 +100,11 @@ const s = StyleSheet.create({
   logo: {
     width: 286,
     height: 76,
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   label: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: "700",
     color: colors.text,
   },
   input: {
@@ -114,7 +114,7 @@ const s = StyleSheet.create({
     padding: 13,
     fontSize: 16,
     color: colors.text,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   error: {
     color: colors.danger,

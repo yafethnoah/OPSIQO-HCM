@@ -49,12 +49,12 @@ export default function Home() {
       }
     >
       <View>
-        <Text style={s.eyebrow}>OPSIQO PULSE Â· iOS</Text>
+        <Text style={s.eyebrow}>OPSIQO PULSE - iOS</Text>
         <H1>Hi, {worker?.displayName?.split(" ")[0] || "there"}</H1>
         <Muted>
           {data?.employee?.assignment?.positionTitle || "Employee"}
           {data?.employee?.assignment?.orgUnitName
-            ? ` Â· ${data.employee.assignment.orgUnitName}`
+            ? ` - ${data.employee.assignment.orgUnitName}`
             : ""}
         </Muted>
       </View>
@@ -91,7 +91,7 @@ export default function Home() {
           <>
             <Text style={s.big}>{data.shifts[0].title}</Text>
             <Muted>
-              {fmt(data.shifts[0].startAt)} â†’{" "}
+              {fmt(data.shifts[0].startAt)} to{" "}
               {fmt(data.shifts[0].endAt)}
             </Muted>
           </>
