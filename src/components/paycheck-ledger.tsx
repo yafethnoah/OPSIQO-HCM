@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { activeOrgId, apiDownload, apiFetch } from '@/lib/http/client';
 import type { ActorContext } from '@/domain/security';
+import type { PayrollDashboard } from '@/domain/payroll';
 import type {
   PaycheckDisplayStatus,
   PaycheckLedgerResponse,
@@ -28,9 +29,48 @@ const money = (value: number, currency = 'CAD') =>
 const label = (status: PaycheckDisplayStatus) =>
   status.replaceAll('_', ' ').replace(/\b\w/g, (x) => x.toUpperCase());
 
+type PayrollReadinessWorker = {
+  workerId: string;
+  displayName: string;
+  employeeNumber?: string;
+  ready: boolean;
+  issues: string[];
+};
+
+type PayrollReadinessSnapshot = {
+  totalWorkers: number;
+  readyWorkers: number;
+  workers: PayrollReadinessWorker[];
+};
+
+function blockerHref(issue: string, workerId: string) {
+  const value = issue.toLowerCase();
+
+  if (value.includes('compensation') || value.includes('sync review')) {
+    return '/compensation';
+  }
+
+  if (value.includes('open shift')) {
+    return '/time';
+  }
+
+  if (
+    value.includes('payroll profile') ||
+    value.includes('pay frequency') ||
+    value.includes('release-date') ||
+    value.includes('fixed salary release')
+  ) {
+    return `/people/${encodeURIComponent(workerId)}`;
+  }
+
+  return '/payroll#payroll-readiness';
+}
+
 export function PaycheckLedger() {
   const [data, setData] = useState<PaycheckLedgerResponse | null>(null);
   const [actor, setActor] = useState<ActorContext | null>(null);
+  const [readiness, setReadiness] = useState<PayrollReadinessSnapshot | null>(null);
+  const [uatProviderCount, setUatProviderCount] = useState(0);
   const [status, setStatus] = useState<'all' | PaycheckDisplayStatus>('all');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -57,15 +97,27 @@ export function PaycheckLedger() {
     const orgId = activeOrgId();
 
     try {
-      const [ledger, me] = await Promise.all([
+      const [ledger, me, ready, dashboard] = await Promise.all([
         apiFetch<{ data: PaycheckLedgerResponse }>(
           `/api/organizations/${orgId}/payroll/paychecks?${query}`,
         ),
         apiFetch<{ actor: ActorContext }>('/api/me'),
+        apiFetch<{ data: PayrollReadinessSnapshot }>(
+          `/api/organizations/${orgId}/payroll/readiness`,
+        ),
+        apiFetch<{ data: PayrollDashboard }>(
+          `/api/organizations/${orgId}/payroll/dashboard`,
+        ),
       ]);
 
       setData(ledger.data);
       setActor(me.actor);
+      setReadiness(ready.data);
+      setUatProviderCount(
+        (dashboard.data.providers || []).filter(
+          (provider) => (provider.environment || 'uat') === 'uat',
+        ).length,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unable to load paycheck ledger.');
     }
@@ -130,7 +182,7 @@ export function PaycheckLedger() {
     }
   }
 
-  if (!data || !actor) {
+  if (!data || !actor || !readiness) {
     return (
       <section className="card stack">
         {error && <div className="error">{error}</div>}
@@ -350,11 +402,10 @@ export function PaycheckLedger() {
             {!data.rows.length && (
               <tr>
                 <td colSpan={11}>
-                  <div className="notice">
-                    No calculated payroll paychecks match the selected filters.
-                    Calculate a payroll run first so OPSIQO has an authoritative
-                    worker-specific due date and amount.
-                  </div>
+                  <PayrollReadinessEmptyState
+                    readiness={readiness}
+                    uatProviderCount={uatProviderCount}
+                  />
                 </td>
               </tr>
             )}
@@ -368,5 +419,108 @@ export function PaycheckLedger() {
         timestamp and payment reference for audit review.
       </div>
     </section>
+  );
+}
+
+function PayrollReadinessEmptyState({
+  readiness,
+  uatProviderCount,
+}: {
+  readiness: PayrollReadinessSnapshot;
+  uatProviderCount: number;
+}) {
+  const blockedWorkers = readiness.workers.filter((worker) => !worker.ready);
+  const allWorkersReady =
+    readiness.totalWorkers > 0 &&
+    readiness.readyWorkers === readiness.totalWorkers;
+  const providerReady = uatProviderCount > 0;
+
+  return (
+    <div className="stack">
+      <div className="notice">
+        <strong>No calculated paychecks are available yet.</strong>
+        <br />
+        OPSIQO will populate this ledger only after a controlled payroll run
+        has authoritative worker calculations. Resolve readiness first rather
+        than creating manual paycheck records.
+      </div>
+
+      <div className="grid3">
+        <div className="metricCard">
+          <div className="metricLabel">Ready workers</div>
+          <div className="metricValue">
+            {readiness.readyWorkers}/{readiness.totalWorkers}
+          </div>
+          <div className="metricFoot">Payroll readiness evidence</div>
+        </div>
+
+        <div className="metricCard">
+          <div className="metricLabel">Blocked workers</div>
+          <div className="metricValue">{blockedWorkers.length}</div>
+          <div className="metricFoot">Requires source data or review</div>
+        </div>
+
+        <div className="metricCard">
+          <div className="metricLabel">UAT payroll provider</div>
+          <div className="metricValue">{providerReady ? 'Ready' : 'Missing'}</div>
+          <div className="metricFoot">
+            {providerReady
+              ? `${uatProviderCount} UAT provider${uatProviderCount === 1 ? '' : 's'} configured`
+              : 'Configure an evidence-sandbox provider'}
+          </div>
+        </div>
+      </div>
+
+      {blockedWorkers.length > 0 && (
+        <div className="stack">
+          <strong>Exact payroll blockers</strong>
+
+          {blockedWorkers.slice(0, 12).map((worker) => (
+            <div className="notice" key={worker.workerId}>
+              <strong>
+                {worker.displayName}
+                {worker.employeeNumber ? ` (#${worker.employeeNumber})` : ''}
+              </strong>
+
+              <ul>
+                {worker.issues.map((issue) => (
+                  <li key={issue}>
+                    {issue}{' '}
+                    <a href={blockerHref(issue, worker.workerId)}>Resolve</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="row">
+        <a className="button" href="/payroll#payroll-readiness">
+          Resolve payroll readiness
+        </a>
+
+        {!providerReady && (
+          <a className="button secondary" href="/payroll#payroll-providers">
+            Configure UAT payroll provider
+          </a>
+        )}
+
+        {allWorkersReady && providerReady && (
+          <a
+            className="button secondary"
+            href="/payroll#payroll-controlled-regular-run"
+          >
+            Create controlled payroll run
+          </a>
+        )}
+      </div>
+
+      <div className="muted">
+        OPSIQO does not fabricate paycheck amounts, due dates, or Paid status.
+        The ledger remains empty until the governed payroll workflow produces
+        calculation evidence.
+      </div>
+    </div>
   );
 }

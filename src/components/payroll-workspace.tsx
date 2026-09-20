@@ -174,7 +174,7 @@ export function PayrollWorkspace() {
 
       <PaycheckLedger />
 
-<section className="card stack">
+<section id="payroll-readiness" className="card stack">
   <div className="rowBetween">
     <div>
       <h2 className="sectionTitle">Run worker selection & exact release overrides</h2>
@@ -383,7 +383,7 @@ export function PayrollWorkspace() {
         </table>
       </section>
 
-      <section className="card tableWrap compPayWideTable">
+      <section id="payroll-providers" className="card tableWrap compPayWideTable">
         <h2 className="sectionTitle">Payroll providers</h2>
         <table>
           <thead>
