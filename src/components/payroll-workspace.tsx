@@ -5,6 +5,7 @@ import { activeOrgId, apiFetch } from '@/lib/http/client';
 import type { PayrollDashboard, PayrollRun } from '@/domain/payroll';
 import { LoadingState } from '@/components/data-states';
 import { PayrollOperationsCommandCenter } from '@/components/payroll-operations-command-center';
+import { PaycheckLedger } from '@/components/paycheck-ledger';
 
 const localDate = () => {
   const d = new Date();
@@ -170,6 +171,8 @@ export function PayrollWorkspace() {
       {msg && <div className="success">{msg}</div>}
 
       <PayrollOperationsCommandCenter />
+
+      <PaycheckLedger />
 
 <section className="card stack">
   <div className="rowBetween">
