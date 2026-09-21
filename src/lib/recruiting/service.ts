@@ -338,17 +338,23 @@ export async function hireCandidate(actor: ActorContext, raw: unknown) {
   const conversionRef = db.doc(`organizations/${actor.orgId}/hireConversionIndex/${encodeURIComponent(application.id)}`);
   const conversionSnap = await conversionRef.get();
   if (conversionSnap.exists && conversionSnap.data()?.workerId) { const recoveredWorkerId=conversionSnap.data()!.workerId as string; await ensureHireCompensation(actor,application,offer,recoveredWorkerId,input.hireDate); await finalizeInternalMobilityConversion(actor, application.id, recoveredWorkerId); return { workerId: recoveredWorkerId, deduplicated: true }; }
-  const existingWorkIndex = await db.doc(`organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(input.workEmail.trim().toLowerCase())}`).get(); let workerId = existingWorkIndex.data()?.workerId as string | undefined;
-  if (workerId) {
-    const workerSnap = await db.doc(`organizations/${actor.orgId}/workers/${workerId}`).get();
-    const existingWorker = workerSnap.data() as { employeeNumber?:string; personId?:string } | undefined;
-    const personSnap = existingWorker?.personId ? await db.doc(`organizations/${actor.orgId}/people/${existingWorker.personId}`).get() : null;
-    const personalEmail = String(personSnap?.data()?.personalEmail || '').toLowerCase();
-    if ((input.employeeNumber && existingWorker?.employeeNumber?.toLowerCase() !== input.employeeNumber.toLowerCase()) || personalEmail !== (input.personalEmail || candidate.email).toLowerCase()) throw new ApiError(409, 'Work email is already assigned to another employee.', 'work_email_conflict');
-  } else {
-    const created = await createEmployee(actor, { legalFirstName: input.legalFirstName || candidate.firstName, legalLastName: input.legalLastName || candidate.lastName, preferredName: input.preferredName, workEmail: input.workEmail, personalEmail: input.personalEmail || candidate.email, phone: input.phone || candidate.phone, employeeNumber: input.employeeNumber, employmentType: input.employmentType, hireDate: input.hireDate, positionId: requisition.positionId, orgUnitId: requisition.orgUnitId, managerWorkerId: requisition.hiringManagerWorkerId }); workerId = created.worker.id;
-  }
-  if (!workerId) throw new ApiError(500, 'Hire conversion did not resolve a worker identity.', 'hire_worker_missing');
+  // Shared departmental work email is a contact attribute, not a worker identity.
+  // The application + hireConversionIndex remain the authoritative idempotency keys.
+  const created = await createEmployee(actor, {
+    legalFirstName: input.legalFirstName || candidate.firstName,
+    legalLastName: input.legalLastName || candidate.lastName,
+    preferredName: input.preferredName,
+    workEmail: input.workEmail,
+    personalEmail: input.personalEmail || candidate.email,
+    phone: input.phone || candidate.phone,
+    employeeNumber: input.employeeNumber,
+    employmentType: input.employmentType,
+    hireDate: input.hireDate,
+    positionId: requisition.positionId,
+    orgUnitId: requisition.orgUnitId,
+    managerWorkerId: requisition.hiringManagerWorkerId,
+  });
+  const workerId = created.worker.id;
   const timestamp = now(); const audit = buildAudit(actor, { action: 'application.hire', entityType: 'application', entityId: application.id, before: application, after: { ...application, stage: 'hired', hiredWorkerId: workerId, hiredAt: timestamp }, metadata: { offerId: offer.id, requisitionId: requisition.id } }); const event = buildDomainEvent(actor, 'hire.completed', 'worker', workerId, { applicationId: application.id, requisitionId: requisition.id, candidateId: candidate.id });
   await db.runTransaction(async tx => { const appRef = db.doc(`organizations/${actor.orgId}/applications/${application.id}`); const reqRef = db.doc(`organizations/${actor.orgId}/requisitions/${requisition.id}`); const [freshApp, freshReq] = await Promise.all([tx.get(appRef), tx.get(reqRef)]); if (freshApp.data()?.hiredWorkerId) return; const remaining = Math.max(0, Number(freshReq.data()?.openingsRemaining || 0) - 1); tx.update(appRef, { stage: 'hired', hiredWorkerId: workerId, hiredAt: timestamp, updatedAt: timestamp }); tx.update(reqRef, { openingsRemaining: remaining, status: remaining === 0 ? 'filled' : freshReq.data()?.status, closedAt: remaining === 0 ? timestamp : freshReq.data()?.closedAt || null, updatedAt: timestamp }); tx.create(conversionRef, { applicationId: application.id, offerId: offer.id, workerId, createdAt: timestamp }); tx.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`), audit); const stageEvent = buildDomainEvent(actor, 'application.stage_changed', 'application', application.id, { from: application.stage, to: 'hired', requisitionId: requisition.id, candidateId: candidate.id, source: 'hire.convert' }); tx.create(db.doc(`organizations/${actor.orgId}/domainEvents/${stageEvent.id}`), stageEvent); tx.create(db.doc(`organizations/${actor.orgId}/domainEvents/${event.id}`), event); });
   await ensureHireCompensation(actor,application,offer,workerId,input.hireDate);

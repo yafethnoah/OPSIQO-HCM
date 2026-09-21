@@ -21,6 +21,7 @@ import { systemActor } from '@/lib/automation/system-actor';
 import { getNotificationSettingsForOrg } from '@/lib/notifications/service';
 import { employeeChangeSchema, employeeCoreCorrectionSchema, employeeCreateSchema, employeeDuplicateDeleteSchema, orgUnitCreateSchema, positionCreateSchema, secondaryAssignmentCreateSchema, secondaryAssignmentEndSchema, secondaryAssignmentPlanActionSchema } from './schemas';
 import { workerDirectoryEntry } from '@/lib/hr/directory';
+import { addWorkEmailOwner, removeWorkEmailOwner } from '@/lib/hr/work-email-index';
 
 const now = () => new Date().toISOString();
 const today = () => new Date().toISOString().slice(0, 10);
@@ -240,9 +241,10 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
 
   await db.runTransaction(async (tx) => {
     const normalizedEmail = input.workEmail?.trim().toLowerCase() || '';
-    const emailIndexRef = normalizedEmail ? db.doc(`organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(normalizedEmail)}`) : undefined;
+    const emailIndexRef = normalizedEmail
+      ? db.doc(`organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(normalizedEmail)}`)
+      : undefined;
     const emailIndexSnap = emailIndexRef ? await tx.get(emailIndexRef) : undefined;
-    if (emailIndexSnap?.exists) throw new ApiError(409, 'Work email already exists.', 'duplicate_work_email');
 
     let employeeNumber = String(input.employeeNumber || '').trim();
     let numberIndexRef: DocumentReference;
@@ -316,7 +318,21 @@ export async function createEmployee(actor: ActorContext, raw: unknown) {
     tx.create(db.doc(`organizations/${actor.orgId}/workerDirectory/${workerId}`), workerDirectoryEntry(worker));
     tx.create(db.doc(`organizations/${actor.orgId}/employments/${employmentId}`), employment);
     tx.create(numberIndexRef!, { employeeNumber, workerId, createdAt: timestamp });
-    if (emailIndexRef) tx.create(emailIndexRef, { workEmail: normalizedEmail, workerId, createdAt: timestamp });
+    if (emailIndexRef) {
+      const owners = addWorkEmailOwner(emailIndexSnap?.data(), workerId);
+      tx.set(
+        emailIndexRef,
+        {
+          workEmail: normalizedEmail,
+          workerIds: owners,
+          shared: owners.length > 1,
+          workerId: owners.length === 1 ? owners[0] : FieldValue.delete(),
+          createdAt: emailIndexSnap?.data()?.createdAt || timestamp,
+          updatedAt: timestamp,
+        },
+        { merge: true },
+      );
+    }
 
     if (assignmentId && input.positionId && input.orgUnitId) {
       const assignment: Assignment = {
@@ -390,12 +406,14 @@ export async function correctEmployeeCore(actor: ActorContext, workerId: string,
       `organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(normalizedNumber.toLowerCase())}`,
     );
 
-    if (normalizedEmail && normalizedEmail !== oldEmail && newEmailIndexRef) {
-      const newEmailIndex = await tx.get(newEmailIndexRef);
-      if (newEmailIndex.exists && newEmailIndex.data()?.workerId !== workerId) {
-        throw new ApiError(409, 'Work email already exists.', 'duplicate_work_email');
-      }
-    }
+    const oldEmailIndexSnap = oldEmailIndexRef
+      ? await tx.get(oldEmailIndexRef)
+      : undefined;
+    const newEmailIndexSnap = newEmailIndexRef
+      ? oldEmailIndexRef && newEmailIndexRef.path === oldEmailIndexRef.path
+        ? oldEmailIndexSnap
+        : await tx.get(newEmailIndexRef)
+      : undefined;
 
     if (normalizedNumber.toLowerCase() !== oldNumber.toLowerCase()) {
       const newNumberIndex = await tx.get(newNumberIndexRef);
@@ -451,9 +469,54 @@ export async function correctEmployeeCore(actor: ActorContext, workerId: string,
       );
     }
 
-    if (oldEmailIndexRef && oldEmail !== normalizedEmail) tx.delete(oldEmailIndexRef);
+    if (oldEmailIndexRef && oldEmail !== normalizedEmail) {
+      const remainingOwners = removeWorkEmailOwner(
+        oldEmailIndexSnap?.data(),
+        workerId,
+      );
+
+      if (remainingOwners.length === 0) {
+        tx.delete(oldEmailIndexRef);
+      } else {
+        tx.set(
+          oldEmailIndexRef,
+          {
+            workEmail: oldEmail,
+            workerIds: remainingOwners,
+            shared: remainingOwners.length > 1,
+            workerId:
+              remainingOwners.length === 1
+                ? remainingOwners[0]
+                : FieldValue.delete(),
+            updatedAt: timestamp,
+          },
+          { merge: true },
+        );
+      }
+    }
+
     if (newEmailIndexRef) {
-      tx.set(newEmailIndexRef, { workEmail: normalizedEmail, workerId, updatedAt: timestamp }, { merge: true });
+      const sourceIndex =
+        oldEmail === normalizedEmail
+          ? oldEmailIndexSnap?.data()
+          : newEmailIndexSnap?.data();
+      const owners = addWorkEmailOwner(sourceIndex, workerId);
+
+      tx.set(
+        newEmailIndexRef,
+        {
+          workEmail: normalizedEmail,
+          workerIds: owners,
+          shared: owners.length > 1,
+          workerId: owners.length === 1 ? owners[0] : FieldValue.delete(),
+          createdAt:
+            newEmailIndexSnap?.data()?.createdAt ||
+            oldEmailIndexSnap?.data()?.createdAt ||
+            timestamp,
+          updatedAt: timestamp,
+        },
+        { merge: true },
+      );
     }
 
     if (oldNumber.toLowerCase() !== normalizedNumber.toLowerCase()) tx.delete(oldNumberIndexRef);
@@ -744,13 +807,36 @@ export async function deleteDuplicateEmployee(actor: ActorContext, workerId: str
   for (const doc of plansSnap.docs) batch.delete(doc.ref);
 
   if (worker.workEmail) {
-    batch.delete(
-      db.doc(
-        `organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(
-          worker.workEmail.trim().toLowerCase(),
-        )}`,
-      ),
+    const normalizedWorkEmail = worker.workEmail.trim().toLowerCase();
+    const workEmailIndexRef = db.doc(
+      `organizations/${actor.orgId}/workEmailIndex/${encodeURIComponent(
+        normalizedWorkEmail,
+      )}`,
     );
+    const workEmailIndexSnap = await workEmailIndexRef.get();
+    const remainingOwners = removeWorkEmailOwner(
+      workEmailIndexSnap.data(),
+      workerId,
+    );
+
+    if (remainingOwners.length === 0) {
+      batch.delete(workEmailIndexRef);
+    } else {
+      batch.set(
+        workEmailIndexRef,
+        {
+          workEmail: normalizedWorkEmail,
+          workerIds: remainingOwners,
+          shared: remainingOwners.length > 1,
+          workerId:
+            remainingOwners.length === 1
+              ? remainingOwners[0]
+              : FieldValue.delete(),
+          updatedAt: timestamp,
+        },
+        { merge: true },
+      );
+    }
   }
   batch.delete(
     db.doc(

@@ -61,7 +61,10 @@ describe('OPSIQO V7.32 H25 UAT closure contracts', () => {
     expect(service).not.toContain('A valid work email is required.');
     expect(service).toContain('Work email is optional.');
     expect(service).toContain('if(r.workEmail)seenEmails.add(r.workEmail)');
-    expect(read('src/lib/hr/service.ts')).toContain('if (emailIndexRef) tx.create(emailIndexRef');
+    const hrService = read('src/lib/hr/service.ts');
+    expect(hrService).toContain('if (emailIndexRef) {');
+    expect(hrService).toContain('addWorkEmailOwner');
+    expect(hrService).toContain('workerIds: owners');
   });
 
   it('protects authenticated routes and coordinates session-expiry redirects', () => {

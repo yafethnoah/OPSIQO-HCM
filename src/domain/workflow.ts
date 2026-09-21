@@ -13,6 +13,7 @@ export const WORKFLOW_TRIGGER_VALUES = [
   'hire.completed',
   'onboarding.started',
   'onboarding.ready',
+  'onboarding.details_updated',
   'onboarding.activated',
   'onboarding.completed',
   'document.uploaded',

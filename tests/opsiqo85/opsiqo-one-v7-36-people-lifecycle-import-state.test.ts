@@ -31,10 +31,12 @@ describe('OPSIQO V7.36 / H36 people lifecycle and import state closure', () => {
     expect(service).toContain("action: 'employee.duplicate.delete'");
   });
 
-  it('maintains work-email and employee-number uniqueness during corrections', () => {
+  it('maintains shared work-email indexing and employee-number uniqueness during corrections', () => {
     const service = read('src/lib/hr/service.ts');
-    expect(service).toContain('duplicate_work_email');
+    expect(service).not.toContain("'duplicate_work_email'");
     expect(service).toContain('duplicate_employee_number');
+    expect(service).toContain('addWorkEmailOwner');
+    expect(service).toContain('removeWorkEmailOwner');
     expect(service).toContain('workEmailIndex');
     expect(service).toContain('employeeNumberIndex');
     expect(service).toContain("action: 'employee.core.correct'");
