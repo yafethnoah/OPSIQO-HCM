@@ -22,6 +22,24 @@ export interface PrehireProfile {
   updatedAt?: string;
 }
 
+export interface OnboardingActivationSnapshot {
+  capturedAt: string;
+  capturedBy: string;
+  requiredPreStartTasks: number;
+  completedRequiredPreStartTasks: number;
+  blockingTaskIds: string[];
+  workEmail: string;
+  employmentType: 'permanent' | 'temporary' | 'contractor' | 'intern' | 'volunteer';
+  startDate: string;
+  documentEvidence: Array<{
+    taskId: string;
+    documentId: string;
+    sha256: string;
+    scanStatus: 'not_scanned' | 'clean' | 'blocked';
+    verificationStatus: 'unverified' | 'verified' | 'rejected';
+  }>;
+}
+
 export interface OnboardingCase {
   id: string;
   offerId: string;
@@ -44,6 +62,7 @@ export interface OnboardingCase {
   workerId?: string;
   activatedAt?: string;
   activatedBy?: string;
+  activationSnapshot?: OnboardingActivationSnapshot;
   accessExpiresAt: string;
   accessStatus: 'active' | 'revoked' | 'expired';
   accessSendCount: number;
@@ -88,6 +107,10 @@ export interface PrehireDocument {
   sha256: string;
   scanStatus: 'not_scanned' | 'clean' | 'blocked';
   scanEvidenceRef?: string;
+  verificationStatus?: 'unverified' | 'verified' | 'rejected';
+  verificationNote?: string;
+  verifiedBy?: string;
+  verifiedAt?: string;
   scanRecordedBy?: string;
   scanRecordedAt?: string;
   uploadedAt: string;

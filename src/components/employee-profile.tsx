@@ -46,6 +46,7 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
   const [access,setAccess]=useState<AccountAccess|null>(null);
   const [accessRole,setAccessRole]=useState('employee');
   const [accessBusy,setAccessBusy]=useState('');
+  const [coreCorrectionOpen,setCoreCorrectionOpen]=useState(false);
 
   const load=async()=>{
     try {
@@ -138,6 +139,29 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
     finally{setAccessBusy('')}
   }
 
+  async function correctCoreRecord(e:FormEvent<HTMLFormElement>){
+    e.preventDefault();setError('');setMessage('');
+    if(!detail?.person||!detail.employments[0])return setError('The authoritative person or employment record is unavailable.');
+    const f=new FormData(e.currentTarget);
+    try{
+      await apiFetch(`/api/organizations/${activeOrgId()}/employees/${workerId}`,{method:'PATCH',body:JSON.stringify({
+        legalFirstName:f.get('legalFirstName'),
+        legalLastName:f.get('legalLastName'),
+        preferredName:f.get('preferredName')||'',
+        workEmail:f.get('workEmail')||undefined,
+        personalEmail:f.get('personalEmail')||undefined,
+        phone:f.get('phone')||'',
+        employeeNumber:f.get('employeeNumber'),
+        employmentType:f.get('employmentType'),
+        hireDate:f.get('hireDate'),
+        reason:f.get('reason'),
+      })});
+      setMessage('Authoritative worker record corrected with audit evidence.');
+      setCoreCorrectionOpen(false);
+      await load();
+    }catch(e){setError(e instanceof Error?e.message:'Unable to correct the authoritative worker record.');}
+  }
+
   if(!detail)return <div ref={translationRoot} className="card">{error?<span className="error">{error}</span>:<span className="muted">Loading employee profile…</span>}</div>;
   return <div ref={translationRoot} className="stack">
     {error&&<div className="error">{error}</div>}{message&&<div className="notice">{message}</div>}
@@ -149,7 +173,7 @@ export function EmployeeProfile({ workerId }: { workerId: string }) {
     </div>
 
     <div className="grid2">
-      <section className="card stack"><h2 className="sectionTitle">Employee record</h2><div className="definitionGrid"><span>Work email</span><strong>{detail.worker.workEmail}</strong><span>Legal name</span><strong>{detail.person?`${detail.person.legalFirstName} ${detail.person.legalLastName}`:'—'}</strong><span>Personal email</span><strong>{detail.person?.personalEmail||'—'}</strong><span>Phone</span><strong>{detail.person?.phone||'—'}</strong><span>Employment type</span><strong>{detail.employments[0]?.employmentType||'—'}</strong><span>Employment FTE</span><strong>{detail.employments[0]?.fte??'—'}</strong></div></section>
+      <section className="card stack"><h2 className="sectionTitle">Employee record</h2><div className="definitionGrid"><span>Work email</span><strong>{detail.worker.workEmail}</strong><span>Legal name</span><strong>{detail.person?`${detail.person.legalFirstName} ${detail.person.legalLastName}`:'—'}</strong><span>Personal email</span><strong>{detail.person?.personalEmail||'—'}</strong><span>Phone</span><strong>{detail.person?.phone||'—'}</strong><span>Employment type</span><strong>{detail.employments[0]?.employmentType||'—'}</strong><span>Employment FTE</span><strong>{detail.employments[0]?.fte??'—'}</strong></div>{canManage&&<><button type="button" className="button secondary" onClick={()=>setCoreCorrectionOpen(v=>!v)}>{coreCorrectionOpen?'Close correction':'Correct core record'}</button>{coreCorrectionOpen&&detail.person&&detail.employments[0]&&<form className="stack" onSubmit={correctCoreRecord}><div className="notice">Use this audited correction for legal/core data errors after activation. Do not edit historical onboarding evidence to make it match.</div><div className="formGrid"><label className="field"><span>Legal first name</span><input className="input" name="legalFirstName" required defaultValue={detail.person.legalFirstName}/></label><label className="field"><span>Legal last name</span><input className="input" name="legalLastName" required defaultValue={detail.person.legalLastName}/></label><label className="field"><span>Preferred name</span><input className="input" name="preferredName" defaultValue={detail.person.preferredName||''}/></label><label className="field"><span>Work email</span><input className="input" name="workEmail" type="email" defaultValue={detail.worker.workEmail||''}/></label><label className="field"><span>Personal email</span><input className="input" name="personalEmail" type="email" defaultValue={detail.person.personalEmail||''}/></label><label className="field"><span>Phone</span><input className="input" name="phone" defaultValue={detail.person.phone||''}/></label><label className="field"><span>Employee number</span><input className="input" name="employeeNumber" required defaultValue={detail.worker.employeeNumber}/></label><label className="field"><span>Employment type</span><select className="input" name="employmentType" required defaultValue={detail.employments[0].employmentType}><option value="permanent">Permanent</option><option value="temporary">Temporary</option><option value="contractor">Contractor</option><option value="intern">Intern</option><option value="volunteer">Volunteer</option></select></label><label className="field"><span>Hire/start date</span><input className="input" name="hireDate" type="date" required defaultValue={detail.worker.hireDate||detail.employments[0].startDate}/></label><label className="field"><span>Correction reason</span><textarea className="input" name="reason" rows={3} minLength={3} required placeholder="Explain the authoritative correction and supporting evidence."/></label></div><div className="stepActions"><button className="button" type="submit">Save audited correction</button><button className="button secondary" type="button" onClick={()=>setCoreCorrectionOpen(false)}>Cancel</button></div></form>}</>}</section>
       {canManage ? <form className="card stack" onSubmit={submitChange}>
         <div><h2 className="sectionTitle">Effective-dated change</h2><div className="muted">Future changes are durable records executed when effective.</div></div>
         <label className="field"><span>Change type</span><select className="input" value={changeType} onChange={e=>setChangeType(e.target.value)}><option value="transfer">Transfer</option><option value="promotion">Promotion</option><option value="manager_change">Manager change</option><option value="status_change">Status change</option></select></label>

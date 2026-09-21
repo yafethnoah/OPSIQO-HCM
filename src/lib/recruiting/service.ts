@@ -333,33 +333,156 @@ export async function actOnOffer(actor: ActorContext, offerId: string, raw: unkn
   if (action === 'submit') patch.status = 'pending_approval'; if (action === 'approve') Object.assign(patch, { status: 'approved', approvedBy: actor.uid, approvedAt: timestamp }); if (action === 'send') Object.assign(patch, { status: 'sent', sentAt: timestamp }); if (action === 'accept') Object.assign(patch, { status: 'accepted', acceptedAt: timestamp }); if (action === 'decline') Object.assign(patch, { status: 'declined', declinedAt: timestamp }); if (action === 'withdraw') patch.status = 'withdrawn'; const next = { ...offer, ...patch } as Offer; const audit = buildAudit(actor, { action: `offer.${action}`, entityType: 'offer', entityId: offer.id, before: offer, after: next }); const batch = db.batch(); batch.update(snap.ref, patch); batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`), audit); if (action === 'accept') { const event = buildDomainEvent(actor, 'offer.accepted', 'offer', offer.id, { applicationId: offer.applicationId, candidateId: offer.candidateId, requisitionId: offer.requisitionId }); batch.create(db.doc(`organizations/${actor.orgId}/domainEvents/${event.id}`), event); } await batch.commit(); return next;
 }
 
-export async function hireCandidate(actor: ActorContext, raw: unknown) {
-  const input = hireConversionSchema.parse(raw); if (input.hireDate > new Date().toISOString().slice(0, 10)) throw new ApiError(409, 'Future-start hires must remain in preboarding until their effective start date. Phase 2 onboarding will activate them without occupying the position early.', 'future_hire_requires_preboarding'); if (!adminRoles.has(actor.role)) throw new ApiError(403, 'HR administrator permission is required for hire conversion.', 'hire_permission_required'); const { application, requisition, candidate } = await applicationBundle(actor, input.applicationId); const db = adminDb(); const offerSnap = await db.doc(`organizations/${actor.orgId}/offers/${input.offerId}`).get(); if (!offerSnap.exists) throw new ApiError(404, 'Offer not found.', 'offer_not_found'); const offer = offerSnap.data() as Offer; if (offer.applicationId !== application.id || offer.status !== 'accepted') throw new ApiError(409, 'An accepted offer for this application is required.', 'accepted_offer_required'); if (application.hiredWorkerId) { await ensureHireCompensation(actor,application,offer,application.hiredWorkerId,input.hireDate); await finalizeInternalMobilityConversion(actor, application.id, application.hiredWorkerId); return { workerId: application.hiredWorkerId, deduplicated: true }; }
-  const conversionRef = db.doc(`organizations/${actor.orgId}/hireConversionIndex/${encodeURIComponent(application.id)}`);
-  const conversionSnap = await conversionRef.get();
-  if (conversionSnap.exists && conversionSnap.data()?.workerId) { const recoveredWorkerId=conversionSnap.data()!.workerId as string; await ensureHireCompensation(actor,application,offer,recoveredWorkerId,input.hireDate); await finalizeInternalMobilityConversion(actor, application.id, recoveredWorkerId); return { workerId: recoveredWorkerId, deduplicated: true }; }
-  // Shared departmental work email is a contact attribute, not a worker identity.
-  // The application + hireConversionIndex remain the authoritative idempotency keys.
-  const created = await createEmployee(actor, {
-    legalFirstName: input.legalFirstName || candidate.firstName,
-    legalLastName: input.legalLastName || candidate.lastName,
-    preferredName: input.preferredName,
-    workEmail: input.workEmail,
-    personalEmail: input.personalEmail || candidate.email,
-    phone: input.phone || candidate.phone,
-    employeeNumber: input.employeeNumber,
-    employmentType: input.employmentType,
-    hireDate: input.hireDate,
-    positionId: requisition.positionId,
-    orgUnitId: requisition.orgUnitId,
-    managerWorkerId: requisition.hiringManagerWorkerId,
+// Shared departmental work email is a contact attribute, not a worker identity.
+// Application identity + the governed hire-conversion reservation are the
+// authoritative idempotency controls. Never deduplicate workers by shared email.
+async function reserveHireConversion(
+  actor: ActorContext,
+  application: Application,
+  offer: Offer,
+  requestedEmployeeNumber?: string,
+) {
+  const db=adminDb();
+  const conversionRef=db.doc(`organizations/${actor.orgId}/hireConversionIndex/${encodeURIComponent(application.id)}`);
+  return db.runTransaction(async tx=>{
+    const existing=await tx.get(conversionRef);
+    if(existing.exists){
+      const data=existing.data() as any;
+      if(data.offerId&&data.offerId!==offer.id)throw new ApiError(409,'Hire conversion reservation belongs to a different accepted offer.','hire_conversion_offer_conflict');
+      return{conversionRef,data};
+    }
+
+    let employeeNumber=String(requestedEmployeeNumber||'').trim();
+    if(!employeeNumber){
+      const counterRef=db.doc(`organizations/${actor.orgId}/counters/employeeNumber`);
+      const counterSnap=await tx.get(counterRef);
+      const rawCounter=Number(counterSnap.data()?.value||0);
+      let sequence=Number.isFinite(rawCounter)&&rawCounter>=0?Math.floor(rawCounter):0;
+      let allocated=false;
+      for(let attempt=0;attempt<1000;attempt+=1){
+        sequence+=1;
+        const candidate=`EMP-${String(sequence).padStart(6,'0')}`;
+        const permanentRef=db.doc(`organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(candidate.toLowerCase())}`);
+        const reserveRef=db.doc(`organizations/${actor.orgId}/employeeNumberReservationIndex/${encodeURIComponent(candidate.toLowerCase())}`);
+        const [permanent,reserved]=await Promise.all([tx.get(permanentRef),tx.get(reserveRef)]);
+        if(!permanent.exists&&!reserved.exists){
+          employeeNumber=candidate;
+          tx.set(counterRef,{value:sequence,updatedAt:now()},{merge:true});
+          allocated=true;
+          break;
+        }
+      }
+      if(!allocated)throw new ApiError(503,'Unable to reserve an employee number for hire conversion.','employee_number_exhausted');
+    }
+
+    const normalized=employeeNumber.toLowerCase();
+    const permanentRef=db.doc(`organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(normalized)}`);
+    const reserveRef=db.doc(`organizations/${actor.orgId}/employeeNumberReservationIndex/${encodeURIComponent(normalized)}`);
+    const [permanent,reserved]=await Promise.all([tx.get(permanentRef),tx.get(reserveRef)]);
+    if(permanent.exists)throw new ApiError(409,'Employee number already exists.','duplicate_employee_number');
+    if(reserved.exists&&reserved.data()?.applicationId!==application.id)throw new ApiError(409,'Employee number is reserved by another hire conversion.','employee_number_reserved');
+
+    const timestamp=now();
+    const data={applicationId:application.id,offerId:offer.id,status:'reserved',employeeNumber,createdAt:timestamp,updatedAt:timestamp};
+    tx.create(conversionRef,data);
+    tx.set(reserveRef,{applicationId:application.id,offerId:offer.id,employeeNumber,createdAt:timestamp,updatedAt:timestamp},{merge:true});
+    return{conversionRef,data};
   });
-  const workerId = created.worker.id;
-  const timestamp = now(); const audit = buildAudit(actor, { action: 'application.hire', entityType: 'application', entityId: application.id, before: application, after: { ...application, stage: 'hired', hiredWorkerId: workerId, hiredAt: timestamp }, metadata: { offerId: offer.id, requisitionId: requisition.id } }); const event = buildDomainEvent(actor, 'hire.completed', 'worker', workerId, { applicationId: application.id, requisitionId: requisition.id, candidateId: candidate.id });
-  await db.runTransaction(async tx => { const appRef = db.doc(`organizations/${actor.orgId}/applications/${application.id}`); const reqRef = db.doc(`organizations/${actor.orgId}/requisitions/${requisition.id}`); const [freshApp, freshReq] = await Promise.all([tx.get(appRef), tx.get(reqRef)]); if (freshApp.data()?.hiredWorkerId) return; const remaining = Math.max(0, Number(freshReq.data()?.openingsRemaining || 0) - 1); tx.update(appRef, { stage: 'hired', hiredWorkerId: workerId, hiredAt: timestamp, updatedAt: timestamp }); tx.update(reqRef, { openingsRemaining: remaining, status: remaining === 0 ? 'filled' : freshReq.data()?.status, closedAt: remaining === 0 ? timestamp : freshReq.data()?.closedAt || null, updatedAt: timestamp }); tx.create(conversionRef, { applicationId: application.id, offerId: offer.id, workerId, createdAt: timestamp }); tx.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`), audit); const stageEvent = buildDomainEvent(actor, 'application.stage_changed', 'application', application.id, { from: application.stage, to: 'hired', requisitionId: requisition.id, candidateId: candidate.id, source: 'hire.convert' }); tx.create(db.doc(`organizations/${actor.orgId}/domainEvents/${stageEvent.id}`), stageEvent); tx.create(db.doc(`organizations/${actor.orgId}/domainEvents/${event.id}`), event); });
+}
+
+async function recoverReservedHireWorker(actor:ActorContext,employeeNumber:string){
+  const normalized=employeeNumber.trim().toLowerCase();
+  if(!normalized)return null;
+  const snap=await adminDb().doc(`organizations/${actor.orgId}/employeeNumberIndex/${encodeURIComponent(normalized)}`).get();
+  return snap.exists?String(snap.data()?.workerId||'')||null:null;
+}
+
+export async function hireCandidate(actor: ActorContext, raw: unknown) {
+  const input=hireConversionSchema.parse(raw);
+  if(input.hireDate>new Date().toISOString().slice(0,10))throw new ApiError(409,'Future-start hires must remain in preboarding until their effective start date. Phase 2 onboarding will activate them without occupying the position early.','future_hire_requires_preboarding');
+  if(!adminRoles.has(actor.role))throw new ApiError(403,'HR administrator permission is required for hire conversion.','hire_permission_required');
+  const {application,requisition,candidate}=await applicationBundle(actor,input.applicationId);
+  const db=adminDb();
+  const offerSnap=await db.doc(`organizations/${actor.orgId}/offers/${input.offerId}`).get();
+  if(!offerSnap.exists)throw new ApiError(404,'Offer not found.','offer_not_found');
+  const offer=offerSnap.data() as Offer;
+  if(offer.applicationId!==application.id||offer.status!=='accepted')throw new ApiError(409,'An accepted offer for this application is required.','accepted_offer_required');
+
+  if(application.hiredWorkerId){
+    await ensureHireCompensation(actor,application,offer,application.hiredWorkerId,input.hireDate);
+    await finalizeInternalMobilityConversion(actor,application.id,application.hiredWorkerId);
+    return{workerId:application.hiredWorkerId,deduplicated:true};
+  }
+
+  const reservation=await reserveHireConversion(actor,application,offer,input.employeeNumber);
+  const conversionData=reservation.data as any;
+  if(conversionData.workerId){
+    const recoveredWorkerId=String(conversionData.workerId);
+    await ensureHireCompensation(actor,application,offer,recoveredWorkerId,input.hireDate);
+    await finalizeInternalMobilityConversion(actor,application.id,recoveredWorkerId);
+    return{workerId:recoveredWorkerId,deduplicated:true};
+  }
+
+  const reservedEmployeeNumber=String(conversionData.employeeNumber||'').trim();
+  let workerId=await recoverReservedHireWorker(actor,reservedEmployeeNumber);
+  let deduplicated=Boolean(workerId);
+
+  if(!workerId){
+    try{
+      const created=await createEmployee(actor,{
+        legalFirstName:input.legalFirstName||candidate.firstName,
+        legalLastName:input.legalLastName||candidate.lastName,
+        preferredName:input.preferredName,
+        workEmail:input.workEmail,
+        personalEmail:input.personalEmail||candidate.email,
+        phone:input.phone||candidate.phone,
+        employeeNumber:reservedEmployeeNumber,
+        employmentType:input.employmentType,
+        hireDate:input.hireDate,
+        positionId:requisition.positionId,
+        orgUnitId:requisition.orgUnitId,
+        managerWorkerId:requisition.hiringManagerWorkerId,
+      });
+      workerId=created.worker.id;
+    }catch(error){
+      if(!(error instanceof ApiError)||error.code!=='duplicate_employee_number')throw error;
+      workerId=await recoverReservedHireWorker(actor,reservedEmployeeNumber);
+      if(!workerId)throw error;
+      deduplicated=true;
+    }
+  }
+
+  const timestamp=now();
+  const audit=buildAudit(actor,{action:'application.hire',entityType:'application',entityId:application.id,before:application,after:{...application,stage:'hired',hiredWorkerId:workerId,hiredAt:timestamp},metadata:{offerId:offer.id,requisitionId:requisition.id,reservationEmployeeNumber:reservedEmployeeNumber}});
+  const event=buildDomainEvent(actor,'hire.completed','worker',workerId,{applicationId:application.id,requisitionId:requisition.id,candidateId:candidate.id});
+  const reservationIndexRef=db.doc(`organizations/${actor.orgId}/employeeNumberReservationIndex/${encodeURIComponent(reservedEmployeeNumber.toLowerCase())}`);
+
+  await db.runTransaction(async tx=>{
+    const appRef=db.doc(`organizations/${actor.orgId}/applications/${application.id}`);
+    const reqRef=db.doc(`organizations/${actor.orgId}/requisitions/${requisition.id}`);
+    const [freshApp,freshReq,freshConversion]=await Promise.all([tx.get(appRef),tx.get(reqRef),tx.get(reservation.conversionRef)]);
+    const existingWorkerId=String(freshApp.data()?.hiredWorkerId||'');
+    if(existingWorkerId&&existingWorkerId!==workerId)throw new ApiError(409,'Application was already converted to a different worker. Reconciliation is required.','hire_conversion_worker_conflict');
+
+    if(!existingWorkerId){
+      const remaining=Math.max(0,Number(freshReq.data()?.openingsRemaining||0)-1);
+      tx.update(appRef,{stage:'hired',hiredWorkerId:workerId,hiredAt:timestamp,updatedAt:timestamp});
+      tx.update(reqRef,{openingsRemaining:remaining,status:remaining===0?'filled':freshReq.data()?.status,closedAt:remaining===0?timestamp:freshReq.data()?.closedAt||null,updatedAt:timestamp});
+      tx.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
+      const stageEvent=buildDomainEvent(actor,'application.stage_changed','application',application.id,{from:application.stage,to:'hired',requisitionId:requisition.id,candidateId:candidate.id,source:'hire.convert'});
+      tx.create(db.doc(`organizations/${actor.orgId}/domainEvents/${stageEvent.id}`),stageEvent);
+      tx.create(db.doc(`organizations/${actor.orgId}/domainEvents/${event.id}`),event);
+    }
+
+    const currentConversion=freshConversion.data() as any;
+    if(currentConversion?.workerId&&currentConversion.workerId!==workerId)throw new ApiError(409,'Hire conversion reservation resolved to a different worker.','hire_conversion_worker_conflict');
+    tx.set(reservation.conversionRef,{applicationId:application.id,offerId:offer.id,status:'completed',employeeNumber:reservedEmployeeNumber,workerId,updatedAt:timestamp,completedAt:timestamp},{merge:true});
+    tx.delete(reservationIndexRef);
+  });
+
   await ensureHireCompensation(actor,application,offer,workerId,input.hireDate);
-  await finalizeInternalMobilityConversion(actor, application.id, workerId);
-  return { workerId, deduplicated: false };
+  await finalizeInternalMobilityConversion(actor,application.id,workerId);
+  return{workerId,deduplicated};
 }
 
 export async function recruitingDashboard(actor: ActorContext) {
