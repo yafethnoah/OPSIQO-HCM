@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const LOW_INFORMATION_CORRECTION = /^(completed|complete|done|ok|okay|verified|same|approved|yes|no|n\/?a|na)$/i;
+const substantiveCorrectionReason = z.string().trim().min(20).max(1000).refine(
+  (value) => value.split(/\s+/).filter(Boolean).length >= 3 && !LOW_INFORMATION_CORRECTION.test(value),
+  { message:'Explain the authoritative correction and the evidence supporting it.' },
+);
 
 export const employeeCreateSchema = z.object({
   legalFirstName: z.string().min(1).max(100),
@@ -33,7 +38,7 @@ export const employeeCoreCorrectionSchema = z.object({
   employeeNumber: z.string().trim().min(1).max(40),
   employmentType: z.enum(['permanent', 'temporary', 'contractor', 'intern', 'volunteer']),
   hireDate: isoDate,
-  reason: z.string().trim().min(3).max(1000),
+  reason: substantiveCorrectionReason,
 });
 
 export const employeeDuplicateDeleteSchema = z.object({

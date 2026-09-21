@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'crypto';
 import type { ActorContext } from '@/domain/security';
-import type { OnboardingCase, OnboardingPolicy, OnboardingTask, PrehireDocument } from '@/domain/onboarding';
+import type { OnboardingCase, OnboardingLegacyReconciliation, OnboardingLegacyRepairAction, OnboardingPolicy, OnboardingTask, PrehireDocument } from '@/domain/onboarding';
 import type { Application, Candidate, Offer, Requisition } from '@/domain/recruiting';
 import { adminBucket, adminDb } from '@/lib/firebase/admin';
 import { ApiError } from '@/lib/http/errors';
@@ -22,6 +22,11 @@ const phaseEarliestDate=(startDate:string,phase:OnboardingTask['phase'])=>{
 };
 const validUploadMagic=(bytes:Buffer,type:string)=>{if(type==='application/pdf')return bytes.subarray(0,5).toString()==='%PDF-';if(type==='image/png')return bytes.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a]));if(type==='image/jpeg')return bytes.length>3&&bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff;if(type==='application/vnd.openxmlformats-officedocument.wordprocessingml.document'){const text=bytes.toString('latin1');return bytes.subarray(0,2).toString()==='PK'&&text.includes('[Content_Types].xml')&&text.includes('word/');}return false;};
 const requireCleanPrehireScan=()=>process.env.OPSIQO_REQUIRE_CLEAN_DOCUMENT_SCAN==='true'&&!process.env.FIRESTORE_EMULATOR_HOST&&process.env.OPSIQO_DEMO_MODE!=='true';
+const isLegacyScanNote=(value?:string|null)=>{
+  const text=String(value||'').trim().toLowerCase();
+  return Boolean(text)&&/(not signed|to be signed|unsigned|signature pending|pending signature)/.test(text);
+};
+const repairFingerprint=(actions:OnboardingLegacyRepairAction[])=>createHash('sha256').update(JSON.stringify(actions)).digest('hex');
 
 function defaultTasks(caseId:string,startDate:string,timestamp:string, policies:OnboardingPolicy[]):OnboardingTask[]{
   const rows:Array<Omit<OnboardingTask,'id'|'caseId'|'createdAt'|'updatedAt'>>=[
@@ -94,6 +99,31 @@ export async function getOnboardingCase(actor:ActorContext,caseId:string){
   const unverifiedRequiredDocuments=latestRequiredDocs
     .filter(row=>!row.doc||row.doc.verificationStatus!=='verified')
     .map(row=>({taskId:row.task.id,taskTitle:row.task.title,documentId:row.doc?.id||null,verificationStatus:row.doc?.verificationStatus||'unverified'}));
+  const taskById=new Map(tasks.map(task=>[task.id,task]));
+  const evidenceGroups=[...shaGroups.entries()].map(([sha256,rows])=>({
+    sha256,
+    fileName:rows[0]?.fileName||'Evidence file',
+    size:rows[0]?.size||0,
+    documentIds:rows.map(row=>row.id),
+    requirements:rows.map(row=>({
+      documentId:row.id,
+      taskId:row.taskId,
+      taskTitle:taskById.get(row.taskId)?.title||row.taskId,
+      scanStatus:row.scanStatus,
+      verificationStatus:row.verificationStatus||'unverified',
+      legacyScanNote:isLegacyScanNote(row.scanEvidenceRef)?String(row.scanEvidenceRef):row.legacyNote||null,
+    })),
+  })).sort((a,b)=>a.fileName.localeCompare(b.fileName));
+  const legacyScanNotes=documents.filter(doc=>isLegacyScanNote(doc.scanEvidenceRef)).map(doc=>({documentId:doc.id,note:String(doc.scanEvidenceRef)}));
+  const prematureCompletedTasks=tasks.filter(task=>{
+    if(task.phase==='pre_start'||task.status!=='completed')return false;
+    const earliest=phaseEarliestDate(c.startDate,task.phase);
+    const completedDate=task.completedAt?.slice(0,10);
+    return Boolean((completedDate&&completedDate<earliest)||(!completedDate&&today()<earliest));
+  }).map(task=>({taskId:task.id,title:task.title,phase:task.phase,completedAt:task.completedAt||null,earliestCompletion:phaseEarliestDate(c.startDate,task.phase)}));
+  const inconsistentDocumentTasks=latestRequiredDocs
+    .filter(row=>row.task.status==='completed'&&(!row.doc||row.doc.verificationStatus!=='verified'))
+    .map(row=>({taskId:row.task.id,title:row.task.title,documentId:row.doc?.id||null,verificationStatus:row.doc?.verificationStatus||'unverified'}));
   return{
     case:c,
     tasks,
@@ -107,10 +137,100 @@ export async function getOnboardingCase(actor:ActorContext,caseId:string){
       blockingCompleted: blockingDone,
       unverifiedRequiredDocuments,
       activationSnapshotPresent:Boolean(c.activationSnapshot),
+      evidenceGroups,
+      legacyScanNotes,
+      prematureCompletedTasks,
+      inconsistentDocumentTasks,
     },
   };
 }
 async function listTasks(orgId:string,caseId:string){const snap=await adminDb().collection(`organizations/${orgId}/onboardingTasks`).where('caseId','==',caseId).get();return snap.docs.map((d:any)=>d.data() as OnboardingTask).sort((a,b)=>(a.dueAt||'').localeCompare(b.dueAt||''));}
+function buildLegacyReconciliationPlan(c:OnboardingCase,tasks:OnboardingTask[],documents:PrehireDocument[]){
+  const actions:OnboardingLegacyRepairAction[]=[];
+  const taskById=new Map(tasks.map(task=>[task.id,task]));
+
+  for(const doc of documents){
+    if(isLegacyScanNote(doc.scanEvidenceRef)){
+      actions.push({
+        type:'normalize_legacy_scan_note',
+        targetType:'prehireDocument',
+        targetId:doc.id,
+        description:'Move a legacy signing-status note out of the malware-scan evidence field.',
+        before:{scanEvidenceRef:doc.scanEvidenceRef||null,legacyNote:doc.legacyNote||null},
+        proposed:{scanEvidenceRef:null,legacyNote:doc.scanEvidenceRef||null},
+        writeRequired:true,
+      });
+    }
+  }
+
+  for(const task of tasks){
+    if(task.phase!=='pre_start'&&task.status==='completed'){
+      const earliest=phaseEarliestDate(c.startDate,task.phase);
+      const completedDate=task.completedAt?.slice(0,10);
+      if((completedDate&&completedDate<earliest)||(!completedDate&&today()<earliest)){
+        actions.push({
+          type:'reset_premature_lifecycle_task',
+          targetType:'onboardingTask',
+          targetId:task.id,
+          description:`Reset ${task.title} because its recorded completion predates the phase opening date ${earliest}.`,
+          before:{status:task.status,completedAt:task.completedAt||null,completedBy:task.completedBy||null,completionNote:task.completionNote||null},
+          proposed:{status:'pending',completedAt:null,completedBy:null,earliestCompletion:earliest},
+          writeRequired:true,
+        });
+      }
+    }
+  }
+
+  const latestRequiredDocs=tasks
+    .filter(task=>task.required&&task.blockingActivation&&task.taskType==='document')
+    .map(task=>({task,doc:latestPrehireDocumentForTask(documents,task.id)}));
+
+  for(const row of latestRequiredDocs){
+    if(row.task.status==='completed'&&(!row.doc||row.doc.verificationStatus!=='verified')){
+      actions.push({
+        type:'flag_unverified_document_task',
+        targetType:'onboardingTask',
+        targetId:row.task.id,
+        description:`Flag ${row.task.title} for governed HR verification without rewriting historical activation evidence.`,
+        before:{status:row.task.status,documentId:row.doc?.id||null,verificationStatus:row.doc?.verificationStatus||'unverified'},
+        proposed:{legacyVerificationRequired:true},
+        writeRequired:true,
+      });
+    }
+  }
+
+  const shaGroups=new Map<string,PrehireDocument[]>();
+  for(const doc of documents){
+    const key=String(doc.sha256||'').trim().toLowerCase();
+    if(!key)continue;
+    const rows=shaGroups.get(key)||[];rows.push(doc);shaGroups.set(key,rows);
+  }
+  for(const [sha256,rows] of shaGroups){
+    if(rows.length>1){
+      actions.push({
+        type:'duplicate_evidence_review',
+        targetType:'evidenceGroup',
+        targetId:sha256,
+        description:`Review ${rows.length} legacy document records sharing one SHA-256. Preserve evidence; do not delete automatically.`,
+        before:{documentIds:rows.map(row=>row.id),taskIds:[...new Set(rows.map(row=>row.taskId))]},
+        proposed:{canonicalEvidence:true,automaticDeletion:false},
+        writeRequired:false,
+      });
+    }
+  }
+
+  return actions.sort((a,b)=>`${a.type}:${a.targetId}`.localeCompare(`${b.type}:${b.targetId}`));
+}
+async function loadLegacyReconciliationInputs(orgId:string,caseId:string){
+  const db=adminDb();
+  const [caseSnap,tasks,docsSnap]=await Promise.all([
+    db.doc(`organizations/${orgId}/onboardingCases/${caseId}`).get(),
+    listTasks(orgId,caseId),
+    db.collection(`organizations/${orgId}/prehireDocuments`).where('caseId','==',caseId).get(),
+  ]);
+  if(!caseSnap.exists)throw new ApiError(404,'Onboarding case not found.','onboarding_not_found');
+  return{case:caseSnap.data() as OnboardingCase,tasks,documents:docsSnap.docs.map((d:any)=>d.data() as PrehireDocument)};
+}
 async function assertRequiredPrehireDocumentsVerified(orgId:string,caseId:string){
   const db=adminDb();
   const [tasksSnap,docsSnap]=await Promise.all([
@@ -189,7 +309,88 @@ export async function actOnOnboardingTask(actor:ActorContext,caseId:string,taskI
   return{...task,...patch};
 }
 
-export async function actOnOnboardingCase(actor:ActorContext,caseId:string,raw:unknown){const input=caseActionSchema.parse(raw);if(!hrRoles.has(actor.role))throw new ApiError(403,'HR permission required.','forbidden');const db=adminDb();const ref=db.doc(`organizations/${actor.orgId}/onboardingCases/${caseId}`);const snap=await ref.get();if(!snap.exists)throw new ApiError(404,'Onboarding case not found.','onboarding_not_found');const c=snap.data() as OnboardingCase;if(input.action==='update_details'){if(!['in_progress','ready_for_activation'].includes(c.status))throw new ApiError(409,'Only an open pre-activation case can be edited.','case_closed');const timestamp=now();const patch:any={updatedAt:timestamp};if(input.workEmail)patch.workEmail=input.workEmail.trim().toLowerCase();if(input.employmentType)patch.employmentType=input.employmentType;const audit=buildAudit(actor,{action:'onboarding.update_details',entityType:'onboardingCase',entityId:c.id,before:{workEmail:c.workEmail,employmentType:c.employmentType},after:{workEmail:patch.workEmail||c.workEmail,employmentType:patch.employmentType||c.employmentType},metadata:{reason:input.reason||null,sharedWorkEmailAllowed:true}});const event=buildDomainEvent(actor,'onboarding.details_updated','onboardingCase',c.id,{workEmailChanged:Boolean(input.workEmail&&input.workEmail.trim().toLowerCase()!==c.workEmail.trim().toLowerCase()),employmentTypeChanged:Boolean(input.employmentType&&input.employmentType!==c.employmentType)});const batch=db.batch();batch.set(ref,patch,{merge:true});batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);batch.create(db.doc(`organizations/${actor.orgId}/domainEvents/${event.id}`),event);await batch.commit();return{case:{...c,...patch}};}if(input.action==='activate')return activateCase(actor,c);if(['cancel','revoke_access'].includes(input.action)){const patch:any={updatedAt:now(),accessStatus:'revoked'};if(input.action==='cancel')patch.status='cancelled';await revokeAccess(actor.orgId,c.id);const audit=buildAudit(actor,{action:`onboarding.${input.action}`,entityType:'onboardingCase',entityId:c.id,before:c,after:{...c,...patch},metadata:{reason:input.reason||null}});const batch=db.batch();batch.set(ref,patch,{merge:true});batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);await batch.commit();return{case:{...c,...patch}};}if(input.action==='rotate_access'){if(['activated','cancelled'].includes(c.status))throw new ApiError(409,'Access cannot be rotated for a closed onboarding case.','case_closed');const token=randomBytes(32).toString('base64url'),tokenHash=hash(token),timestamp=now(),accessExpiresAt=new Date(Date.now()+30*86400000).toISOString();const activeTokens=await db.collection('prehireAccessIndex').where('orgId','==',actor.orgId).where('caseId','==',c.id).where('status','==','active').get();const nextSendCount=Number(c.accessSendCount||0)+1;const rotatePatch={accessStatus:'active' as const,accessExpiresAt,accessSendCount:nextSendCount,updatedAt:timestamp};const audit=buildAudit(actor,{action:'onboarding.rotate_access',entityType:'onboardingCase',entityId:c.id,before:c,after:{...c,...rotatePatch},metadata:{previousActiveTokenCount:activeTokens.size}});const rotateBatch=db.batch();for(const d of activeTokens.docs)rotateBatch.set(d.ref,{status:'revoked',revokedAt:timestamp},{merge:true});rotateBatch.create(db.doc(`prehireAccessIndex/${tokenHash}`),{caseId:c.id,orgId:actor.orgId,status:'active',expiresAt:accessExpiresAt,createdAt:timestamp});rotateBatch.set(ref,rotatePatch,{merge:true});rotateBatch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);await rotateBatch.commit();const accessUrl=`${process.env.APP_BASE_URL||'http://localhost:3000'}/prehire#token=${encodeURIComponent(token)}`;await sendPrehireAccess(c.candidateEmail,c.candidateDisplayName,accessUrl).catch(()=>undefined);return{case:{...c,...rotatePatch},accessUrl};}throw new ApiError(400,'Unsupported case action.','unsupported_action');}
+export async function actOnOnboardingCase(actor:ActorContext,caseId:string,raw:unknown){const input=caseActionSchema.parse(raw);if(!hrRoles.has(actor.role))throw new ApiError(403,'HR permission required.','forbidden');const db=adminDb();const ref=db.doc(`organizations/${actor.orgId}/onboardingCases/${caseId}`);const snap=await ref.get();if(!snap.exists)throw new ApiError(404,'Onboarding case not found.','onboarding_not_found');const c=snap.data() as OnboardingCase;
+if(input.action==='preview_legacy_reconciliation'){
+  if(!adminRoles.has(actor.role))throw new ApiError(403,'HR administrator permission is required for legacy onboarding reconciliation.','reconciliation_permission');
+  if(!['activated','completed'].includes(c.status))throw new ApiError(409,'Legacy reconciliation is only available for activated or completed onboarding cases.','reconciliation_not_applicable');
+  const inputs=await loadLegacyReconciliationInputs(actor.orgId,caseId);
+  const actions=buildLegacyReconciliationPlan(inputs.case,inputs.tasks,inputs.documents);
+  const previewId=randomUUID(),timestamp=now(),fingerprint=repairFingerprint(actions);
+  const preview:OnboardingLegacyReconciliation={id:previewId,caseId,sourceRelease:'H51.68',status:'previewed',fingerprint,actions,createdAt:timestamp,createdBy:actor.uid};
+  await db.doc(`organizations/${actor.orgId}/onboardingReconciliations/${previewId}`).create(preview);
+  return{preview};
+}
+if(input.action==='apply_legacy_reconciliation'){
+  if(!adminRoles.has(actor.role))throw new ApiError(403,'HR administrator permission is required for legacy onboarding reconciliation.','reconciliation_permission');
+  if(!['activated','completed'].includes(c.status))throw new ApiError(409,'Legacy reconciliation is only available for activated or completed onboarding cases.','reconciliation_not_applicable');
+  const previewId=String(input.previewId||'');
+  const reconciliationRef=db.doc(`organizations/${actor.orgId}/onboardingReconciliations/${previewId}`);
+  const previewSnap=await reconciliationRef.get();
+  if(!previewSnap.exists)throw new ApiError(404,'Legacy reconciliation preview not found.','reconciliation_preview_not_found');
+  const preview=previewSnap.data() as OnboardingLegacyReconciliation;
+  if(preview.caseId!==caseId||preview.status!=='previewed')throw new ApiError(409,'Legacy reconciliation preview is no longer applicable.','reconciliation_preview_closed');
+
+  const fresh=await loadLegacyReconciliationInputs(actor.orgId,caseId);
+  const freshActions=buildLegacyReconciliationPlan(fresh.case,fresh.tasks,fresh.documents);
+  const freshFingerprint=repairFingerprint(freshActions);
+  if(freshFingerprint!==preview.fingerprint)throw new ApiError(409,'Onboarding evidence changed after the preview. Generate a new reconciliation preview.','reconciliation_preview_stale');
+
+  const timestamp=now();
+  const reason=String(input.reason||'').trim();
+  const audit=buildAudit(actor,{
+    action:'onboarding.legacy_reconciliation.apply',
+    entityType:'onboardingCase',
+    entityId:caseId,
+    before:{previewId:preview.id,fingerprint:preview.fingerprint},
+    after:{status:'applied',sourceRelease:'H51.68',actionCount:preview.actions.length},
+    metadata:{reason,writeActions:preview.actions.filter(action=>action.writeRequired).length,advisoryActions:preview.actions.filter(action=>!action.writeRequired).length},
+  });
+
+  await db.runTransaction(async tx=>{
+    const livePreviewSnap=await tx.get(reconciliationRef);
+    const livePreview=livePreviewSnap.data() as OnboardingLegacyReconciliation|undefined;
+    if(!livePreviewSnap.exists||livePreview?.status!=='previewed'||livePreview.fingerprint!==preview.fingerprint){
+      throw new ApiError(409,'Legacy reconciliation preview changed before confirmation. Generate a new preview.','reconciliation_preview_stale');
+    }
+
+    const writeActions=preview.actions.filter(action=>action.writeRequired);
+    const refs=writeActions.map(action=>action.targetType==='prehireDocument'
+      ?db.doc(`organizations/${actor.orgId}/prehireDocuments/${action.targetId}`)
+      :db.doc(`organizations/${actor.orgId}/onboardingTasks/${action.targetId}`));
+    const snaps=await Promise.all(refs.map(targetRef=>tx.get(targetRef)));
+    for(let index=0;index<writeActions.length;index+=1){
+      if(!snaps[index]?.exists)throw new ApiError(409,'A reconciliation target no longer exists. Generate a new preview.','reconciliation_preview_stale');
+    }
+
+    for(let index=0;index<writeActions.length;index+=1){
+      const action=writeActions[index]!;
+      const targetRef=refs[index]!;
+      const current=snaps[index]!.data() as any;
+      if(action.type==='normalize_legacy_scan_note'){
+        if(String(current.scanEvidenceRef||'')!==String(action.before.scanEvidenceRef||''))throw new ApiError(409,'Legacy scan-note evidence changed after preview.','reconciliation_preview_stale');
+        tx.set(targetRef,{legacyNote:action.before.scanEvidenceRef||null,scanEvidenceRef:null,legacyNormalizedAt:timestamp,legacyNormalizedBy:actor.uid},{merge:true});
+      }
+      if(action.type==='reset_premature_lifecycle_task'){
+        if(String(current.status||'')!==String(action.before.status||'')||String(current.completedAt||'')!==String(action.before.completedAt||''))throw new ApiError(409,'Lifecycle task state changed after preview.','reconciliation_preview_stale');
+        tx.set(targetRef,{
+          status:'pending',completedAt:null,completedBy:null,
+          completionNote:'Legacy premature completion reset by governed H51.68 reconciliation.',
+          legacyReconciliation:{sourceRelease:'H51.68',previousStatus:action.before.status||null,previousCompletedAt:action.before.completedAt||null,previousCompletedBy:action.before.completedBy||null,reason,reconciliationId:preview.id},
+          updatedAt:timestamp,
+        },{merge:true});
+      }
+      if(action.type==='flag_unverified_document_task'){
+        tx.set(targetRef,{legacyVerificationRequired:true,legacyVerificationFlaggedAt:timestamp,legacyVerificationFlaggedBy:actor.uid,updatedAt:timestamp},{merge:true});
+      }
+    }
+
+    tx.set(reconciliationRef,{status:'applied',appliedAt:timestamp,appliedBy:actor.uid,reason},{merge:true});
+    tx.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
+  });
+  await recompute(actor.orgId,caseId);
+  return{reconciliation:{...preview,status:'applied',appliedAt:timestamp,appliedBy:actor.uid,reason}};
+}
+if(input.action==='update_details'){if(!['in_progress','ready_for_activation'].includes(c.status))throw new ApiError(409,'Only an open pre-activation case can be edited.','case_closed');const timestamp=now();const patch:any={updatedAt:timestamp};if(input.workEmail)patch.workEmail=input.workEmail.trim().toLowerCase();if(input.employmentType)patch.employmentType=input.employmentType;const audit=buildAudit(actor,{action:'onboarding.update_details',entityType:'onboardingCase',entityId:c.id,before:{workEmail:c.workEmail,employmentType:c.employmentType},after:{workEmail:patch.workEmail||c.workEmail,employmentType:patch.employmentType||c.employmentType},metadata:{reason:input.reason||null,sharedWorkEmailAllowed:true}});const event=buildDomainEvent(actor,'onboarding.details_updated','onboardingCase',c.id,{workEmailChanged:Boolean(input.workEmail&&input.workEmail.trim().toLowerCase()!==c.workEmail.trim().toLowerCase()),employmentTypeChanged:Boolean(input.employmentType&&input.employmentType!==c.employmentType)});const batch=db.batch();batch.set(ref,patch,{merge:true});batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);batch.create(db.doc(`organizations/${actor.orgId}/domainEvents/${event.id}`),event);await batch.commit();return{case:{...c,...patch}};}if(input.action==='activate')return activateCase(actor,c);if(['cancel','revoke_access'].includes(input.action)){const patch:any={updatedAt:now(),accessStatus:'revoked'};if(input.action==='cancel')patch.status='cancelled';await revokeAccess(actor.orgId,c.id);const audit=buildAudit(actor,{action:`onboarding.${input.action}`,entityType:'onboardingCase',entityId:c.id,before:c,after:{...c,...patch},metadata:{reason:input.reason||null}});const batch=db.batch();batch.set(ref,patch,{merge:true});batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);await batch.commit();return{case:{...c,...patch}};}if(input.action==='rotate_access'){if(['activated','cancelled'].includes(c.status))throw new ApiError(409,'Access cannot be rotated for a closed onboarding case.','case_closed');const token=randomBytes(32).toString('base64url'),tokenHash=hash(token),timestamp=now(),accessExpiresAt=new Date(Date.now()+30*86400000).toISOString();const activeTokens=await db.collection('prehireAccessIndex').where('orgId','==',actor.orgId).where('caseId','==',c.id).where('status','==','active').get();const nextSendCount=Number(c.accessSendCount||0)+1;const rotatePatch={accessStatus:'active' as const,accessExpiresAt,accessSendCount:nextSendCount,updatedAt:timestamp};const audit=buildAudit(actor,{action:'onboarding.rotate_access',entityType:'onboardingCase',entityId:c.id,before:c,after:{...c,...rotatePatch},metadata:{previousActiveTokenCount:activeTokens.size}});const rotateBatch=db.batch();for(const d of activeTokens.docs)rotateBatch.set(d.ref,{status:'revoked',revokedAt:timestamp},{merge:true});rotateBatch.create(db.doc(`prehireAccessIndex/${tokenHash}`),{caseId:c.id,orgId:actor.orgId,status:'active',expiresAt:accessExpiresAt,createdAt:timestamp});rotateBatch.set(ref,rotatePatch,{merge:true});rotateBatch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);await rotateBatch.commit();const accessUrl=`${process.env.APP_BASE_URL||'http://localhost:3000'}/prehire#token=${encodeURIComponent(token)}`;await sendPrehireAccess(c.candidateEmail,c.candidateDisplayName,accessUrl).catch(()=>undefined);return{case:{...c,...rotatePatch},accessUrl};}throw new ApiError(400,'Unsupported case action.','unsupported_action');}
 
 async function revokeAccess(orgId:string,caseId:string){const snap=await adminDb().collection('prehireAccessIndex').where('orgId','==',orgId).where('caseId','==',caseId).where('status','==','active').get();const batch=adminDb().batch();for(const d of snap.docs)batch.set(d.ref,{status:'revoked',revokedAt:now()},{merge:true});if(!snap.empty)await batch.commit();}
 async function assertRequiredPrehireDocumentsClean(orgId:string,caseId:string){
@@ -346,6 +547,9 @@ export async function actOnPrehireDocument(actor:ActorContext,caseId:string,docu
   const metadata:any={caseId,taskId:doc.taskId,latestForTask:isLatest};
 
   if(input.action==='set_scan_clean'||input.action==='set_scan_blocked'){
+    if(input.action==='set_scan_clean'&&isLegacyScanNote(input.scanEvidenceRef)){
+      throw new ApiError(400,'Signing status is not malware-scan evidence. Record the scan provider/reference instead.','invalid_scan_evidence_semantics');
+    }
     const scanStatus=input.action==='set_scan_clean'?'clean':'blocked';
     const scanEvidenceRef=String(input.scanEvidenceRef||'').trim();
     if(scanStatus==='clean'&&requireCleanPrehireScan()&&!scanEvidenceRef)throw new ApiError(400,'A malware-scan evidence reference is required before recording a clean production prehire document.','scan_evidence_required');
@@ -388,7 +592,7 @@ export async function actOnPrehireDocument(actor:ActorContext,caseId:string,docu
     batch.set(taskRef,{status:'in_progress',completedAt:null,completedBy:null,completionNote:'Malware scan passed. HR requirement verification is still required.',updatedAt:timestamp},{merge:true});
   }
   if(isLatest&&input.action==='verify_requirement'){
-    batch.set(taskRef,{status:'completed',completedAt:timestamp,completedBy:actor.uid,completionNote:`HR verified requirement: ${String(input.verificationNote||'').trim()}`,updatedAt:timestamp},{merge:true});
+    batch.set(taskRef,{status:'completed',completedAt:timestamp,completedBy:actor.uid,completionNote:`HR verified requirement: ${String(input.verificationNote||'').trim()}`,legacyVerificationRequired:false,updatedAt:timestamp},{merge:true});
   }
   if(isLatest&&input.action==='reject_requirement'){
     batch.set(taskRef,{status:'pending',completedAt:null,completedBy:null,completionNote:`HR rejected requirement evidence: ${String(input.verificationNote||'').trim()}`,updatedAt:timestamp},{merge:true});

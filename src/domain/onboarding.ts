@@ -92,6 +92,20 @@ export interface OnboardingTask {
   completedAt?: string;
   completedBy?: string;
   completionNote?: string;
+  reconciledAfterActivation?: boolean;
+  reconciledAt?: string;
+  reconciledBy?: string;
+  legacyVerificationRequired?: boolean;
+  legacyVerificationFlaggedAt?: string;
+  legacyVerificationFlaggedBy?: string;
+  legacyReconciliation?: {
+    sourceRelease: 'H51.68';
+    previousStatus?: OnboardingTaskStatus;
+    previousCompletedAt?: string | null;
+    previousCompletedBy?: string | null;
+    reason: string;
+    reconciliationId: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -106,7 +120,10 @@ export interface PrehireDocument {
   storagePath: string;
   sha256: string;
   scanStatus: 'not_scanned' | 'clean' | 'blocked';
-  scanEvidenceRef?: string;
+  scanEvidenceRef?: string | null;
+  legacyNote?: string;
+  legacyNormalizedAt?: string;
+  legacyNormalizedBy?: string;
   verificationStatus?: 'unverified' | 'verified' | 'rejected';
   verificationNote?: string;
   verifiedBy?: string;
@@ -129,4 +146,34 @@ export interface OnboardingPolicy {
   effectiveDate: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export type OnboardingLegacyRepairActionType =
+  | 'normalize_legacy_scan_note'
+  | 'reset_premature_lifecycle_task'
+  | 'flag_unverified_document_task'
+  | 'duplicate_evidence_review';
+
+export interface OnboardingLegacyRepairAction {
+  type: OnboardingLegacyRepairActionType;
+  targetType: 'prehireDocument' | 'onboardingTask' | 'evidenceGroup';
+  targetId: string;
+  description: string;
+  before: Record<string, unknown>;
+  proposed: Record<string, unknown>;
+  writeRequired: boolean;
+}
+
+export interface OnboardingLegacyReconciliation {
+  id: string;
+  caseId: string;
+  sourceRelease: 'H51.68';
+  status: 'previewed' | 'applied';
+  fingerprint: string;
+  actions: OnboardingLegacyRepairAction[];
+  createdAt: string;
+  createdBy: string;
+  appliedAt?: string;
+  appliedBy?: string;
+  reason?: string;
 }
