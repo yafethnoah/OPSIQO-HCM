@@ -72,7 +72,8 @@ describe('H51.65 shared departmental work email + pre-activation edit', () => {
     const workspace = read('src/components/onboarding-workspace.tsx');
 
     expect(workspace).toContain('Edit pre-activation details');
-    expect(workspace).toContain('Save pre-activation details');
+    expect(workspace).toContain('Save changes');
+    expect(workspace).toContain('Pre-activation details');
     expect(workspace).toContain('Shared departmental work email is allowed');
     expect(workspace).toContain("action:'update_details'");
   });
