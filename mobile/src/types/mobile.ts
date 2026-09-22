@@ -22,5 +22,6 @@ export type MobileBootstrap = {
   documents:any[];
   manager:any|null;
   team:any[];
+  attendanceReminderReliability?:{activePushDevices:number;serverBackupReady:boolean;checkedAt:string};
   generatedAt:string;
 };

@@ -35,7 +35,7 @@ export async function mobileBootstrap(actor: ActorContext): Promise<MobileBootst
   const workerId = actor.workerId;
   const can = (permission:string) => actor.permissions.includes(permission as Permission);
 
-  const [home, leave, shifts, attendance, expenses, notifications, learning, documents] = await Promise.all([
+  const [home, leave, shifts, attendance, expenses, notifications, learning, documents, reminderDevices] = await Promise.all([
     superAppDashboard(actor),
     workerId && can('leave.read') ? getLeaveWorkspace(actor, workerId).catch(() => null) : Promise.resolve(null),
     workerId && can('time.read') ? listShifts(actor, undefined, undefined, workerId).catch(() => []) : Promise.resolve([]),
@@ -48,6 +48,9 @@ export async function mobileBootstrap(actor: ActorContext): Promise<MobileBootst
     can('notifications.read') ? listNotifications(actor, 30).catch(() => []) : Promise.resolve([]),
     can('learning.read') ? learningDashboard(actor).catch(() => null) : Promise.resolve(null),
     workerId && can('documents.read') ? listEmployeeDocuments(actor, workerId).catch(() => []) : Promise.resolve([]),
+    workerId
+      ? adminDb().collection(`organizations/${actor.orgId}/mobileDevices`).where('workerId','==',workerId).get().then(snap=>snap.docs.map(doc=>doc.data() as MobileDeviceRegistration).filter(row=>row.status==='active'&&row.notificationsGranted===true&&Boolean(row.pushToken))).catch(()=>[])
+      : Promise.resolve([] as MobileDeviceRegistration[]),
   ]);
 
   return {
@@ -78,6 +81,11 @@ export async function mobileBootstrap(actor: ActorContext): Promise<MobileBootst
     documents,
     manager: home.manager || null,
     team: Array.isArray(home.team) ? home.team : [],
+    attendanceReminderReliability: {
+      activePushDevices: reminderDevices.length,
+      serverBackupReady: reminderDevices.length > 0,
+      checkedAt: now(),
+    },
     generatedAt: now(),
   };
 }

@@ -10,6 +10,7 @@ import { processNotificationDelivery } from '@/lib/notifications/service';
 import { processOnboardingDueTasks } from '@/lib/onboarding/service';
 import { processDocumentGovernance, processPolicyGovernance } from '@/lib/compliance/service';
 import { processLeaveAccruals, processTimeGovernance } from '@/lib/time/service';
+import { processAttendanceServerReminders } from '@/lib/time/attendance-reminder-server';
 import { processSeparationGovernance } from '@/lib/separation/service';
 import { lifecycleDiagnostics } from '@/lib/lifecycle/service';
 import { processPerformanceGovernance } from '@/lib/performance/service';
@@ -139,6 +140,7 @@ export async function runPhase1Automation(orgId: string, initiatedBy = 'system:s
   const policyGovernance = await lane('policy_governance', 'governance', () => processPolicyGovernance(orgId), { scanned: 0, dueSoon: 0, overdue: 0, notifications: 0 });
   const leaveAccruals = await lane('leave_accruals', 'operational', () => processLeaveAccruals(orgId), { workers: 0, leaveTypes: 0, balances: 0 });
   const timeGovernance = await lane('time_governance', 'operational', () => processTimeGovernance(orgId), { workers: 0, evaluated: 0, exceptions: 0, timesheets: 0 });
+  await lane('attendance_server_reminders', 'operational', () => processAttendanceServerReminders(orgId), { scanned: 0, candidates: 0, evaluated: 0, reminders: 0, pushAccepted: 0, deduplicated: 0, noPushDevice: 0, failed: 0, generatedAt: now() });
   const performanceGovernance = await lane('performance_governance', 'governance', () => processPerformanceGovernance(orgId), { reviewsScanned: 0, overdueSelf: 0, overdueManager: 0, overdueCalibration: 0, pipsScanned: 0, overduePipMilestones: 0, notifications: 0 });
   const learningGovernance = await lane('learning_governance', 'governance', () => processLearningGovernance(orgId), { assignmentsScanned: 0, overdueAssignments: 0, certificatesScanned: 0, certificatesExpiring: 0, certificatesExpired: 0, skillsExpired: 0, notifications: 0 });
   const careerGovernance = await lane('career_succession_governance', 'governance', () => processCareerGovernance(orgId), { criticalPositionsScanned: 0, reviewDue: 0, uncoveredCriticalPositions: 0, notifications: 0 });

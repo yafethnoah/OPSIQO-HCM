@@ -68,6 +68,8 @@ export default function Time() {
       <AttendanceAlarmSettings
         shifts={data?.shifts || []}
         isClockedIn={isClockedIn}
+        serverBackupReady={data?.attendanceReminderReliability?.serverBackupReady}
+        activePushDevices={data?.attendanceReminderReliability?.activePushDevices}
       />
 
       <Card>

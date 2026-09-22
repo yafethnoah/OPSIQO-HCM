@@ -91,8 +91,9 @@ describe("H50.2B Pulse mobile self-service", () => {
     const service = read("src/lib/mobile/service.ts");
 
     expect(service).toContain(
-      "const [home, leave, shifts, attendance, expenses, notifications, learning, documents] = await Promise.all([",
+      "const [home, leave, shifts, attendance, expenses, notifications, learning, documents, reminderDevices] = await Promise.all([",
     );
+    expect(service).toContain("attendanceReminderReliability");
     expect(service).toContain("superAppDashboard(actor)");
     expect(service).toContain(
       "clock: Boolean(workerId && can('time.clock'))",

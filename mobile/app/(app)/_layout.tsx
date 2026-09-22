@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { Redirect, Tabs } from "expo-router";
 import { type ColorValue } from "react-native";
 import { useAuth } from "@/auth/provider";
 import { useBootstrap } from "@/hooks/use-bootstrap";
 import { useAttendanceReminders } from "@/notifications/attendance-reminders";
+import { registerDevice } from "@/mobile/device";
 import {
   PulseTabIcon,
   type PulseTabIconName,
@@ -22,6 +24,7 @@ const icon =
   );
 
 function AttendanceReminderCoordinator() {
+  const { activeOrgId } = useAuth();
   const { data } = useBootstrap();
 
   const isClockedIn = Boolean(
@@ -34,6 +37,11 @@ function AttendanceReminderCoordinator() {
     { isClockedIn },
     Boolean(data),
   );
+
+  useEffect(() => {
+    if (!activeOrgId || !data) return;
+    void registerDevice(activeOrgId, { requestPush: true }).catch(() => undefined);
+  }, [activeOrgId, Boolean(data)]);
 
   return null;
 }

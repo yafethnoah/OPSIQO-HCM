@@ -50,5 +50,10 @@ export interface MobileBootstrap {
   documents: unknown[];
   manager: unknown | null;
   team: unknown[];
+  attendanceReminderReliability?: {
+    activePushDevices: number;
+    serverBackupReady: boolean;
+    checkedAt: string;
+  };
   generatedAt: string;
 }

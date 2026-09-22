@@ -30,6 +30,8 @@ import {
 type Props = {
   shifts: Shift[];
   isClockedIn?: boolean;
+  serverBackupReady?: boolean;
+  activePushDevices?: number;
 };
 
 function ChoiceButton({
@@ -144,6 +146,8 @@ function fmtNext(iso?: string) {
 export function AttendanceAlarmSettings({
   shifts,
   isClockedIn,
+  serverBackupReady = false,
+  activePushDevices = 0,
 }: Props) {
   const [settings, setSettings] = useState<AttendanceReminderSettings>(
     DEFAULT_ATTENDANCE_REMINDER_SETTINGS,
@@ -285,6 +289,15 @@ export function AttendanceAlarmSettings({
           Published shifts loaded:{" "}
           {shifts.filter((x) => x.status === "published").length}
         </Text>
+        <Text style={s.statusText}>
+          Local device alarms: {scheduledCount > 0 ? "Scheduled" : "No future alarm"}
+        </Text>
+        <Text style={s.statusText}>
+          Server backup reminder: {serverBackupReady ? "Ready" : "Needs mobile notification registration"}
+        </Text>
+        <Text style={s.statusText}>
+          Push-capable devices: {activePushDevices}
+        </Text>
       </View>
 
       <AlarmSection
@@ -407,8 +420,9 @@ export function AttendanceAlarmSettings({
 
       <Muted>
         The one-minute timing test uses the same delayed notification trigger as
-        a real Clock In or Clock Out reminder. You can close Pulse after
-        scheduling it.
+        a real Clock In or Clock Out reminder. Published shifts also receive a
+        server-side backup reminder at shift start/end plus a state-aware missed
+        Clock In / Clock Out follow-up when the employee still has not acted.
       </Muted>
     </Card>
   );
