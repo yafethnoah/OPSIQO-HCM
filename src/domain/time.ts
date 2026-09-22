@@ -52,6 +52,9 @@ export interface LeaveRequest {
   status: LeaveRequestStatus;
   submittedBy: string;
   submittedAt: string;
+  submissionSource?: 'self_service' | 'admin_on_behalf';
+  submittedForWorkerBy?: string;
+  adminReason?: string;
   actedBy?: string;
   actedAt?: string;
   actionNote?: string;

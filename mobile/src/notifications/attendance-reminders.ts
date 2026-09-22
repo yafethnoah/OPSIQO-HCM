@@ -10,6 +10,7 @@ const SETTINGS_KEY = "opsiqo.mobile.attendance.reminder.settings.v3";
 const LEGACY_SETTINGS_KEY = "opsiqo.mobile.attendance.reminder.settings.v2";
 const HORIZON_DAYS = 14;
 const HORIZON_MS = HORIZON_DAYS * 24 * 60 * 60 * 1000;
+const DUE_REMINDER_GRACE_MS = 2 * 60 * 1000;
 const MAX_EFFECTIVE_SHIFTS = 28;
 
 export type AttendanceAlarmSound =
@@ -365,17 +366,34 @@ function effectiveReminderShifts(
     .slice(0, MAX_EFFECTIVE_SHIFTS);
 }
 
-async function scheduleReminder(
+function managedReminderKey(
   shift: Shift,
   action: "clock_in" | "clock_out",
   date: Date,
   sound: AttendanceAlarmSound,
   scheduleSource: "published_shift" | "regular_schedule",
 ) {
+  return [
+    shift.id,
+    action,
+    date.toISOString(),
+    sound,
+    scheduleSource,
+  ].join("|");
+}
+
+async function scheduleReminder(
+  shift: Shift,
+  action: "clock_in" | "clock_out",
+  date: Date,
+  sound: AttendanceAlarmSound,
+  scheduleSource: "published_shift" | "regular_schedule",
+  reminderKey: string,
+) {
   const clockIn = action === "clock_in";
   await ensureAndroidChannel(sound);
 
-  await Notifications.scheduleNotificationAsync({
+  return Notifications.scheduleNotificationAsync({
     content: {
       title: clockIn ? "Time to clock in" : "Time to clock out",
       body: clockIn
@@ -388,6 +406,7 @@ async function scheduleReminder(
         shiftId: shift.id,
         scheduleSource,
         alarmAt: date.toISOString(),
+        reminderKey,
         route: "/time",
       },
     },
@@ -519,6 +538,9 @@ export async function getAttendanceReminderRuntimeStatus() {
     source,
     nextAt: managed[0]?.alarmAt,
     nextAction: managed[0]?.action,
+    nextClockInAt: managed.find((row) => row.action === "clock_in")?.alarmAt,
+    nextClockOutAt: managed.find((row) => row.action === "clock_out")?.alarmAt,
+    lastCheckedAt: new Date().toISOString(),
   };
 }
 
@@ -527,17 +549,20 @@ export async function synchronizeAttendanceReminders(
   overrideSettings?: AttendanceReminderSettings,
   context: AttendanceReminderContext = {},
 ) {
-  await clearAttendanceReminders();
-
   const settings = sanitizeSettings(
     overrideSettings || (await getAttendanceReminderSettings()),
   );
 
   if (!settings.clockInEnabled && !settings.clockOutEnabled) {
+    await clearAttendanceReminders();
     return {
       status: "ready" as const,
       scheduled: 0,
       source: "none" as const,
+      nextAt: undefined,
+      nextClockInAt: undefined,
+      nextClockOutAt: undefined,
+      lastSyncedAt: new Date().toISOString(),
       message: "Clock In and Clock Out alarms are turned off.",
     };
   }
@@ -549,6 +574,10 @@ export async function synchronizeAttendanceReminders(
       status: "denied" as const,
       scheduled: 0,
       source: "none" as const,
+      nextAt: undefined,
+      nextClockInAt: undefined,
+      nextClockOutAt: undefined,
+      lastSyncedAt: new Date().toISOString(),
       message:
         "Notifications are off. Enable them in Settings to receive Clock In and Clock Out alarms.",
     };
@@ -557,8 +586,21 @@ export async function synchronizeAttendanceReminders(
   const now = Date.now();
   const horizon = now + HORIZON_MS;
   const effective = effectiveReminderShifts(shifts, settings, new Date(now));
+  const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const existingManaged = allScheduled.filter(
+    (request) => request.content.data?.kind === MANAGED_KIND,
+  );
+  const existingByKey = new Map(
+    existingManaged
+      .map((request) => [
+        String(request.content.data?.reminderKey || ""),
+        request,
+      ] as const)
+      .filter(([key]) => Boolean(key)),
+  );
 
   if (effective.length === 0) {
+    await clearAttendanceReminders();
     const regularNeedsConfiguration =
       settings.regularScheduleEnabled &&
       (
@@ -571,71 +613,116 @@ export async function synchronizeAttendanceReminders(
       status: "ready" as const,
       scheduled: 0,
       source: "none" as const,
+      nextAt: undefined,
+      nextClockInAt: undefined,
+      nextClockOutAt: undefined,
+      lastSyncedAt: new Date().toISOString(),
       message: regularNeedsConfiguration
         ? "Regular schedule fallback is enabled but needs at least one workday plus valid start and end times."
         : "No published shift or regular work schedule is available, so no automatic Clock In or Clock Out alarm can be scheduled.",
     };
   }
 
-  let scheduled = 0;
-  let nextAt: string | undefined;
+  const desiredKeys = new Set<string>();
+  const desiredRows: Array<{
+    key: string;
+    action: "clock_in" | "clock_out";
+    alarmAt: string;
+    source: "published_shift" | "regular_schedule";
+  }> = [];
 
   const usedSources = new Set<string>();
   const allowClockIn = context.isClockedIn !== true;
   const allowClockOut = context.isClockedIn !== false;
 
+  async function arm(
+    shift: Shift,
+    action: "clock_in" | "clock_out",
+    alarmAtMs: number,
+    sound: AttendanceAlarmSound,
+    source: "published_shift" | "regular_schedule",
+  ) {
+    if (!(alarmAtMs > now && alarmAtMs <= horizon)) return;
+    const date = new Date(alarmAtMs);
+    const key = managedReminderKey(shift, action, date, sound, source);
+    desiredKeys.add(key);
+    desiredRows.push({
+      key,
+      action,
+      alarmAt: date.toISOString(),
+      source,
+    });
+    usedSources.add(source);
+
+    // H51.70: preserve an exact already-armed native reminder. This prevents
+    // foreground/bootstrap resync from cancelling a valid reminder just before
+    // its fire time. H51.69's one-minute timing test used a different kind and
+    // therefore did not expose the clear-all race.
+    if (!existingByKey.has(key)) {
+      await scheduleReminder(shift, action, date, sound, source, key);
+    }
+  }
+
   for (const { shift, source } of effective) {
     const start = Date.parse(shift.startAt);
     const end = Date.parse(shift.endAt);
 
-    if (
-      allowClockIn &&
-      settings.clockInEnabled &&
-      Number.isFinite(start)
-    ) {
-      const alarmAt =
-        start - settings.clockInLeadMinutes * 60 * 1000;
-
-      if (alarmAt > now && alarmAt <= horizon) {
-        await scheduleReminder(
-          shift,
-          "clock_in",
-          new Date(alarmAt),
-          settings.clockInSound,
-          source,
-        );
-        scheduled += 1;
-        usedSources.add(source);
-
-        const iso = new Date(alarmAt).toISOString();
-        if (!nextAt || iso < nextAt) nextAt = iso;
-      }
+    if (allowClockIn && settings.clockInEnabled && Number.isFinite(start)) {
+      await arm(
+        shift,
+        "clock_in",
+        start - settings.clockInLeadMinutes * 60 * 1000,
+        settings.clockInSound,
+        source,
+      );
     }
 
-    if (
-      allowClockOut &&
-      settings.clockOutEnabled &&
-      Number.isFinite(end)
-    ) {
-      const alarmAt =
-        end - settings.clockOutLeadMinutes * 60 * 1000;
-
-      if (alarmAt > now && alarmAt <= horizon) {
-        await scheduleReminder(
-          shift,
-          "clock_out",
-          new Date(alarmAt),
-          settings.clockOutSound,
-          source,
-        );
-        scheduled += 1;
-        usedSources.add(source);
-
-        const iso = new Date(alarmAt).toISOString();
-        if (!nextAt || iso < nextAt) nextAt = iso;
-      }
+    if (allowClockOut && settings.clockOutEnabled && Number.isFinite(end)) {
+      await arm(
+        shift,
+        "clock_out",
+        end - settings.clockOutLeadMinutes * 60 * 1000,
+        settings.clockOutSound,
+        source,
+      );
     }
   }
+
+  // Cancel only obsolete managed reminders after all valid reminders have been
+  // retained/armed. Legacy H51.69 reminders have no reminderKey and are safely
+  // replaced by the keyed H51.70 schedule above.
+  await Promise.all(
+    existingManaged
+      .filter((request) => {
+        const key = String(request.content.data?.reminderKey || "");
+        if (key && desiredKeys.has(key)) return false;
+
+        const action = String(request.content.data?.action || "");
+        const alarmAt = String(request.content.data?.alarmAt || "");
+        const alarmAtMs = Date.parse(alarmAt);
+        const stillRelevant =
+          (action === "clock_in" && allowClockIn) ||
+          (action === "clock_out" && allowClockOut);
+        const recentlyDue =
+          Number.isFinite(alarmAtMs) &&
+          alarmAtMs <= now &&
+          now - alarmAtMs <= DUE_REMINDER_GRACE_MS;
+
+        // If the OS is slightly late delivering an alarm, keep it armed for a
+        // short grace period while the employee still has not acted.
+        if (stillRelevant && recentlyDue) return false;
+
+        return !key || !desiredKeys.has(key);
+      })
+      .map((request) =>
+        Notifications.cancelScheduledNotificationAsync(request.identifier),
+      ),
+  );
+
+  desiredRows.sort((a,b)=>a.alarmAt.localeCompare(b.alarmAt));
+  const nextClockInAt = desiredRows.find((row)=>row.action==="clock_in")?.alarmAt;
+  const nextClockOutAt = desiredRows.find((row)=>row.action==="clock_out")?.alarmAt;
+  const nextAt = desiredRows[0]?.alarmAt;
 
   const source: AttendanceScheduleSource =
     usedSources.has("published_shift") &&
@@ -649,12 +736,15 @@ export async function synchronizeAttendanceReminders(
 
   return {
     status: "ready" as const,
-    scheduled,
+    scheduled: desiredRows.length,
     source,
     nextAt,
+    nextClockInAt,
+    nextClockOutAt,
+    lastSyncedAt: new Date().toISOString(),
     message:
-      scheduled > 0
-        ? `${scheduled} attendance alarm${scheduled === 1 ? "" : "s"} scheduled automatically.`
+      desiredRows.length > 0
+        ? `${desiredRows.length} attendance alarm${desiredRows.length === 1 ? "" : "s"} armed on this device.`
         : context.isClockedIn
           ? "You are clocked in, but no future Clock Out alarm is available for the current published or regular schedule."
           : "No future Clock In alarm is currently due for the published or regular schedule.",

@@ -12,7 +12,7 @@ import { buildDomainEvent } from '@/lib/events/build';
 import { isDirectReport } from '@/lib/hr/service';
 import { systemActor } from '@/lib/automation/system-actor';
 import {
-  clockSchema, exceptionActionSchema, holidayCalendarSchema, holidaySchema, leaveActionSchema,
+  adminLeaveRecordSchema, clockSchema, exceptionActionSchema, holidayCalendarSchema, holidaySchema, leaveActionSchema,
   leaveRequestSchema, leaveTypeSchema, manualTimeEntrySchema, timePolicySchema, timesheetActionSchema,
   workerTimeProfileSchema,
 } from './schemas';
@@ -55,6 +55,51 @@ async function recomputeBalance(orgId:string,workerId:string,leaveType:LeaveType
 export async function getLeaveWorkspace(actor:ActorContext,workerId:string){await requireReadWorker(actor,workerId);const types=await listLeaveTypes(actor),year=new Date().getUTCFullYear();const balances=await Promise.all(types.filter(t=>t.enabled).map(t=>recomputeBalance(actor.orgId,workerId,t,year)));const rs=await adminDb().collection(`organizations/${actor.orgId}/leaveRequests`).where('workerId','==',workerId).get();const requests=rs.docs.map(d=>d.data() as LeaveRequest).sort((a,b)=>b.startDate.localeCompare(a.startDate));return{types,balances,requests};}
 
 export async function requestLeave(actor:ActorContext,raw:unknown){const input=leaveRequestSchema.parse(raw);if(input.startDate.slice(0,4)!==input.endDate.slice(0,4))throw new ApiError(400,'Cross-year leave requests must be submitted as separate requests so each entitlement year is accounted for correctly.','cross_year_leave');await worker(actor.orgId,input.workerId);if(actor.workerId!==input.workerId&&!hrRoles.has(actor.role))throw new ApiError(403,'Employees can request leave only for themselves.','forbidden');const db=adminDb(),typeSnap=await db.doc(`organizations/${actor.orgId}/leaveTypes/${input.leaveTypeId}`).get();if(!typeSnap.exists)throw new ApiError(404,'Leave type not found.','leave_type_not_found');const type=typeSnap.data() as LeaveType;if(!type.enabled)throw new ApiError(409,'Leave type is disabled.','leave_type_disabled');const overlaps=await db.collection(`organizations/${actor.orgId}/leaveRequests`).where('workerId','==',input.workerId).where('status','in',['pending','approved']).get();if(overlaps.docs.some(d=>{const r=d.data() as LeaveRequest;return r.startDate<=input.endDate&&r.endDate>=input.startDate;}))throw new ApiError(409,'The requested period overlaps another pending or approved leave request.','leave_overlap');const scheduled=await scheduledHours(actor.orgId,input.workerId,input.startDate,input.endDate),requestedHours=input.requestedHours??scheduled;if(scheduled<=0||requestedHours<=0)throw new ApiError(400,'The selected dates contain no scheduled working time.','no_working_time');if(requestedHours>scheduled)throw new ApiError(400,'Requested leave hours cannot exceed the scheduled working hours in the selected date range.','leave_hours_exceed_schedule');const chargedHours=type.partialDayCharging==='full_scheduled_day'?scheduled:requestedHours;const year=Number(input.startDate.slice(0,4)),balance=await recomputeBalance(actor.orgId,input.workerId,type,year);if(!type.negativeBalanceAllowed&&type.accrualMethod!=='none'&&balance.availableHours<chargedHours)throw new ApiError(409,`Insufficient ${type.name} balance.`,'insufficient_leave_balance');const id=randomUUID(),timestamp=now(),status=type.requiresApproval?'pending':'approved';const row:LeaveRequest={id,...input,requestedHours,chargedHours,status,submittedBy:actor.uid,submittedAt:timestamp,createdAt:timestamp,updatedAt:timestamp};const audit=buildAudit(actor,{action:'leave.request',entityType:'leaveRequest',entityId:id,after:row}),event=buildDomainEvent(actor,status==='approved'?'leave.approved':'leave.requested','leaveRequest',id,{workerId:input.workerId,leaveTypeId:type.id,startDate:input.startDate,endDate:input.endDate,requestedHours});const b=db.batch();b.create(db.doc(`organizations/${actor.orgId}/leaveRequests/${id}`),row);b.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);b.create(db.doc(`organizations/${actor.orgId}/domainEvents/${event.id}`),event);await b.commit();await recomputeBalance(actor.orgId,input.workerId,type,year);return row;}
+
+export async function recordLeaveForWorker(actor:ActorContext,raw:unknown){
+  if(!actor.permissions.includes('leave.manage')||!hrRoles.has(actor.role))throw new ApiError(403,'Recording leave for another employee requires HR leave-management permission.','forbidden');
+  const input=adminLeaveRecordSchema.parse(raw);
+  if(actor.workerId===input.workerId)throw new ApiError(409,'Use employee self-service for your own leave. The administrator on-behalf path is reserved for another employee.','admin_on_behalf_self_blocked');
+  if(input.approveImmediately&&!actor.permissions.includes('leave.approve'))throw new ApiError(403,'Immediate approval requires leave approval permission.','forbidden');
+
+  const created=await requestLeave(actor,{
+    workerId:input.workerId,
+    leaveTypeId:input.leaveTypeId,
+    startDate:input.startDate,
+    endDate:input.endDate,
+    requestedHours:input.requestedHours,
+    note:input.note,
+  });
+
+  const db=adminDb();
+  const ref=db.doc(`organizations/${actor.orgId}/leaveRequests/${created.id}`);
+  const provenance={
+    submissionSource:'admin_on_behalf' as const,
+    submittedForWorkerBy:actor.uid,
+    adminReason:input.adminReason,
+    updatedAt:now(),
+  };
+  await ref.set(provenance,{merge:true});
+  let current={...created,...provenance} as LeaveRequest;
+
+  const provenanceAudit=buildAudit(actor,{
+    action:'leave.record_on_behalf',
+    entityType:'leaveRequest',
+    entityId:created.id,
+    before:created,
+    after:current,
+    metadata:{workerId:input.workerId,adminReason:input.adminReason},
+  });
+  await db.doc(`organizations/${actor.orgId}/auditLogs/${provenanceAudit.id}`).create(provenanceAudit);
+
+  if(input.approveImmediately&&current.status==='pending'){
+    current=await actOnLeave(actor,current.id,{
+      action:'approve',
+      note:`Recorded and approved on behalf of employee: ${input.adminReason}`,
+    });
+  }
+  return current;
+}
 
 export async function actOnLeave(actor:ActorContext,requestId:string,raw:unknown){const input=leaveActionSchema.parse(raw),db=adminDb(),ref=db.doc(`organizations/${actor.orgId}/leaveRequests/${requestId}`),snap=await ref.get();if(!snap.exists)throw new ApiError(404,'Leave request not found.','leave_not_found');const before=snap.data() as LeaveRequest;if(input.action==='cancel'){if(actor.workerId!==before.workerId&&!hrRoles.has(actor.role))throw new ApiError(403,'Only the employee or HR can cancel this request.','forbidden');if(!['pending','approved'].includes(before.status))throw new ApiError(409,'Only pending or approved requests can be cancelled.','invalid_leave_state');}else{await requireApproveWorker(actor,before.workerId);if(actor.workerId===before.workerId)throw new ApiError(409,'Self-approval of leave is not permitted. Route the request to another authorized approver.','self_approval_blocked');if(before.status!=='pending')throw new ApiError(409,'Only pending leave requests can be approved or rejected.','invalid_leave_state');}
  const timestamp=now(),status=input.action==='approve'?'approved':input.action==='reject'?'rejected':'cancelled',after={...before,status,actedBy:actor.uid,actedAt:timestamp,actionNote:input.note,updatedAt:timestamp} as LeaveRequest,audit=buildAudit(actor,{action:`leave.${input.action}`,entityType:'leaveRequest',entityId:requestId,before,after}),b=db.batch();b.set(ref,after,{merge:false});b.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);if(status==='approved'){const event=buildDomainEvent(actor,'leave.approved','leaveRequest',requestId,{workerId:before.workerId,startDate:before.startDate,endDate:before.endDate,requestedHours:before.requestedHours});b.create(db.doc(`organizations/${actor.orgId}/domainEvents/${event.id}`),event);}await b.commit();const ts=await db.doc(`organizations/${actor.orgId}/leaveTypes/${before.leaveTypeId}`).get();if(ts.exists)await recomputeBalance(actor.orgId,before.workerId,ts.data() as LeaveType,Number(before.startDate.slice(0,4)));return after;}

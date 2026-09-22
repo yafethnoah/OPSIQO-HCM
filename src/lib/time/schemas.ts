@@ -32,6 +32,11 @@ export const leaveRequestSchema = z.object({
 
 export const leaveActionSchema = z.object({action:z.enum(['approve','reject','cancel']),note:z.string().max(1000).optional()});
 
+export const adminLeaveRecordSchema = leaveRequestSchema.and(z.object({
+  adminReason: z.string().trim().min(10).max(1000),
+  approveImmediately: z.boolean().default(false),
+}));
+
 export const holidayCalendarSchema = z.object({name:z.string().min(2).max(120),jurisdiction:z.string().min(2).max(80),timezone:z.string().min(2).max(80),enabled:z.boolean().default(true)});
 export const holidaySchema = z.object({calendarId:z.string().min(1),date:z.string().date(),name:z.string().min(2).max(120),paidPublicHoliday:z.boolean().default(true)});
 

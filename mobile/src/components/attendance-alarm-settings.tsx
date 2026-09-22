@@ -160,6 +160,9 @@ export function AttendanceAlarmSettings({
   const [scheduleSource, setScheduleSource] =
     useState<AttendanceScheduleSource>("none");
   const [nextAt, setNextAt] = useState<string | undefined>();
+  const [nextClockInAt, setNextClockInAt] = useState<string | undefined>();
+  const [nextClockOutAt, setNextClockOutAt] = useState<string | undefined>();
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | undefined>();
 
   useEffect(() => {
     let mounted = true;
@@ -175,6 +178,9 @@ export function AttendanceAlarmSettings({
         setScheduledCount(runtime.scheduled);
         setScheduleSource(runtime.source);
         setNextAt(runtime.nextAt);
+        setNextClockInAt(runtime.nextClockInAt);
+        setNextClockOutAt(runtime.nextClockOutAt);
+        setLastSyncedAt(runtime.lastCheckedAt);
       })
       .finally(() => {
         if (mounted) setReady(true);
@@ -217,12 +223,43 @@ export function AttendanceAlarmSettings({
       setScheduledCount(result.scheduled);
       setScheduleSource(result.source || "none");
       setNextAt(result.nextAt);
+      setNextClockInAt(result.nextClockInAt);
+      setNextClockOutAt(result.nextClockOutAt);
+      setLastSyncedAt(result.lastSyncedAt);
       setNotificationDenied(result.status === "denied");
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
           : "Attendance alarm settings could not be saved.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function rearm() {
+    setSaving(true);
+    setMessage("");
+    try {
+      const result = await synchronizeAttendanceReminders(
+        shifts,
+        settings,
+        { isClockedIn },
+      );
+      setMessage(result.message);
+      setScheduledCount(result.scheduled);
+      setScheduleSource(result.source || "none");
+      setNextAt(result.nextAt);
+      setNextClockInAt(result.nextClockInAt);
+      setNextClockOutAt(result.nextClockOutAt);
+      setLastSyncedAt(result.lastSyncedAt);
+      setNotificationDenied(result.status === "denied");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Attendance alarms could not be re-armed.",
       );
     } finally {
       setSaving(false);
@@ -284,6 +321,15 @@ export function AttendanceAlarmSettings({
         </Text>
         <Text style={s.statusText}>
           Next alarm: {fmtNext(nextAt)}
+        </Text>
+        <Text style={s.statusText}>
+          Clock In alarm: {nextClockInAt ? `Armed · ${fmtNext(nextClockInAt)}` : "Not armed"}
+        </Text>
+        <Text style={s.statusText}>
+          Clock Out alarm: {nextClockOutAt ? `Armed · ${fmtNext(nextClockOutAt)}` : "Not armed"}
+        </Text>
+        <Text style={s.statusText}>
+          Last alarm sync: {lastSyncedAt ? new Date(lastSyncedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" }) : "Not synced"}
         </Text>
         <Text style={s.statusText}>
           Published shifts loaded:{" "}
@@ -389,6 +435,13 @@ export function AttendanceAlarmSettings({
           </Muted>
         </View>
       </View>
+
+      <Button
+        title={saving ? "Re-arming..." : "Re-arm Clock In / Clock Out alarms"}
+        onPress={() => void rearm()}
+        disabled={!ready || saving}
+        secondary
+      />
 
       <Button
         title="Send test notification now"
