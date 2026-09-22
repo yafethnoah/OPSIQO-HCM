@@ -211,7 +211,15 @@ export async function clearAttendanceReminders() {
   );
 }
 
-async function ensureNotificationPermission() {
+async function ensureNotificationPermission(
+  sound: AttendanceAlarmSound = "default",
+) {
+  // Android 13 does not surface the notification permission prompt until a
+  // notification channel exists. Create the exact attendance channel first.
+  if (Platform.OS === "android") {
+    await ensureAndroidChannel(sound);
+  }
+
   let permission = await Notifications.getPermissionsAsync();
 
   if (!permission.granted && permission.canAskAgain) {
@@ -382,6 +390,21 @@ function managedReminderKey(
   ].join("|");
 }
 
+async function scheduleVerifiedNotification(
+  request: Parameters<typeof Notifications.scheduleNotificationAsync>[0],
+) {
+  const identifier = await Notifications.scheduleNotificationAsync(request);
+  const queued = await Notifications.getAllScheduledNotificationsAsync();
+
+  if (!queued.some((item) => item.identifier === identifier)) {
+    throw new Error(
+      "The operating system did not retain the scheduled attendance alarm. Check notification and exact-alarm settings, then re-arm.",
+    );
+  }
+
+  return identifier;
+}
+
 async function scheduleReminder(
   shift: Shift,
   action: "clock_in" | "clock_out",
@@ -393,13 +416,18 @@ async function scheduleReminder(
   const clockIn = action === "clock_in";
   await ensureAndroidChannel(sound);
 
-  return Notifications.scheduleNotificationAsync({
+  return scheduleVerifiedNotification({
     content: {
       title: clockIn ? "Time to clock in" : "Time to clock out",
       body: clockIn
         ? `${shift.title || "Your workday"} is ready. Open OPSIQO Pulse to clock in.`
         : `${shift.title || "Your workday"} is scheduled to end. Open OPSIQO Pulse to clock out.`,
       sound,
+      priority:
+        Platform.OS === "android"
+          ? Notifications.AndroidNotificationPriority.MAX
+          : undefined,
+      interruptionLevel: Platform.OS === "ios" ? "timeSensitive" : undefined,
       data: {
         kind: MANAGED_KIND,
         action,
@@ -421,7 +449,7 @@ async function scheduleReminder(
 }
 
 export async function previewAttendanceAlarmSound(sound: AttendanceAlarmSound) {
-  const permission = await ensureNotificationPermission();
+  const permission = await ensureNotificationPermission(sound);
 
   if (!permission.granted) {
     return {
@@ -460,7 +488,7 @@ export async function scheduleTimedAttendanceTest(
   sound: AttendanceAlarmSound,
   delaySeconds = 60,
 ) {
-  const permission = await ensureNotificationPermission();
+  const permission = await ensureNotificationPermission(sound);
 
   if (!permission.granted) {
     return {
@@ -474,12 +502,17 @@ export async function scheduleTimedAttendanceTest(
 
   const fireAt = new Date(Date.now() + Math.max(15, delaySeconds) * 1000);
 
-  await Notifications.scheduleNotificationAsync({
+  const identifier = await scheduleVerifiedNotification({
     content: {
       title: "OPSIQO scheduled alarm test",
       body:
         "This delayed notification uses the same scheduled trigger path as Clock In and Clock Out reminders.",
       sound,
+      priority:
+        Platform.OS === "android"
+          ? Notifications.AndroidNotificationPriority.MAX
+          : undefined,
+      interruptionLevel: Platform.OS === "ios" ? "timeSensitive" : undefined,
       data: {
         kind: TIMED_TEST_KIND,
         alarmAt: fireAt.toISOString(),
@@ -497,8 +530,9 @@ export async function scheduleTimedAttendanceTest(
 
   return {
     status: "ready" as const,
+    identifier,
     fireAt: fireAt.toISOString(),
-    message: `Scheduled timing test for ${fireAt.toLocaleTimeString([], {
+    message: `Verified native timing test for ${fireAt.toLocaleTimeString([], {
       hour: "numeric",
       minute: "2-digit",
       second: "2-digit",
@@ -567,7 +601,19 @@ export async function synchronizeAttendanceReminders(
     };
   }
 
-  const permission = await ensureNotificationPermission();
+  const channelSounds = [
+    ...(settings.clockInEnabled ? [settings.clockInSound] : []),
+    ...(settings.clockOutEnabled ? [settings.clockOutSound] : []),
+  ];
+  if (Platform.OS === "android") {
+    await Promise.all(
+      [...new Set(channelSounds)].map((sound) => ensureAndroidChannel(sound)),
+    );
+  }
+
+  const permission = await ensureNotificationPermission(
+    channelSounds[0] || "default",
+  );
 
   if (!permission.granted) {
     return {

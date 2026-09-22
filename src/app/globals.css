@@ -591,3 +591,52 @@ body:has(.prehireShell) .prehireMain .row{min-width:0;max-width:100%;flex-wrap:w
   .authorityStickyTable th:last-child,
   .authorityStickyTable td:last-child{min-width:190px;max-width:230px;}
 }
+
+/* H51.72 Time & Leave browser UAT closure */
+.leaveRequestForm.adminLeaveForm{
+  display:grid!important;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr))!important;
+  gap:14px!important;
+  align-items:end!important;
+  width:100%;
+  min-width:0;
+}
+.adminLeaveForm>.adminLeaveFormHeader,
+.adminLeaveForm>.error,
+.adminLeaveForm>.success{
+  grid-column:1/-1!important;
+}
+.adminLeaveForm>.field,
+.adminLeaveForm>.checkRow,
+.adminLeaveForm>.button{
+  min-width:0!important;
+  max-width:100%;
+}
+.adminLeaveForm>.field>span{
+  white-space:normal!important;
+  word-break:normal!important;
+  overflow-wrap:normal!important;
+  line-height:1.35;
+}
+.adminLeaveForm .input{
+  min-width:0!important;
+  width:100%;
+}
+.adminLeaveForm>.checkRow{
+  align-self:center;
+}
+.adminLeaveForm>.button{
+  align-self:end;
+  min-inline-size:190px!important;
+}
+@media(max-width:760px){
+  .leaveRequestForm.adminLeaveForm{
+    grid-template-columns:1fr!important;
+  }
+  .adminLeaveForm>*{
+    grid-column:1/-1!important;
+  }
+  .adminLeaveForm>.button{
+    width:100%;
+  }
+}

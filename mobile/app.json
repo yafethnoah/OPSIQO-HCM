@@ -14,9 +14,10 @@
         "NSLocationWhenInUseUsageDescription": "OPSIQO Pulse uses your location only when you submit a governed attendance event such as clock in or clock out.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "2",
+      "buildNumber": "3",
       "entitlements": {
-        "com.apple.developer.devicecheck.appattest-environment": "production"
+        "com.apple.developer.devicecheck.appattest-environment": "production",
+        "com.apple.developer.usernotifications.time-sensitive": true
       },
       "icon": "./assets/opsiqo-pulse-3d-icon.png"
     },
@@ -28,13 +29,9 @@
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT",
         "android.permission.RECORD_AUDIO",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
-        "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.SCHEDULE_EXACT_ALARM"
       ],
-      "versionCode": 2,
+      "versionCode": 3,
       "icon": "./assets/opsiqo-pulse-3d-icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/opsiqo-pulse-3d-adaptive-foreground.png",
@@ -112,7 +109,8 @@
       "h50AppVersionTrack": "h50.2a-app-store-version-1.0.2",
       "h50AttendanceConsistencyTrack": "h50.1z-self-attendance-consistency",
       "h50AppStoreTrainTrack": "h50.2a-apple-train-1.0.2",
-      "h50MobileSelfServiceTrack": "h50.2b-no-mfa-visible-attendance-fast-bootstrap"
+      "h50MobileSelfServiceTrack": "h50.2b-no-mfa-visible-attendance-fast-bootstrap",
+      "h51AlarmReliabilityTrack": "h51.72-time-leave-alarm-reliability"
     },
     "owner": "shadykutaifan",
     "runtimeVersion": {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Linking,
+  Platform,
   Pressable,
   StyleSheet,
   Switch,
@@ -282,6 +283,23 @@ export function AttendanceAlarmSettings({
     }
   }
 
+  async function openExactAlarmAccess() {
+    setMessage("");
+    if (Platform.OS !== "android") return;
+
+    try {
+      await Linking.sendIntent("android.settings.REQUEST_SCHEDULE_EXACT_ALARM");
+      setMessage(
+        "Android exact-alarm settings opened. Allow Alarms & reminders for OPSIQO Pulse, return here, then tap Re-arm Clock In / Clock Out alarms.",
+      );
+    } catch {
+      await Linking.openSettings();
+      setMessage(
+        "Open Special app access > Alarms & reminders and allow OPSIQO Pulse, then return and re-arm the alarms.",
+      );
+    }
+  }
+
   async function timedTest() {
     setMessage("");
 
@@ -461,6 +479,21 @@ export function AttendanceAlarmSettings({
           onPress={() => void Linking.openSettings()}
           secondary
         />
+      ) : null}
+
+      {Platform.OS === "android" ? (
+        <>
+          <Button
+            title="Open Android Alarms & reminders access"
+            onPress={() => void openExactAlarmAccess()}
+            secondary
+          />
+          <Muted>
+            Android 12+ requires Alarms & reminders special access for exact
+            Clock In / Clock Out timing. After granting it, return to Pulse and
+            tap Re-arm Clock In / Clock Out alarms.
+          </Muted>
+        </>
       ) : null}
 
       <Button
