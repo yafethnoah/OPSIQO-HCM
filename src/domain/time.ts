@@ -54,6 +54,9 @@ export interface LeaveType {
   jurisdiction?: string;
   legalReferenceUrl?: string;
   compliance?: LeaveComplianceSnapshot;
+  reconciledInto?: string;
+  reconciledAt?: string;
+  reconciliationNote?: string;
   enabled: boolean;
   createdAt: string;
   updatedAt: string;

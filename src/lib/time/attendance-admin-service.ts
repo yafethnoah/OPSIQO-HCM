@@ -81,12 +81,15 @@ export async function sendAttendanceAdminBroadcast(actor:ActorContext,raw:unknow
     }
   }
 
-  const targets=activeWorkers.filter(worker=>{
-    if(input.excludeApprovedLeave&&onLeave.has(worker.id))return false;
+  const scopeMatched=activeWorkers.filter(worker=>{
     if(input.scope==='clocked_in')return clockedIn.has(worker.id);
     if(input.scope==='not_clocked_in')return !clockedIn.has(worker.id);
     return true;
   });
+  const excludedApprovedLeaveWorkers=input.excludeApprovedLeave
+    ? scopeMatched.filter(worker=>onLeave.has(worker.id)).length
+    : 0;
+  const targets=scopeMatched.filter(worker=>!(input.excludeApprovedLeave&&onLeave.has(worker.id)));
   const targetIds=new Set(targets.map(worker=>worker.id));
 
   const devices=devicesSnap.docs
@@ -157,6 +160,8 @@ export async function sendAttendanceAdminBroadcast(actor:ActorContext,raw:unknow
     message:body,
     reason:input.reason,
     excludeApprovedLeave:input.excludeApprovedLeave,
+    scopeMatchedWorkers:scopeMatched.length,
+    excludedApprovedLeaveWorkers,
     targetWorkers:targets.length,
     pushCapableDevices:tokens.length,
     pushAccepted:push.accepted,

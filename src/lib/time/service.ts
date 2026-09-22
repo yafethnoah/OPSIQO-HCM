@@ -95,6 +95,113 @@ export async function bootstrapStatutoryLeaveTypes(actor:ActorContext,raw:unknow
   };
 }
 
+function normalizedLeaveCode(value:unknown){
+  return String(value||'').trim().toUpperCase();
+}
+
+function chooseCanonicalLeaveType(rows:LeaveType[]){
+  return [...rows].sort((a,b)=>{
+    const aGoverned=a.compliance?.sourceKind==='statutory'?1:0;
+    const bGoverned=b.compliance?.sourceKind==='statutory'?1:0;
+    if(aGoverned!==bGoverned)return bGoverned-aGoverned;
+    const aEnabled=a.enabled!==false?1:0,bEnabled=b.enabled!==false?1:0;
+    if(aEnabled!==bEnabled)return bEnabled-aEnabled;
+    return String(a.createdAt||'').localeCompare(String(b.createdAt||''));
+  })[0]!;
+}
+
+export async function reconcileDuplicateLeaveTypes(actor:ActorContext,raw:unknown){
+  if(!hrRoles.has(actor.role)||!actor.permissions.includes('leave.manage'))throw new ApiError(403,'Duplicate leave reconciliation requires HR leave-management permission.','forbidden');
+  const apply=Boolean((raw as {apply?:unknown}|null)?.apply);
+  const db=adminDb(),snapshot=await db.collection(`organizations/${actor.orgId}/leaveTypes`).get();
+  const rows=snapshot.docs.map(d=>d.data() as LeaveType);
+  const byCode=new Map<string,LeaveType[]>();
+  for(const row of rows.filter(row=>row.enabled!==false&&!row.reconciledInto)){
+    const code=normalizedLeaveCode(row.code);
+    if(!code)continue;
+    const list=byCode.get(code)||[];
+    list.push(row);
+    byCode.set(code,list);
+  }
+
+  const duplicateGroups=[...byCode.entries()]
+    .filter(([,group])=>group.length>1)
+    .map(([code,group])=>({code,group,canonical:chooseCanonicalLeaveType(group)}));
+
+  const preview:any[]=[];
+  let reconciledGroups=0,reconciledAliases=0,movedRequests=0;
+  const skipped:any[]=[];
+
+  for(const item of duplicateGroups){
+    const aliases=item.group.filter(row=>row.id!==item.canonical.id);
+    let manualBalanceReview=false;
+    let aliasBalanceCount=0;
+    for(const alias of aliases){
+      const balances=await db.collection(`organizations/${actor.orgId}/leaveBalances`).where('leaveTypeId','==',alias.id).get();
+      aliasBalanceCount+=balances.size;
+      if(balances.docs.some(doc=>{
+        const balance=doc.data() as LeaveBalance;
+        return Math.abs(Number(balance.openingHours||0))>0.0001||Math.abs(Number(balance.adjustmentHours||0))>0.0001;
+      }))manualBalanceReview=true;
+    }
+
+    const itemPreview={
+      code:item.code,
+      canonical:{id:item.canonical.id,name:item.canonical.name,statutory:item.canonical.compliance?.sourceKind==='statutory'},
+      aliases:aliases.map(row=>({id:row.id,name:row.name,enabled:row.enabled!==false})),
+      aliasBalanceCount,
+      safeToApply:!manualBalanceReview,
+      blockReason:manualBalanceReview?'manual_balance_review_required':undefined,
+    };
+    preview.push(itemPreview);
+
+    if(!apply)continue;
+    if(manualBalanceReview){
+      skipped.push(itemPreview);
+      continue;
+    }
+
+    for(const alias of aliases){
+      const requests=await db.collection(`organizations/${actor.orgId}/leaveRequests`).where('leaveTypeId','==',alias.id).get();
+      for(let i=0;i<requests.docs.length;i+=350){
+        const batch=db.batch();
+        for(const doc of requests.docs.slice(i,i+350)){
+          batch.update(doc.ref,{leaveTypeId:item.canonical.id,updatedAt:now()});
+          movedRequests+=1;
+        }
+        await batch.commit();
+      }
+
+      const timestamp=now();
+      const after={...alias,enabled:false,reconciledInto:item.canonical.id,reconciledAt:timestamp,reconciliationNote:`Reconciled into canonical leave code ${item.code}`,updatedAt:timestamp};
+      const audit=buildAudit(actor,{action:'leave_type.reconcile_duplicate',entityType:'leaveType',entityId:alias.id,before:alias,after,metadata:{canonicalLeaveTypeId:item.canonical.id,code:item.code,movedRequests:requests.size}});
+      const batch=db.batch();
+      batch.set(db.doc(`organizations/${actor.orgId}/leaveTypes/${alias.id}`),after,{merge:false});
+      batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
+      await batch.commit();
+      reconciledAliases+=1;
+    }
+    reconciledGroups+=1;
+  }
+
+  return{
+    apply,
+    duplicateGroups:preview,
+    duplicateGroupCount:duplicateGroups.length,
+    safeGroupCount:preview.filter(row=>row.safeToApply).length,
+    blockedGroupCount:preview.filter(row=>!row.safeToApply).length,
+    reconciledGroups,
+    reconciledAliases,
+    movedRequests,
+    skipped,
+    message:duplicateGroups.length
+      ? apply
+        ? `${reconciledGroups} duplicate leave group(s) reconciled; ${skipped.length} group(s) require manual balance review.`
+        : `${duplicateGroups.length} duplicate leave group(s) detected; ${preview.filter(row=>row.safeToApply).length} can be safely reconciled automatically.`
+      : 'No exact-code duplicate leave groups were detected.',
+  };
+}
+
 async function timeProfile(orgId:string,workerId:string){const db=adminDb();const s=await db.doc(`organizations/${orgId}/workerTimeProfiles/${workerId}`).get();if(s.exists)return s.data() as WorkerTimeProfile;const ps=await db.collection(`organizations/${orgId}/timePolicies`).where('enabled','==',true).limit(1).get();if(ps.empty)throw new ApiError(409,'No active time policy is configured.','time_policy_required');const p=ps.docs[0]!.data() as TimePolicy;return{id:workerId,workerId,timePolicyId:p.id,workingDays:[1,2,3,4,5],standardDailyHours:p.standardDailyHours,overtimeEligible:true,createdAt:now(),updatedAt:now()};}
 async function policyForProfile(orgId:string,p:WorkerTimeProfile){const s=await adminDb().doc(`organizations/${orgId}/timePolicies/${p.timePolicyId}`).get();if(!s.exists)throw new ApiError(409,'Assigned time policy is missing.','time_policy_missing');return s.data() as TimePolicy;}
 async function holidaysForRange(orgId:string,calendarId:string|undefined,start:string,end:string){if(!calendarId)return new Set<string>();const s=await adminDb().collection(`organizations/${orgId}/holidays`).where('calendarId','==',calendarId).where('date','>=',start).where('date','<=',end).get();return new Set(s.docs.map(d=>(d.data() as Holiday).date));}
