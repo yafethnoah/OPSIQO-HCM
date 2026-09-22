@@ -33,7 +33,7 @@ export const leaveRequestSchema = z.object({
 export const leaveActionSchema = z.object({action:z.enum(['approve','reject','cancel']),note:z.string().max(1000).optional()});
 
 export const adminLeaveRecordSchema = leaveRequestSchema.and(z.object({
-  adminReason: z.string().trim().min(10).max(1000),
+  adminReason: z.string().trim().min(10,'Provide an administrative reason of at least 10 characters.').max(1000),
   approveImmediately: z.boolean().default(false),
 }));
 

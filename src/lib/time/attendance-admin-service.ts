@@ -15,7 +15,7 @@ export const attendanceBroadcastSchema=z.object({
   action:z.enum(['clock_in','clock_out']),
   scope:z.enum(['all_active','not_clocked_in','clocked_in']).default('all_active'),
   message:z.string().trim().max(500).optional(),
-  reason:z.string().trim().min(10).max(1000),
+  reason:z.string().trim().min(10,'Provide an operational reason of at least 10 characters.').max(1000),
   excludeApprovedLeave:z.boolean().default(true),
 });
 
