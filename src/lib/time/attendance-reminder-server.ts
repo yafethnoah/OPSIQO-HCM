@@ -171,6 +171,7 @@ async function sendExpoPush(tokens:string[],shift:ShiftAssignment,decision:Atten
     title:decision.title,
     body:decision.body,
     sound:'default',
+    channelId:'attendance-reminders-default',
     priority:'high',
     data:{
       kind:'opsiqo_attendance_reminder',

@@ -12,6 +12,8 @@ import {
 import type { Shift } from "@/types/mobile";
 import { Button, Card, H2, Muted } from "@/components/ui";
 import { colors } from "@/theme/tokens";
+import { apiFetch } from "@/api/client";
+import { registerDevice } from "@/mobile/device";
 import {
   ATTENDANCE_ALARM_LEAD_OPTIONS,
   ATTENDANCE_ALARM_SOUND_OPTIONS,
@@ -33,6 +35,8 @@ type Props = {
   isClockedIn?: boolean;
   serverBackupReady?: boolean;
   activePushDevices?: number;
+  activeOrgId?: string | null;
+  onRefresh?: () => Promise<void> | void;
 };
 
 function ChoiceButton({
@@ -149,6 +153,8 @@ export function AttendanceAlarmSettings({
   isClockedIn,
   serverBackupReady = false,
   activePushDevices = 0,
+  activeOrgId,
+  onRefresh,
 }: Props) {
   const [settings, setSettings] = useState<AttendanceReminderSettings>(
     DEFAULT_ATTENDANCE_REMINDER_SETTINGS,
@@ -157,6 +163,7 @@ export function AttendanceAlarmSettings({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [notificationDenied, setNotificationDenied] = useState(false);
+  const [serverBusy, setServerBusy] = useState(false);
   const [scheduledCount, setScheduledCount] = useState(0);
   const [scheduleSource, setScheduleSource] =
     useState<AttendanceScheduleSource>("none");
@@ -320,6 +327,60 @@ export function AttendanceAlarmSettings({
     }
   }
 
+  async function repairAndTestServerNotifications() {
+    if (!activeOrgId) {
+      setMessage("Select an organization before repairing server notifications.");
+      return;
+    }
+
+    setServerBusy(true);
+    setMessage("");
+
+    try {
+      await registerDevice(activeOrgId, { requestPush: true });
+
+      const result = await apiFetch<{
+        data: {
+          pushCapableDevices: number;
+          pushAccepted: number;
+          pushRejected: number;
+          pushErrors: string[];
+        };
+      }>(`/api/organizations/${activeOrgId}/mobile/devices/test-notification`, {
+        method: "POST",
+        orgId: activeOrgId,
+        body: JSON.stringify({}),
+      });
+
+      await onRefresh?.();
+
+      if (result.data.pushCapableDevices === 0) {
+        throw new Error(
+          "This phone is not push-ready. Confirm notification permission, then try Repair & test server notifications again.",
+        );
+      }
+
+      if (result.data.pushAccepted === 0) {
+        throw new Error(
+          result.data.pushErrors[0] ||
+            "The notification provider did not accept the server push test.",
+        );
+      }
+
+      setMessage(
+        `Server push test accepted for ${result.data.pushAccepted}/${result.data.pushCapableDevices} registered device(s). Lock or background the phone and confirm the OPSIQO test notification arrives.`,
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Server notification registration/test failed.",
+      );
+    } finally {
+      setServerBusy(false);
+    }
+  }
+
   return (
     <Card>
       <H2>Clock alarms</H2>
@@ -472,6 +533,22 @@ export function AttendanceAlarmSettings({
         onPress={() => void timedTest()}
         secondary
       />
+
+      <Button
+        title={
+          serverBusy
+            ? "Repairing server notifications..."
+            : "Repair & test server notifications"
+        }
+        onPress={() => void repairAndTestServerNotifications()}
+        disabled={serverBusy || !activeOrgId}
+        secondary
+      />
+
+      <Muted>
+        This tests the real server-to-device push path. The immediate sound preview
+        tests only local notifications on this phone.
+      </Muted>
 
       {notificationDenied ? (
         <Button

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Redirect, Tabs } from "expo-router";
-import { type ColorValue } from "react-native";
+import { AppState, type ColorValue } from "react-native";
 import { useAuth } from "@/auth/provider";
 import { useBootstrap } from "@/hooks/use-bootstrap";
 import { useAttendanceReminders } from "@/notifications/attendance-reminders";
@@ -25,7 +25,7 @@ const icon =
 
 function AttendanceReminderCoordinator() {
   const { activeOrgId } = useAuth();
-  const { data } = useBootstrap();
+  const { data, reload } = useBootstrap();
 
   const isClockedIn = Boolean(
     (data?.attendance?.working?.length || 0) +
@@ -40,8 +40,30 @@ function AttendanceReminderCoordinator() {
 
   useEffect(() => {
     if (!activeOrgId || !data) return;
-    void registerDevice(activeOrgId, { requestPush: true }).catch(() => undefined);
-  }, [activeOrgId, Boolean(data)]);
+
+    let cancelled = false;
+
+    const register = async () => {
+      try {
+        await registerDevice(activeOrgId, { requestPush: true });
+        if (!cancelled) await reload();
+      } catch {
+        // The Time screen exposes an explicit repair/test action so a
+        // registration failure is visible and recoverable by the employee.
+      }
+    };
+
+    void register();
+
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") void register();
+    });
+
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
+  }, [activeOrgId, Boolean(data), reload]);
 
   return null;
 }

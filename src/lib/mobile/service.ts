@@ -144,3 +144,64 @@ export async function revokeMobileDevice(actor:ActorContext, installationId:stri
   await batch.commit();
   return { id, status: after.status, updatedAt: timestamp };
 }
+
+const SELF_TEST_EXPO_PUSH_URL='https://exp.host/--/api/v2/push/send';
+function validSelfTestExpoToken(value:unknown){
+  const token=String(value||'').trim();
+  return /^(ExponentPushToken|ExpoPushToken)\[[^\]]+\]$/.test(token)?token:'';
+}
+
+export async function sendMobilePushSelfTest(actor:ActorContext){
+  const db=adminDb();
+  const snap=await db.collection(`organizations/${actor.orgId}/mobileDevices`).where('uid','==',actor.uid).limit(20).get();
+  const tokens=[...new Set(
+    snap.docs
+      .map(doc=>doc.data() as MobileDeviceRegistration)
+      .filter(row=>row.status==='active'&&row.notificationsGranted===true)
+      .map(row=>validSelfTestExpoToken(row.pushToken))
+      .filter(Boolean)
+  )];
+
+  if(!tokens.length){
+    return{pushCapableDevices:0,pushAccepted:0,pushRejected:0,pushErrors:['No active push-ready OPSIQO Pulse registration exists for this user.'],testedAt:now()};
+  }
+
+  const messages=tokens.map(to=>({
+    to,
+    title:'OPSIQO server notification test',
+    body:'Server push is connected. Attendance reminders can reach this device when operating-system notification settings allow them.',
+    sound:'default',
+    channelId:'attendance-reminders-default',
+    priority:'high',
+    data:{kind:'opsiqo_attendance_reminder',source:'employee_server_test',route:'/time',sentAt:now()},
+  }));
+
+  const response=await fetch(SELF_TEST_EXPO_PUSH_URL,{
+    method:'POST',
+    headers:{'content-type':'application/json','accept':'application/json','accept-encoding':'gzip, deflate'},
+    body:JSON.stringify(messages),
+    signal:AbortSignal.timeout(10000),
+  });
+
+  if(!response.ok){
+    throw new ApiError(502,`Notification provider returned HTTP ${response.status}.`,'push_provider_failed');
+  }
+
+  const payload=await response.json() as any;
+  const tickets=Array.isArray(payload?.data)?payload.data:[payload?.data].filter(Boolean);
+  const pushErrors:string[]=[];
+  let pushAccepted=0;
+
+  for(const ticket of tickets){
+    if(ticket?.status==='ok')pushAccepted+=1;
+    else pushErrors.push(String(ticket?.message||ticket?.details?.error||'push_rejected'));
+  }
+
+  return{
+    pushCapableDevices:tokens.length,
+    pushAccepted,
+    pushRejected:Math.max(0,tokens.length-pushAccepted),
+    pushErrors:pushErrors.slice(0,10),
+    testedAt:now(),
+  };
+}

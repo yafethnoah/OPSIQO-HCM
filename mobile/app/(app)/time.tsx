@@ -70,6 +70,8 @@ export default function Time() {
         isClockedIn={isClockedIn}
         serverBackupReady={data?.attendanceReminderReliability?.serverBackupReady}
         activePushDevices={data?.attendanceReminderReliability?.activePushDevices}
+        activeOrgId={activeOrgId}
+        onRefresh={reload}
       />
 
       <Card>
