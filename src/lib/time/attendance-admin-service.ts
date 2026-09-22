@@ -112,6 +112,7 @@ export async function sendAttendanceAdminBroadcast(actor:ActorContext,raw:unknow
     sound:'default',
     channelId:'attendance-reminders-default',
     priority:'high',
+    interruptionLevel:'time-sensitive',
     data:{
       kind:'opsiqo_attendance_reminder',
       source:'admin_broadcast',

@@ -173,6 +173,7 @@ async function sendExpoPush(tokens:string[],shift:ShiftAssignment,decision:Atten
     sound:'default',
     channelId:'attendance-reminders-default',
     priority:'high',
+    interruptionLevel:'time-sensitive',
     data:{
       kind:'opsiqo_attendance_reminder',
       source:'server_backup',

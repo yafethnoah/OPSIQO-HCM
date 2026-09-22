@@ -173,6 +173,7 @@ export async function sendMobilePushSelfTest(actor:ActorContext){
     sound:'default',
     channelId:'attendance-reminders-default',
     priority:'high',
+    interruptionLevel:'time-sensitive',
     data:{kind:'opsiqo_attendance_reminder',source:'employee_server_test',route:'/time',sentAt:now()},
   }));
 
