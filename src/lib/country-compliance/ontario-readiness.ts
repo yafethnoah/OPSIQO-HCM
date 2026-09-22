@@ -433,8 +433,8 @@ export const ONTARIO_LEAVE_CATALOGUE: readonly OntarioLeaveRule[] = [
   {
     id: 'placement_child',
     label: 'Placement of a child leave',
-    foundationEntitlement: 'Up to 16 weeks for qualifying adoption/surrogacy placements under the current foundation.',
-    eligibilityFoundation: 'Statutory placement and service conditions require review.',
+    foundationEntitlement: 'Enacted future foundation for up to 16 weeks for qualifying adoption/surrogacy placements, but the provision is not yet in force as of 2026-09-22.',
+    eligibilityFoundation: 'Do not activate until the provision is proclaimed in force and the current statutory placement/service conditions are re-verified.',
     paidFoundation: 'Unpaid under the ESA.',
     sourceUrl: 'https://www.ontario.ca/document/your-guide-employment-standards-act-0/recent-changes',
     liveEffect: 'NONE',

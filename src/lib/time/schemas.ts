@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+export const leaveComplianceInputSchema = z.object({
+  sourceKind: z.enum(['statutory','employer_policy','collective_agreement','contractual','other']).default('employer_policy'),
+  jurisdictionCode: z.string().max(20).optional(),
+  templateId: z.string().max(80).optional(),
+  employerEnhancementPaidDays: z.number().min(0).max(366).optional(),
+  employerEnhancementNote: z.string().max(500).optional(),
+});
+
 export const leaveTypeSchema = z.object({
   code: z.string().min(2).max(30).transform(v=>v.trim().toUpperCase()),
   name: z.string().min(2).max(120),
@@ -18,6 +26,7 @@ export const leaveTypeSchema = z.object({
   evidencePolicy: z.string().max(500).optional(),
   jurisdiction: z.string().max(80).optional(),
   legalReferenceUrl: z.string().url().optional(),
+  compliance: leaveComplianceInputSchema.optional(),
   enabled: z.boolean().default(true),
 });
 

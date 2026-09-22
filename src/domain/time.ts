@@ -2,6 +2,38 @@ export type LeaveUnit = 'hours' | 'days';
 export type LeaveAccrualMethod = 'annual_grant' | 'monthly' | 'none';
 export type LeaveRequestStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'cancelled';
 
+export type LeaveSourceKind = 'statutory' | 'employer_policy' | 'collective_agreement' | 'contractual' | 'other';
+export type LeavePaymentClassification =
+  | 'vacation_pay'
+  | 'employer_paid_statutory'
+  | 'unpaid_statutory'
+  | 'mixed_paid_unpaid'
+  | 'employer_paid_policy'
+  | 'external_income_replacement'
+  | 'employer_top_up';
+export type LeaveLegalStatus = 'active' | 'conditional_inactive' | 'future_not_in_force' | 'custom_review';
+
+export interface LeaveComplianceSnapshot {
+  sourceKind: LeaveSourceKind;
+  jurisdictionCode?: string;
+  templateId?: string;
+  legalStatus?: LeaveLegalStatus;
+  paymentClassification?: LeavePaymentClassification;
+  entitlementSummary?: string;
+  paidSummary?: string;
+  unpaidSummary?: string;
+  eligibilitySummary?: string;
+  evidenceSummary?: string;
+  consumptionSummary?: string;
+  renewalSummary?: string;
+  externalBenefitSummary?: string;
+  sourceObservedAt?: string;
+  legalSourceTitle?: string;
+  employerEnhancementPaidDays?: number;
+  employerEnhancementNote?: string;
+  humanReviewRequired?: boolean;
+}
+
 export interface LeaveType {
   id: string;
   code: string;
@@ -21,6 +53,7 @@ export interface LeaveType {
   evidencePolicy?: string;
   jurisdiction?: string;
   legalReferenceUrl?: string;
+  compliance?: LeaveComplianceSnapshot;
   enabled: boolean;
   createdAt: string;
   updatedAt: string;

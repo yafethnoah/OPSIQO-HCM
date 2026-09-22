@@ -20,6 +20,7 @@ import { consumeAttendancePhoto, validateClockLocation } from './frontline-servi
 import { exactMinutesBetween, exactWorkedMinutes, normalizeMinutes, sumMinutes } from './precision';
 import { buildAttendanceLocationStatus } from './attendance-map';
 import { assessAttendanceIntegrity, attendanceIntegrityForWorkerWeek } from './attendance-integrity';
+import { ACTIVE_ONTARIO_STATUTORY_LEAVE_TEMPLATES, getLeaveComplianceTemplate, statutoryLeaveTypeDefaults } from './leave-compliance';
 
 const now=()=>new Date().toISOString();
 const today=()=>now().slice(0,10);
@@ -42,7 +43,57 @@ async function requireReadWorker(actor:ActorContext,workerId:string){if(!await c
 async function requireApproveWorker(actor:ActorContext,workerId:string){if(hrRoles.has(actor.role))return;if(actor.role==='manager'&&await isDirectReport(actor,workerId))return;throw new ApiError(403,'Approval is limited to HR or the employee\'s direct manager.','forbidden');}
 
 export async function listLeaveTypes(actor:ActorContext){const s=await adminDb().collection(`organizations/${actor.orgId}/leaveTypes`).orderBy('name').get();return s.docs.map(d=>d.data() as LeaveType);}
-export async function createLeaveType(actor:ActorContext,raw:unknown){if(!hrRoles.has(actor.role))throw new ApiError(403,'HR permission required.','forbidden');const input=leaveTypeSchema.parse(raw),id=randomUUID(),timestamp=now();const row:LeaveType={id,...input,createdAt:timestamp,updatedAt:timestamp};const db=adminDb(),audit=buildAudit(actor,{action:'leave_type.create',entityType:'leaveType',entityId:id,after:row});const b=db.batch();b.create(db.doc(`organizations/${actor.orgId}/leaveTypes/${id}`),row);b.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);await b.commit();return row;}
+export async function createLeaveType(actor:ActorContext,raw:unknown){
+  if(!hrRoles.has(actor.role))throw new ApiError(403,'HR permission required.','forbidden');
+  const parsed=leaveTypeSchema.parse(raw),db=adminDb();
+  let governed={...parsed} as Omit<LeaveType,'id'|'createdAt'|'updatedAt'>;
+  if(parsed.compliance?.sourceKind==='statutory'){
+    if(parsed.compliance.jurisdictionCode!=='CA-ON')throw new ApiError(400,'This release can automatically configure statutory leave only for Ontario, Canada. Use employer/custom policy mode for other jurisdictions until a governed country pack is available.','unsupported_leave_jurisdiction');
+    const template=getLeaveComplianceTemplate(parsed.compliance.jurisdictionCode,parsed.compliance.templateId);
+    if(!template)throw new ApiError(400,'Select a recognized Ontario statutory leave template.','leave_template_required');
+    if(template.legalStatus!=='active')throw new ApiError(409,`${template.name} is registered as ${template.legalStatus.replaceAll('_',' ')} and cannot be activated automatically. Review the official source before enabling it.`,'leave_rule_not_active');
+    governed=statutoryLeaveTypeDefaults(template.id,parsed.compliance.employerEnhancementPaidDays,parsed.compliance.employerEnhancementNote);
+  }
+  const duplicate=await db.collection(`organizations/${actor.orgId}/leaveTypes`).where('code','==',String(governed.code).toUpperCase()).limit(1).get();
+  if(!duplicate.empty)throw new ApiError(409,`Leave code ${governed.code} already exists. Review the existing leave type instead of creating a duplicate.`,'duplicate_leave_type');
+  const id=randomUUID(),timestamp=now(),row:LeaveType={id,...governed,createdAt:timestamp,updatedAt:timestamp};
+  const audit=buildAudit(actor,{action:'leave_type.create',entityType:'leaveType',entityId:id,after:row});
+  const b=db.batch();
+  b.create(db.doc(`organizations/${actor.orgId}/leaveTypes/${id}`),row);
+  b.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
+  await b.commit();
+  return row;
+}
+
+export async function bootstrapStatutoryLeaveTypes(actor:ActorContext,raw:unknown){
+  if(!hrRoles.has(actor.role))throw new ApiError(403,'HR permission required.','forbidden');
+  const jurisdictionCode=String((raw as {jurisdictionCode?:unknown}|null)?.jurisdictionCode||'').trim();
+  if(jurisdictionCode!=='CA-ON')throw new ApiError(400,'H51.74 statutory leave bootstrap currently supports Ontario, Canada only.','unsupported_leave_jurisdiction');
+  const db=adminDb(),existingSnap=await db.collection(`organizations/${actor.orgId}/leaveTypes`).get();
+  const existing=existingSnap.docs.map(d=>d.data() as LeaveType);
+  const existingTemplates=new Set(existing.map(row=>row.compliance?.templateId).filter(Boolean));
+  const existingCodes=new Set(existing.map(row=>String(row.code||'').toUpperCase()));
+  const timestamp=now(),batch=db.batch();
+  const created:LeaveType[]=[];
+  const skippedExisting:string[]=[];
+  for(const template of ACTIVE_ONTARIO_STATUTORY_LEAVE_TEMPLATES){
+    if(existingTemplates.has(template.id)||existingCodes.has(template.code.toUpperCase())){skippedExisting.push(template.id);continue;}
+    const id=randomUUID(),row:LeaveType={id,...statutoryLeaveTypeDefaults(template.id),createdAt:timestamp,updatedAt:timestamp};
+    const audit=buildAudit(actor,{action:'leave_type.bootstrap_statutory',entityType:'leaveType',entityId:id,after:row,metadata:{jurisdictionCode,templateId:template.id}});
+    batch.create(db.doc(`organizations/${actor.orgId}/leaveTypes/${id}`),row);
+    batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
+    created.push(row);
+  }
+  if(created.length)await batch.commit();
+  return{
+    jurisdictionCode,
+    created:created.map(row=>({id:row.id,code:row.code,name:row.name,compliance:row.compliance})),
+    createdCount:created.length,
+    skippedExisting,
+    inactiveTemplates:['declared_emergency','placement_child'],
+    message:created.length?`${created.length} Ontario statutory leave type(s) configured from governed templates.`:'Ontario statutory leave types are already configured.',
+  };
+}
 
 async function timeProfile(orgId:string,workerId:string){const db=adminDb();const s=await db.doc(`organizations/${orgId}/workerTimeProfiles/${workerId}`).get();if(s.exists)return s.data() as WorkerTimeProfile;const ps=await db.collection(`organizations/${orgId}/timePolicies`).where('enabled','==',true).limit(1).get();if(ps.empty)throw new ApiError(409,'No active time policy is configured.','time_policy_required');const p=ps.docs[0]!.data() as TimePolicy;return{id:workerId,workerId,timePolicyId:p.id,workingDays:[1,2,3,4,5],standardDailyHours:p.standardDailyHours,overtimeEligible:true,createdAt:now(),updatedAt:now()};}
 async function policyForProfile(orgId:string,p:WorkerTimeProfile){const s=await adminDb().doc(`organizations/${orgId}/timePolicies/${p.timePolicyId}`).get();if(!s.exists)throw new ApiError(409,'Assigned time policy is missing.','time_policy_missing');return s.data() as TimePolicy;}
