@@ -265,7 +265,7 @@ export async function exportBlankTemplate(actor:ActorContext,templateId:string,f
   const template=await getFormTemplate(actor,templateId);
   const settings=await getPlatformSettings(actor),brand=brandFromPlatformSettings(settings as any,'Organization');
   const control=[`Form code: ${template.formCode}`,`Version: ${template.version}`,`Status: ${template.status}`,`Sensitivity: ${template.sensitivity}`];
-  const lines=[...control.map(v=>({value:v})),{value:'Human review required before use or publication.'},...docLines(template)];
+  const lines:Array<{label?:string;value:string}>=[...control.map(v=>({value:v})),{value:'Human review required before use or publication.'},...docLines(template)];
   const safe=template.title.replace(/[^A-Za-z0-9_-]+/g,'_').slice(0,80)||'HR_Form';
   if(format==='docx')return{bytes:buildSimpleDocx({title:template.title,lines}),contentType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',fileName:`${safe}_v${template.version}.docx`};
   const content=[`# ${template.title}`,...lines.map(x=>x.label?`${x.label}: ${x.value}`:x.value)].join('\n');
