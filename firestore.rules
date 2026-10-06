@@ -58,6 +58,11 @@ service cloud.firestore {
       match /secondaryAssignmentPlans/{docId} { allow read: if isHR(orgId); allow write: if false; }
       // Workflow internals are server-owned. Governed APIs enforce organization and RBAC scope.
       match /workflowDefinitions/{docId} { allow read, write: if false; }
+      // H51.77 HR Forms & Workflows: server-owned; governed APIs enforce org scope, RBAC, workflow and audit controls.
+      match /hrFormTemplates/{docId} { allow read, write: if false; }
+      match /hrFormInstances/{docId} { allow read, write: if false; }
+      match /hrFormSubmissions/{docId} { allow read, write: if false; }
+      match /hrFormPacks/{docId} { allow read, write: if false; }
       match /workflowRuns/{docId} { allow read, write: if false; }
       match /workflowStepRuns/{docId} { allow read, write: if false; }
       match /workflowEscalations/{docId} { allow read: if isHR(orgId); allow write: if false; }

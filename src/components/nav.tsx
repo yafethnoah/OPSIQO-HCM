@@ -54,6 +54,7 @@ const allItems: Item[] = [
   { label:'E-Signatures',href:'/esign',permission:'documents.manage',icon:'S',keywords:['signature','esign','agreement'],area:'work',priority:77 },
   { label:'Workflows',href:'/workflows',permission:'workflow.read',icon:'⌁',keywords:['process','approval'],area:'work',priority:75 },
 
+  { label:'HR Forms',href:'/hr-forms',permission:'workflow.read',icon:'F',keywords:['forms','form builder','requests','approvals','questionnaires','interview scorecard'],area:'work',priority:76 },
   { label:'Intelligence',href:'/intelligence',permission:'self.read',icon:'✦',keywords:['cortex','knowledge graph','ai','intelligence'],area:'insights',priority:105 },
   { label:'People Analytics',href:'/people-analytics',permission:'peopleanalytics.read',icon:'▥',keywords:['analytics','reports','metrics'],area:'insights',priority:100 },
   { label:'Workforce Intelligence',href:'/workforce-intelligence',permission:'peopleanalytics.read',icon:'◈',keywords:['workforce insight'],area:'insights',priority:90 },
