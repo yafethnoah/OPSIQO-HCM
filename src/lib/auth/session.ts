@@ -67,6 +67,13 @@ async function platformPolicyForOrg(orgId:string){
   return snap.exists ? (snap.data() as Record<string,unknown>) : null;
 }
 
+async function requireActiveOrganization(orgId:string){
+  const snap=await adminDb().doc(`organizations/${orgId}`).get();
+  if(!snap.exists) throw new ApiError(403,'Organization is unavailable.','organization_unavailable');
+  const status=String(snap.data()?.status||'active');
+  if(status!=='active') throw new ApiError(403,`Organization is ${status} and cannot be accessed until it is reactivated.`,'organization_inactive');
+}
+
 function enforcePlatformIdentityPolicy(identity:IdentityContext,role:Role,platform:Record<string,unknown>|null){
   if(!platform||identity.demo) return;
   if(platform.allowPasswordSignIn===false&&identity.signInProvider==='password') throw new ApiError(403,'Email/password sign-in is disabled by organization policy.','password_signin_disabled');
@@ -99,6 +106,7 @@ export async function actorFromRequest(request: Request, orgId?: string): Promis
   if (demo && !request.headers.get('authorization')) return demoContext(resolvedOrgId);
 
   const identity = await identityFromRequest(request);
+  await requireActiveOrganization(resolvedOrgId);
   const platform = await platformPolicyForOrg(resolvedOrgId);
 
   // Anonymous access is deliberately read-only and organization-scoped.
@@ -236,6 +244,7 @@ export async function actorFromMobileSelfServiceRequest(
   }
 
   const identity = await identityFromRequest(request);
+  await requireActiveOrganization(resolvedOrgId);
 
   if (identity.signInProvider === 'anonymous') {
     throw new ApiError(
