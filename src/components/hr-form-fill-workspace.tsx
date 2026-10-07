@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from 'react';
 import { activeOrgId, apiFetch } from '@/lib/http/client';
+import { OpsiqoSelect } from '@/components/opsiqo-select';
 
 type Field={
   id:string;kind:string;label:string;helpText?:string;placeholder?:string;required?:boolean;defaultValue?:unknown;
@@ -99,9 +100,7 @@ function FillField({
   </label>;
 
   if(field.kind==='yes_no')return <label className="field"><span>{field.label}{field.required?' *':''}</span>
-    <select className="input" required={field.required} value={String(answers[field.id]??'')} onChange={e=>setAnswer(field.id,e.target.value==='yes')}>
-      <option value="">Select</option><option value="yes">Yes</option><option value="no">No</option>
-    </select>{field.helpText?<span className="muted">{field.helpText}</span>:null}
+    <OpsiqoSelect ariaLabel={field.label} value={answers[field.id]===true?'yes':answers[field.id]===false?'no':''} onChange={value=>setAnswer(field.id,value===''?'':value==='yes')} options={[{value:'',label:'Select'},{value:'yes',label:'Yes'},{value:'no',label:'No'}]}/>{field.helpText?<span className="muted">{field.helpText}</span>:null}
   </label>;
 
   if(field.kind==='scale_1_5'||field.kind==='scale_1_10'||field.kind==='rating') {

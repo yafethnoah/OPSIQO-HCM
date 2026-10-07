@@ -26,6 +26,7 @@ export function HrFormsOperationalWorkspace(){
   const [selectedId,setSelectedId]=useState(''),[selectedPack,setSelectedPack]=useState<PackWorkspace|null>(null),[activeInstance,setActiveInstance]=useState<FillInstance|null>(null);
   const [intent,setIntent]=useState('recruitment'),[output,setOutput]=useState<'single'|'pack'>('single'),[targetId,setTargetId]=useState(''),[notes,setNotes]=useState(''),[assignWorkerId,setAssignWorkerId]=useState('');
   const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[studioResult,setStudioResult]=useState<any>(null),[moreOpen,setMoreOpen]=useState(false),[advancedOpen,setAdvancedOpen]=useState(false);
+  const [advancedKind,setAdvancedKind]=useState('text');
 
   const org=()=>activeOrgId();
   const selected=useMemo(()=>templates.find(x=>x.id===selectedId)||null,[templates,selectedId]);
@@ -205,7 +206,7 @@ export function HrFormsOperationalWorkspace(){
           <div><span className="eyebrow">Step 2</span><h2 className="sectionTitle">OPSIQO prepares everything</h2></div>
           {chosenIntent?.pack?<label className="field"><span>What should be created?</span><OpsiqoSelect ariaLabel="What should be created?" value={output} onChange={value=>setOutput(value as 'single'|'pack')} options={[{value:'pack',label:'Complete form pack — recommended'},{value:'single',label:'Single primary form'}]}/></label>:<div className="notice"><strong>Output:</strong> Complete professional form</div>}
           <label className="field"><span>{chosenIntent?.targetKind==='requisition'?'Use this vacancy / requisition':chosenIntent?.targetKind==='worker'?'Pre-fill for this employee (optional)':'Use this position (optional)'}</span>
-            <select className="input" value={targetId} onChange={e=>setTargetId(e.target.value)}><option value="">Reusable template — no specific record</option>{targetOptions?.map(o=><option key={o.id} value={o.id}>{o.label}{o.subtitle?` — ${o.subtitle}`:''}</option>)}</select>
+            <OpsiqoSelect ariaLabel="Use this vacancy, employee or position" value={targetId} onChange={setTargetId} options={[{value:'',label:'Reusable template \u2014 no specific record'},...(targetOptions||[]).map(o=>({value:o.id,label:`${o.label}${o.subtitle?` \u2014 ${o.subtitle}`:''}`}))]}/>
           </label>
           <label className="field"><span>Anything else OPSIQO should know? <span className="muted">(optional)</span></span><textarea className="input" value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Example: Include a second manager approval or bilingual acknowledgement."/></label>
           <div className="notice"><strong>No prompt needed.</strong> OPSIQO writes the governed prompt automatically. AI review guidance is kept separate from the operational form.</div>
@@ -272,7 +273,7 @@ export function HrFormsOperationalWorkspace(){
             {selected.status==='under_review'?<button className="button" onClick={()=>action('approve')}>Approve</button>:null}
             {selected.status==='approved'?<button className="button" onClick={()=>action('publish')}>Publish</button>:null}
             {selected.status==='published'?<>
-              <label className="field" style={{minWidth:260}}><span>Assign / pre-fill employee (optional)</span><select className="input" value={assignWorkerId} onChange={e=>setAssignWorkerId(e.target.value)}><option value="">No employee selected</option>{options?.workers.map(w=><option key={w.id} value={w.id}>{w.label}{w.subtitle?` — ${w.subtitle}`:''}</option>)}</select></label>
+              <label className="field" style={{minWidth:260}}><span>Assign / pre-fill employee (optional)</span><OpsiqoSelect ariaLabel="Assign or pre-fill employee" value={assignWorkerId} onChange={setAssignWorkerId} options={[{value:'',label:'No employee selected'},...(options?.workers||[]).map(w=>({value:w.id,label:`${w.label}${w.subtitle?` \u2014 ${w.subtitle}`:''}`}))]}/></label>
               <button className="button" disabled={busy} onClick={startSingle}>Start / Fill Form</button>
             </>:null}
           </>}
@@ -291,7 +292,7 @@ export function HrFormsOperationalWorkspace(){
         <div><span className="eyebrow">Advanced Editor</span><h2 className="sectionTitle">Exceptional field-level changes</h2><p className="muted">Most users should not need this editor. Published documents remain immutable.</p></div>
         <form className="grid2" onSubmit={addField}>
           <label className="field"><span>Field label</span><input className="input" name="label" required/></label>
-          <label className="field"><span>Field type</span><select className="input" name="kind">{friendlyKinds.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
+          <label className="field"><span>Field type</span><input type="hidden" name="kind" value={advancedKind}/><OpsiqoSelect ariaLabel="Field type" value={advancedKind} onChange={setAdvancedKind} options={friendlyKinds.map(([value,label])=>({value,label}))}/></label>
           <label className="field"><span>Instructions / help</span><input className="input" name="helpText"/></label>
           <label className="field"><span>Weight (rating only)</span><input className="input" name="weight" type="number" min="0" max="100"/></label>
           <label className="checkRow"><input type="checkbox" name="required"/> Required</label>
@@ -347,7 +348,7 @@ function PackPanel({
     </div>
 
     {pack.status==='published'?<div className="stack">
-      <label className="field"><span>Assign / pre-fill employee (optional)</span><select className="input" value={workerId} onChange={e=>setWorkerId(e.target.value)}><option value="">No employee selected</option>{workers.map(w=><option key={w.id} value={w.id}>{w.label}{w.subtitle?` — ${w.subtitle}`:''}</option>)}</select></label>
+      <label className="field"><span>Assign / pre-fill employee (optional)</span><OpsiqoSelect ariaLabel="Assign or pre-fill pack employee" value={workerId} onChange={setWorkerId} options={[{value:'',label:'No employee selected'},...workers.map(w=>({value:w.id,label:`${w.label}${w.subtitle?` \u2014 ${w.subtitle}`:''}`}))]}/></label>
       <button className="button" disabled={busy} onClick={onStart}>Start complete pack</button>
     </div>:null}
 
