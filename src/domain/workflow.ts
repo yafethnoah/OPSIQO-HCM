@@ -74,6 +74,7 @@ export const WORKFLOW_TRIGGER_VALUES = [
   'experience.survey_published',
   'experience.survey_closed',
   'experience.feedback_submitted',
+  'experience.signal_detected',
   'service.ticket_created',
   'service.ticket_sla_breached',
   'service.ticket_resolved',
