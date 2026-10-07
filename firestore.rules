@@ -63,6 +63,7 @@ service cloud.firestore {
       match /hrFormInstances/{docId} { allow read, write: if false; }
       match /hrFormSubmissions/{docId} { allow read, write: if false; }
       match /hrFormPacks/{docId} { allow read, write: if false; }
+      match /hrFormCounters/{docId} { allow read, write: if false; }
       match /workflowRuns/{docId} { allow read, write: if false; }
       match /workflowStepRuns/{docId} { allow read, write: if false; }
       match /workflowEscalations/{docId} { allow read: if isHR(orgId); allow write: if false; }

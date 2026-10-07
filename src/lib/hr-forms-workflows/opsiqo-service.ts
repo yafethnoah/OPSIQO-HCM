@@ -110,7 +110,7 @@ export async function actOnFormTemplate(actor:ActorContext,id:string,raw:unknown
   }
   if(action==='approve'){
     requireApprove(actor);
-    if(!['draft','under_review'].includes(current.status))throw new ApiError(409,'Form is not awaiting approval.','hr_form_state');
+    if(current.status!=='under_review')throw new ApiError(409,'Form must be submitted for review before approval.','hr_form_state');
     return patchStatus(actor,current,'approved','hr_forms.template.approve',{approvedBy:actor.uid,approvedAt:timestamp});
   }
   if(action==='publish'){
@@ -162,6 +162,19 @@ export async function submitFormInstance(actor:ActorContext,instanceId:string,ra
     await submissionRef(actor.orgId,id).set({workflowRunId:run.run.id,status:'under_review'},{merge:true});submission.workflowRunId=run.run.id;submission.status='under_review';
   }
   await createFormNotification(actor,{title:'HR form submitted',message:`${instance.snapshot.title} was submitted and is ready for governed review.`,targetRole:'hr_admin',entityId:id});
+  if(instance.packId){
+    const pRef=db.doc(`organizations/${actor.orgId}/hrFormPacks/${instance.packId}`),pSnap=await pRef.get();
+    if(pSnap.exists){
+      const pack:any=pSnap.data(),instanceIds:Array<string>=Array.isArray(pack.instanceIds)?pack.instanceIds:[];
+      const states=await Promise.all(instanceIds.map(async otherId=>{
+        const snap=otherId===instance.id?null:await db.doc(`organizations/${actor.orgId}/hrFormInstances/${otherId}`).get();
+        return otherId===instance.id?'submitted':String(snap?.data()?.status||'open');
+      }));
+      if(instanceIds.length&&states.every(state=>state==='submitted')){
+        await pRef.set({status:'completed',completedAt:timestamp,updatedAt:timestamp},{merge:true});
+      }
+    }
+  }
   return submission as HRFormSubmission;
 }
 
@@ -283,4 +296,19 @@ export async function exportFormSubmission(actor:ActorContext,id:string,format:'
   const safe=template.title.replace(/[^A-Za-z0-9_-]+/g,'_').slice(0,80)||'HR_Form';
   if(format==='pdf')return{bytes:buildFillablePdf({title:template.title,content,brand,documentReference:submission.id}),contentType:'application/pdf',fileName:`${safe}_${submission.id.slice(0,8)}.pdf`};
   return{bytes:buildSimpleDocx({title:template.title,lines:[{label:'Reference',value:submission.id},{label:'Submitted',value:submission.submittedAt},...lines]}),contentType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',fileName:`${safe}_${submission.id.slice(0,8)}.docx`};
+}
+
+export async function getFormInstance(actor:ActorContext,id:string){
+  requireRead(actor);
+  const snap=await instanceRef(actor.orgId,id).get();
+  if(!snap.exists)throw new ApiError(404,'Form instance not found.','hr_form_instance_not_found');
+  const row:any=snap.data();
+  if(row.assignedToUid&&row.assignedToUid!==actor.uid&&!hrRoles.has(actor.role))throw new ApiError(403,'Form instance is assigned to another user.','forbidden');
+  return row;
+}
+
+export async function listFormInstances(actor:ActorContext,templateId?:string){
+  requireRead(actor);
+  const snap=await adminDb().collection(`organizations/${actor.orgId}/hrFormInstances`).orderBy('createdAt','desc').limit(500).get();
+  return snap.docs.map(d=>d.data() as any).filter(row=>!templateId||row.templateId===templateId).filter(row=>!row.assignedToUid||row.assignedToUid===actor.uid||hrRoles.has(actor.role));
 }

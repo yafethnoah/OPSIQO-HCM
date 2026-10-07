@@ -36,3 +36,12 @@ export const studioEnhanceSchema = z.object({
   targetId: z.string().trim().max(180).optional(),
   notes: z.string().trim().max(1200).optional(),
 }).strict();
+
+export const packActionSchema = z.object({
+  action:z.enum(['submit_review','approve','publish'])
+}).strict();
+
+export const packStartSchema = z.object({
+  workerId:z.string().trim().max(180).optional(),
+  dueAt:z.string().datetime().optional(),
+}).strict();

@@ -51,7 +51,7 @@ export function buildSimpleDocx(input:{title:string; lines:Array<{label?:string;
   const body=[
     para(input.title,true),
     para('Generated through OPSIQO · Human review required'),
-    ...input.lines.map(x=>para(x.label?`${x.label}: ${x.value}`:x.value)),
+    ...input.lines.map(x=>x.value==='[[PAGE_BREAK]]'?'<w:p><w:r><w:br w:type="page"/></w:r></w:p>':para(x.label?`${x.label}: ${x.value}`:x.value)),
   ].join('');
   const doc=encoder.encode(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr></w:body></w:document>`);

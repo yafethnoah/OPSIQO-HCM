@@ -181,3 +181,98 @@ export function buildFillablePdf(input:FillablePdfInput):Uint8Array{
   chunks.push(bytes(xref));
   return joinBytes(chunks);
 }
+
+export interface FillablePdfPackDocument {
+  title:string;
+  subtitle?:string;
+  content:string;
+  documentReference?:string;
+}
+export interface FillablePdfPackInput {
+  title:string;
+  brand?:DocumentBrandProfile;
+  documents:FillablePdfPackDocument[];
+  documentReference?:string;
+}
+
+type PackPage={
+  pageId:number;
+  contentId:number;
+  widgetIds:number[];
+  fields:FillablePdfField[];
+  title:string;
+  subtitle:string;
+  reference:string;
+  pageNumber:number;
+  cover?:boolean;
+  indexLines?:string[];
+};
+
+export function buildFillablePdfPack(input:FillablePdfPackInput):Uint8Array{
+  const brand=input.brand||defaultDocumentBrand();
+  const primary=hexRgb(brand.primaryColor),accent=hexRgb(brand.accentColor);
+  const company=pdfEscape((brand.companyName||'Organization').slice(0,100));
+  const contact=pdfEscape([brand.address,brand.phone,brand.email,brand.website].filter(Boolean).join(' | ').slice(0,150));
+  const docs=input.documents.slice(0,30);
+  const pageSpecs:Array<Omit<PackPage,'pageId'|'contentId'|'widgetIds'|'pageNumber'>>=[
+    {fields:[],title:input.title,subtitle:'Controlled HR form pack',reference:String(input.documentReference||''),cover:true,indexLines:docs.map((d,i)=>`${i+1}. ${d.title}${d.documentReference?` — ${d.documentReference}`:''}`)}
+  ];
+  for(let d=0;d<docs.length;d++){
+    const doc=docs[d]!,fields=fillableFieldsFromTemplate(doc.content).map(f=>({...f,name:`d${d+1}_${f.name}`,value:''}));
+    const chunks=fields.length?Array.from({length:Math.ceil(fields.length/9)},(_,i)=>fields.slice(i*9,(i+1)*9)):[[]];
+    chunks.forEach((chunk,i)=>pageSpecs.push({fields:chunk,title:doc.title,subtitle:doc.subtitle||`Document ${d+1} of ${docs.length}`,reference:String(doc.documentReference||''),cover:false,indexLines:i===0?[]:undefined}));
+  }
+
+  let nextId=5;
+  const pages:PackPage[]=pageSpecs.map((spec,index)=>{
+    const pageId=nextId++,contentId=nextId++,widgetIds=spec.fields.map(()=>nextId++);
+    return{...spec,pageId,contentId,widgetIds,pageNumber:index+1};
+  });
+  const allWidgetIds=pages.flatMap(page=>page.widgetIds),objects:string[]=[];
+  objects[1]=`<< /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R >>`;
+  objects[2]=`<< /Type /Pages /Kids [${pages.map(page=>`${page.pageId} 0 R`).join(' ')}] /Count ${pages.length} >>`;
+  objects[3]=`<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>`;
+  objects[4]=`<< /Fields [${allWidgetIds.map(id=>`${id} 0 R`).join(' ')}] /NeedAppearances true /DR << /Font << /Helv 3 0 R >> >> /DA (/Helv 10 Tf 0 g) >>`;
+
+  pages.forEach(page=>{
+    const annots=page.widgetIds.map(id=>`${id} 0 R`).join(' ');
+    const stream:string[]=[
+      `${n(primary[0])} ${n(primary[1])} ${n(primary[2])} rg`,'0 738 612 54 re f','BT','/F1 15 Tf','1 1 1 rg',`48 762 Td (${company}) Tj`,'ET',
+      `${n(accent[0])} ${n(accent[1])} ${n(accent[2])} rg`,'0 732 612 6 re f','0 0 0 rg','BT','/F1 17 Tf',`48 704 Td (${pdfEscape(page.title.slice(0,120))}) Tj`,
+      '/F1 8 Tf',`0 -18 Td (${pdfEscape(page.subtitle.slice(0,150))}) Tj`,contact?`0 -13 Td (${contact}) Tj`:'0 -13 Td () Tj',page.reference?`0 -13 Td (Reference: ${pdfEscape(page.reference.slice(0,100))}) Tj`:'0 -13 Td () Tj','ET'
+    ];
+    if(page.cover){
+      stream.push('BT','/F1 10 Tf','48 620 Td (Pack index) Tj');
+      (page.indexLines||[]).slice(0,18).forEach((line,i)=>stream.push(`0 -24 Td (${pdfEscape(line.slice(0,95))}) Tj`));
+      stream.push('ET');
+    }else{
+      const firstY=590,rowHeight=54;
+      page.fields.forEach((field,index)=>{
+        const y=firstY-index*rowHeight;
+        stream.push('BT','/F1 8 Tf',`48 ${y+19} Td (${pdfEscape(field.label.slice(0,74))}) Tj`,'ET');
+      });
+    }
+    stream.push('BT','/F1 7 Tf',`48 34 Td (${pdfEscape(brand.footer||`${brand.companyName} - Confidential HR document`)}) Tj`,`430 0 Td (Page ${page.pageNumber} of ${pages.length}) Tj`,'ET');
+    const contentStream=stream.join('\n');
+    objects[page.pageId]=`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /Helv 3 0 R >> >> /Annots [${annots}] /Contents ${page.contentId} 0 R >>`;
+    objects[page.contentId]=`<< /Length ${bytes(contentStream).length} >>\nstream\n${contentStream}\nendstream`;
+    page.fields.forEach((field,index)=>{
+      const id=page.widgetIds[index]!,y=590-index*54,flags=field.multiline?4096:0;
+      objects[id]=`<< /Type /Annot /Subtype /Widget /FT /Tx /T (${pdfEscape(field.name)}) /TU (${pdfEscape(field.label)}) /V () /Rect [230 ${y} 564 ${y+30}] /P ${page.pageId} 0 R /F 4 /Ff ${flags} /DA (/Helv 9 Tf 0 g) /MK << /BC [${n(primary[0])} ${n(primary[1])} ${n(primary[2])}] /BG [1 1 1] >> >>`;
+    });
+  });
+
+  const chunks:Uint8Array[]=[bytes('%PDF-1.7\n%\xE2\xE3\xCF\xD3\n')],offsets:number[]=[0];
+  let cursor=chunks[0]!.length;
+  for(let id=1;id<nextId;id++){
+    if(!objects[id])throw new Error(`Missing PDF object ${id}`);
+    const chunk=bytes(`${id} 0 obj\n${objects[id]}\nendobj\n`);
+    offsets[id]=cursor;chunks.push(chunk);cursor+=chunk.length;
+  }
+  const xrefOffset=cursor,xref=[
+    `xref\n0 ${nextId}\n`,'0000000000 65535 f \n',
+    ...offsets.slice(1).map(offset=>`${String(offset).padStart(10,'0')} 00000 n \n`),
+    `trailer\n<< /Size ${nextId} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`,
+  ].join('');
+  chunks.push(bytes(xref));return joinBytes(chunks);
+}
