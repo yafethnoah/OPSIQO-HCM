@@ -11,7 +11,7 @@ import { buildFillablePdf } from '@/lib/documents/fillable-pdf';
 import { buildSimpleDocx } from './docx';
 import { createFormTemplate, getFormTemplate } from './opsiqo-service';
 import { applyTargetContext, packBlueprints, singleBlueprint, type Blueprint } from './professional-blueprints';
-import { studioGenerateSchema, type StudioGenerateInput, type StudioIntent } from './studio-schemas';
+import { studioEnhanceSchema, studioGenerateSchema, type StudioGenerateInput, type StudioIntent } from './studio-schemas';
 
 const now=()=>new Date().toISOString();
 const hrRoles=new Set(['super_admin','org_admin','hr_admin','hr_partner']);
@@ -160,17 +160,25 @@ function uniqueCode(prefix:string,index:number){
   const stamp=new Date().toISOString().replace(/\D/g,'').slice(2,12);
   return `${prefix}-${stamp}-${String(index+1).padStart(2,'0')}`.slice(0,80);
 }
-function attachAiGuidance(blueprint:Blueprint,answer:any):Blueprint{
-  const copy=structuredClone(blueprint);
+function applyAiGuidanceToFields(fields:HRFormField[],answer:any):HRFormField[]{
+  const clean=structuredClone(fields).filter((f:HRFormField)=>f.id!=='ai_review_guidance');
   const findings=(answer?.findings||[]).slice(0,4).map((x:any)=>String(x)).filter(Boolean);
   if(findings.length){
-    copy.fields.push({id:'ai_review_guidance',kind:'section',label:'OPSIQO Review Guidance',helpText:'AI-assisted, evidence-grounded guidance. Human review required.',children:findings.map((f:string,i:number)=>({id:`ai_guidance_${i+1}`,kind:'instruction',label:f}))});
+    clean.push({id:'ai_review_guidance',kind:'section',label:'OPSIQO Review Guidance',helpText:'AI-assisted, evidence-grounded guidance. Human review required.',children:findings.map((f:string,i:number)=>({id:`ai_guidance_${i+1}`,kind:'instruction',label:f}))});
   }
+  return clean;
+}
+function attachAiGuidance(blueprint:Blueprint,answer:any):Blueprint{
+  const copy=structuredClone(blueprint);
+  copy.fields=applyAiGuidanceToFields(copy.fields,answer);
   return copy;
+}
+function safeEnhancementWarning(){
+  return 'The professional forms were generated successfully. AI enhancement is temporarily unavailable, so OPSIQO used its governed HR blueprints and available organization records. You can retry AI enhancement later.';
 }
 
 export async function generateStudioArtifact(actor:ActorContext,raw:unknown){
-  requireAi(actor);
+  requireStudio(actor);
   const input=studioGenerateSchema.parse(raw);
   const target=await resolveTarget(actor,input);
   const evidence=await discoverSupportingEvidence(actor,input,target);
@@ -178,11 +186,31 @@ export async function generateStudioArtifact(actor:ActorContext,raw:unknown){
   const organization=labelOf(orgSnap.data(),'Organization');
   const automaticPrompt=buildAutomaticPrompt(input,organization,target.label,evidence);
   const profile=await modelProfile(actor.orgId);
-  const generated=evidence.length?await generateAiAnswer({
-    question:automaticPrompt,
-    systemInstruction:'You are OPSIQO Intelligent Form Studio. The application, not the end user, has composed this prompt from a selected HR process and governed organization context. Analyze the evidence to improve the professional HR forms supplied by OPSIQO deterministic blueprints. Never invent missing organization policy or legal rules. Identify useful organization-specific considerations and evidence gaps. Do not make consequential employment decisions.',
-    evidence:evidence as any
-  },profile):null;
+  let generated:Awaited<ReturnType<typeof generateAiAnswer>>|null=null;
+  let enhancementStatus:'completed'|'unavailable'|'skipped'='skipped';
+  let enhancementFailureCode:string|null=null;
+  let enhancementWarning:string|null=null;
+  if(actor.permissions.includes('ai.use')&&evidence.length){
+    try{
+      generated=await generateAiAnswer({
+        question:automaticPrompt,
+        systemInstruction:'You are OPSIQO Intelligent Form Studio. The application, not the end user, has composed this prompt from a selected HR process and governed organization context. Analyze the evidence to improve the professional HR forms supplied by OPSIQO deterministic blueprints. Never invent missing organization policy or legal rules. Identify useful organization-specific considerations and evidence gaps. Do not make consequential employment decisions.',
+        evidence:evidence as any
+      },profile);
+      enhancementStatus='completed';
+    }catch(error){
+      enhancementStatus='unavailable';
+      enhancementFailureCode=String((error as any)?.code||'ai_provider_unavailable').slice(0,120);
+      enhancementWarning=safeEnhancementWarning();
+      console.warn('OPSIQO_HR_FORMS_AI_ENHANCEMENT_UNAVAILABLE',JSON.stringify({orgId:actor.orgId,code:enhancementFailureCode,provider:profile.provider,model:profile.model}));
+    }
+  }else if(!actor.permissions.includes('ai.use')){
+    enhancementStatus='skipped';
+    enhancementWarning='The professional forms were generated without AI enhancement because this user does not have AI-use permission.';
+  }else if(!evidence.length){
+    enhancementStatus='skipped';
+    enhancementWarning='The professional forms were generated from OPSIQO governed blueprints. No organization evidence was available for AI enhancement.';
+  }
 
   const sourceBlueprints=input.output==='pack'?packBlueprints(input.intent):[singleBlueprint(input.intent)];
   const defaults=contextDefaults(input,target);
@@ -197,8 +225,8 @@ export async function generateStudioArtifact(actor:ActorContext,raw:unknown){
       aiGenerated:Boolean(generated),
       sourceDocumentIds:evidence.map(x=>x.id),
       aiGenerationMetadata:{
-        studioVersion:'H51.78',promptWrittenBy:'OPSIQO',automaticPrompt,automaticPromptHash:createHash('sha256').update(automaticPrompt).digest('hex'),
-        provider:generated?.provider||'deterministic',model:generated?.model||'professional-blueprint-v1',
+        studioVersion:'H51.79',promptWrittenBy:'OPSIQO',automaticPrompt,automaticPromptHash:createHash('sha256').update(automaticPrompt).digest('hex'),
+        provider:generated?.provider||'deterministic',model:generated?.model||'professional-blueprint-v1',aiEnhancementStatus:enhancementStatus,aiEnhancementFailureCode:enhancementFailureCode,
         citations:generated?.answer?.citations||[],confidence:generated?.answer?.confidence??null,
         evidenceCompleteness:generated?.answer?.evidenceCompleteness??null,limitations:generated?.answer?.limitations||[],
         intent:input.intent,output:input.output,targetKind:input.targetKind||null,targetId:input.targetId||null
@@ -223,9 +251,51 @@ export async function generateStudioArtifact(actor:ActorContext,raw:unknown){
     templates,pack,promptWrittenBy:'OPSIQO',promptPreview:automaticPrompt.slice(0,900),
     contextUsed:evidence.map(x=>({id:x.id,title:x.title,source:x.source})),
     missingOrganizationalSources:missing,
-    warnings:generated?.answer?.limitations||[],
+    warnings:[...(generated?.answer?.limitations||[]),...(enhancementWarning?[enhancementWarning]:[])],
+    aiEnhancement:{status:enhancementStatus,canRetry:enhancementStatus==='unavailable'&&actor.permissions.includes('ai.use'),warning:enhancementWarning,provider:generated?.provider||profile.provider,model:generated?.model||profile.model},
     requiresHumanReview:true
   };
+}
+
+
+export async function enhanceStudioArtifacts(actor:ActorContext,raw:unknown){
+  requireAi(actor);
+  const input=studioEnhanceSchema.parse(raw);
+  const target=await resolveTarget(actor,input);
+  const evidence=await discoverSupportingEvidence(actor,input,target);
+  const orgSnap=await adminDb().doc(`organizations/${actor.orgId}`).get();
+  const organization=labelOf(orgSnap.data(),'Organization');
+  const automaticPrompt=buildAutomaticPrompt(input,organization,target.label,evidence);
+  const profile=await modelProfile(actor.orgId);
+  if(!evidence.length)return{status:'unavailable',canRetry:true,warning:'No organization evidence is currently available for AI enhancement.',templates:[]};
+  let generated:Awaited<ReturnType<typeof generateAiAnswer>>;
+  try{
+    generated=await generateAiAnswer({
+      question:automaticPrompt,
+      systemInstruction:'You are OPSIQO Intelligent Form Studio. Enhance only the existing governed professional forms using supplied organization evidence. Never invent policy, legal requirements or consequential employment decisions.',
+      evidence:evidence as any
+    },profile);
+  }catch(error){
+    const code=String((error as any)?.code||'ai_provider_unavailable').slice(0,120);
+    console.warn('OPSIQO_HR_FORMS_AI_RETRY_UNAVAILABLE',JSON.stringify({orgId:actor.orgId,code,provider:profile.provider,model:profile.model}));
+    return{status:'unavailable',canRetry:true,warning:safeEnhancementWarning(),templates:[]};
+  }
+  const db=adminDb(),timestamp=now(),updated:HRFormTemplate[]=[];
+  const batch=db.batch();
+  for(const id of input.templateIds){
+    const ref=db.doc(`organizations/${actor.orgId}/hrFormTemplates/${id}`);
+    const snap=await ref.get();
+    if(!snap.exists)continue;
+    const current=snap.data() as HRFormTemplate;
+    if(!['draft','under_review'].includes(current.status))continue;
+    const next:HRFormTemplate={...current,fields:applyAiGuidanceToFields(current.fields,generated.answer),aiGenerated:true,updatedBy:actor.uid,updatedAt:timestamp,aiGenerationMetadata:{...(current.aiGenerationMetadata||{}),studioVersion:'H51.79',promptWrittenBy:'OPSIQO',automaticPrompt,automaticPromptHash:createHash('sha256').update(automaticPrompt).digest('hex'),provider:generated.provider,model:generated.model,citations:generated.answer.citations,confidence:generated.answer.confidence,evidenceCompleteness:generated.answer.evidenceCompleteness,limitations:generated.answer.limitations,aiEnhancementStatus:'completed',aiEnhancementFailureCode:null}};
+    const audit=buildAudit(actor,{action:'hr_forms.template.ai_enhance',entityType:'hrFormTemplate',entityId:id,before:{version:current.version,aiGenerated:current.aiGenerated},after:{version:next.version,aiGenerated:true,provider:generated.provider,model:generated.model}});
+    batch.set(ref,next);
+    batch.create(db.doc(`organizations/${actor.orgId}/auditLogs/${audit.id}`),audit);
+    updated.push(next);
+  }
+  if(updated.length)await batch.commit();
+  return{status:'completed',canRetry:false,warning:null,templates:updated,provider:generated.provider,model:generated.model};
 }
 
 function docLines(template:HRFormTemplate){
@@ -270,4 +340,27 @@ export async function exportBlankTemplate(actor:ActorContext,templateId:string,f
   if(format==='docx')return{bytes:buildSimpleDocx({title:template.title,lines}),contentType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',fileName:`${safe}_v${template.version}.docx`};
   const content=[`# ${template.title}`,...lines.map(x=>x.label?`${x.label}: ${x.value}`:x.value)].join('\n');
   return{bytes:buildFillablePdf({title:template.title,content,brand,documentReference:`${template.formCode}-v${template.version}`}),contentType:'application/pdf',fileName:`${safe}_v${template.version}.pdf`};
+}
+
+export async function exportFormPack(actor:ActorContext,packId:string,format:'pdf'|'docx'){
+  requireStudio(actor);
+  const db=adminDb(),packSnap=await db.doc(`organizations/${actor.orgId}/hrFormPacks/${packId}`).get();
+  if(!packSnap.exists)throw new ApiError(404,'Form pack not found.','hr_form_pack_not_found');
+  const pack:any=packSnap.data(),ids:Array<string>=Array.isArray(pack.templateIds)?pack.templateIds:[];
+  const templates:HRFormTemplate[]=[];
+  for(const id of ids){
+    const snap=await db.doc(`organizations/${actor.orgId}/hrFormTemplates/${id}`).get();
+    if(snap.exists)templates.push(snap.data() as HRFormTemplate);
+  }
+  if(!templates.length)throw new ApiError(409,'Form pack has no available templates.','hr_form_pack_empty');
+  const lines:Array<{label?:string;value:string}>=[];
+  for(const template of templates){
+    lines.push({value:''},{value:`===== ${template.title.toUpperCase()} =====`},{value:`Form: ${template.formCode} | Version: ${template.version} | Status: ${template.status}`},...docLines(template));
+  }
+  const title=String(pack.name||'OPSIQO HR Form Pack');
+  const safe=title.replace(/[^A-Za-z0-9_-]+/g,'_').slice(0,90)||'OPSIQO_HR_Form_Pack';
+  if(format==='docx')return{bytes:buildSimpleDocx({title,lines}),contentType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',fileName:`${safe}.docx`};
+  const settings=await getPlatformSettings(actor),brand=brandFromPlatformSettings(settings as any,'Organization');
+  const content=[`# ${title}`,...lines.map(x=>x.label?`${x.label}: ${x.value}`:x.value)].join('\n');
+  return{bytes:buildFillablePdf({title,content,brand,documentReference:packId}),contentType:'application/pdf',fileName:`${safe}.pdf`};
 }

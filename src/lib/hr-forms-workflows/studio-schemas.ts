@@ -27,3 +27,12 @@ export const studioGenerateSchema = z.object({
 
 export type StudioIntent = z.infer<typeof studioIntentSchema>;
 export type StudioGenerateInput = z.infer<typeof studioGenerateSchema>;
+
+export const studioEnhanceSchema = z.object({
+  intent: studioIntentSchema,
+  output: z.enum(['single','pack']).default('single'),
+  templateIds: z.array(z.string().trim().min(1).max(180)).min(1).max(30),
+  targetKind: studioTargetKindSchema,
+  targetId: z.string().trim().max(180).optional(),
+  notes: z.string().trim().max(1200).optional(),
+}).strict();
