@@ -202,7 +202,7 @@ export function HrFormsOperationalWorkspace(){
       </section>
 
       <section className="grid2">
-        <form className="card stack" onSubmit={generate}>
+        <form className="card stack hrFormsStudioStep" onSubmit={generate}>
           <div><span className="eyebrow">Step 2</span><h2 className="sectionTitle">OPSIQO prepares everything</h2></div>
           {chosenIntent?.pack?<label className="field"><span>What should be created?</span><OpsiqoSelect ariaLabel="What should be created?" value={output} onChange={value=>setOutput(value as 'single'|'pack')} options={[{value:'pack',label:'Complete form pack — recommended'},{value:'single',label:'Single primary form'}]}/></label>:<div className="notice"><strong>Output:</strong> Complete professional form</div>}
           <label className="field"><span>{chosenIntent?.targetKind==='requisition'?'Use this vacancy / requisition':chosenIntent?.targetKind==='worker'?'Pre-fill for this employee (optional)':'Use this position (optional)'}</span>

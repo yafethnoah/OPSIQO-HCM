@@ -643,14 +643,14 @@ body:has(.prehireShell) .prehireMain .row{min-width:0;max-width:100%;flex-wrap:w
 }
 
 /* H51.80.3 OPSIQO controlled dropdown */
-.opsiqoSelect{position:relative;width:100%;isolation:isolate}
+.opsiqoSelect{position:relative;width:100%;isolation:isolate;z-index:1}\n.opsiqoSelect.isOpen{z-index:500}
 .opsiqoSelectTrigger{width:100%;min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--line-strong);border-radius:12px;padding:10px 14px;background:#07121f;color:var(--text);cursor:pointer;text-align:left;box-shadow:inset 0 0 0 1px rgba(0,229,255,.02);transition:border-color .15s ease,box-shadow .15s ease,background .15s ease}
 .opsiqoSelectTrigger:hover{border-color:#28779a;background:#081827}
 .opsiqoSelect.isOpen .opsiqoSelectTrigger,.opsiqoSelectTrigger:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,.13),0 0 24px rgba(0,229,255,.08)}
 .opsiqoSelectTrigger:disabled{opacity:.6;cursor:not-allowed}
 .opsiqoSelectChevron{font-size:19px;line-height:1;color:#78dceb;transition:transform .15s ease}
 .opsiqoSelect.isOpen .opsiqoSelectChevron{transform:rotate(180deg)}
-.opsiqoSelectMenu{position:absolute;z-index:100;top:calc(100% + 6px);left:0;right:0;width:100%;height:auto;min-height:0;max-height:min(280px,40vh);overflow-y:auto;padding:6px;border:1px solid #205775;border-radius:12px;background:#07121f;color:#eef6ff;box-shadow:0 22px 55px rgba(0,0,0,.48),0 0 0 1px rgba(0,229,255,.05);color-scheme:dark}
+.opsiqoSelectMenu{position:absolute;z-index:501;top:calc(100% + 6px);left:0;right:0;width:100%;height:auto;min-height:0;max-height:min(280px,40vh);overflow-y:auto;padding:6px;border:1px solid #205775;border-radius:12px;background:#07121f;color:#eef6ff;box-shadow:0 22px 55px rgba(0,0,0,.48),0 0 0 1px rgba(0,229,255,.05);color-scheme:dark}
 .opsiqoSelectOption{width:100%;min-height:40px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:0;border-radius:8px;padding:9px 12px;background:transparent;color:#d8e7f4;text-align:left;cursor:pointer}
 .opsiqoSelectOption:hover,.opsiqoSelectOption.isActive{background:rgba(0,229,255,.09);color:#fff}
 .opsiqoSelectOption.isSelected{background:linear-gradient(90deg,rgba(0,229,255,.16),rgba(30,91,255,.09));color:#fff;font-weight:700}
@@ -661,3 +661,35 @@ html[data-theme="light"] .opsiqoSelectOption{color:#24374b}
 html[data-theme="light"] .opsiqoSelectOption:hover,html[data-theme="light"] .opsiqoSelectOption.isActive{background:#eef8fa;color:#152235}
 html[data-theme="light"] .opsiqoSelectOption.isSelected{background:#e3f6f8;color:#0d5260}
 @media(max-width:620px){.opsiqoSelectMenu{max-height:240px}}
+
+/* H51.80.5 dropdown stacking hardening */
+.hrFormsStudioStep{overflow:visible!important;position:relative}
+.hrFormsStudioStep .field{overflow:visible}
+.hrFormsStudioStep .opsiqoSelect.isOpen{z-index:500}
+.hrFormsStudioStep .opsiqoSelectMenu{z-index:501}
+
+/* H51.80.5.1 final dropdown stacking override */
+.opsiqoSelect {
+  position: relative;
+  z-index: 1;
+}
+.opsiqoSelect.isOpen {
+  z-index: 10000 !important;
+}
+.opsiqoSelect.isOpen .opsiqoSelectMenu {
+  z-index: 10001 !important;
+}
+.hrFormsStudioStep {
+  position: relative;
+  overflow: visible !important;
+}
+.hrFormsStudioStep .field {
+  position: relative;
+  overflow: visible !important;
+}
+.hrFormsStudioStep .opsiqoSelect.isOpen {
+  z-index: 10000 !important;
+}
+.hrFormsStudioStep .opsiqoSelect.isOpen .opsiqoSelectMenu {
+  z-index: 10001 !important;
+}
