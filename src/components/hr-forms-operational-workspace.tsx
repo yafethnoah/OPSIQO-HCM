@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { activeOrgId, apiDownload, apiFetch } from '@/lib/http/client';
 import { HrFormDocumentPreview } from '@/components/hr-form-document-preview';
 import { HrFormFillWorkspace, type FillInstance } from '@/components/hr-form-fill-workspace';
+import { OpsiqoSelect } from '@/components/opsiqo-select';
 
 type Field={id:string;kind:string;label:string;required?:boolean;helpText?:string;defaultValue?:unknown;scoring?:{enabled:boolean;weight?:number;anchors?:Record<string,string>};children?:Field[]};
 type Template={id:string;formCode:string;title:string;description?:string;category:string;subcategory?:string;status:string;version:string;sensitivity:string;workflowId?:string;aiGenerated:boolean;aiGenerationMetadata?:Record<string,any>;fields:Field[];updatedAt:string};
@@ -202,7 +203,7 @@ export function HrFormsOperationalWorkspace(){
       <section className="grid2">
         <form className="card stack" onSubmit={generate}>
           <div><span className="eyebrow">Step 2</span><h2 className="sectionTitle">OPSIQO prepares everything</h2></div>
-          {chosenIntent?.pack?<label className="field"><span>What should be created?</span><select className="input" value={output} onChange={e=>setOutput(e.target.value as any)}><option value="pack">Complete form pack — recommended</option><option value="single">Single primary form</option></select></label>:<div className="notice"><strong>Output:</strong> Complete professional form</div>}
+          {chosenIntent?.pack?<label className="field"><span>What should be created?</span><OpsiqoSelect ariaLabel="What should be created?" value={output} onChange={value=>setOutput(value as 'single'|'pack')} options={[{value:'pack',label:'Complete form pack — recommended'},{value:'single',label:'Single primary form'}]}/></label>:<div className="notice"><strong>Output:</strong> Complete professional form</div>}
           <label className="field"><span>{chosenIntent?.targetKind==='requisition'?'Use this vacancy / requisition':chosenIntent?.targetKind==='worker'?'Pre-fill for this employee (optional)':'Use this position (optional)'}</span>
             <select className="input" value={targetId} onChange={e=>setTargetId(e.target.value)}><option value="">Reusable template — no specific record</option>{targetOptions?.map(o=><option key={o.id} value={o.id}>{o.label}{o.subtitle?` — ${o.subtitle}`:''}</option>)}</select>
           </label>
